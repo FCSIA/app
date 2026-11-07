@@ -137,7 +137,7 @@ export function WorkshopPanel({
                               </span>
                             )}
                             <span className={cn(
-                              'flex items-center gap-1.5 rounded-md bg-muted px-2 py-1',
+                              'flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 tabular-nums',
                               isFull && 'text-destructive',
                             )}>
                               <Users className="size-3.5" />
@@ -162,7 +162,7 @@ export function WorkshopPanel({
                               size="sm"
                               variant={isRegistered ? 'tertiary' : 'primary'}
                               leadingIcon={isRegistered ? CheckCircle : Ticket}
-                              loading={actionPending != null}
+                              loading={actionPending === `register:${w._id}` || actionPending === `unregister:${w._id}`}
                               disabled={(!isRegistered && isFull) || actionPending != null}
                               onClick={() => isRegistered ? onUnregister(w._id) : onRegister(w._id)}
                             >

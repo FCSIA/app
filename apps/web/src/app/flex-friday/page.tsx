@@ -136,7 +136,7 @@ function FlexFridayWorkspace() {
   };
 
   const handleRegister = (workshopId: string) => {
-    void actions.runAction('register', async () => {
+    void actions.runAction(`register:${workshopId}`, async () => {
       await register({
         workshopId: workshopId as Id<'flexWorkshops'>,
       });
@@ -145,7 +145,7 @@ function FlexFridayWorkspace() {
   };
 
   const handleUnregister = (workshopId: string) => {
-    void actions.runAction('unregister', async () => {
+    void actions.runAction(`unregister:${workshopId}`, async () => {
       await unregister({
         workshopId: workshopId as Id<'flexWorkshops'>,
       });

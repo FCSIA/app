@@ -1483,6 +1483,7 @@ function DatePickerCore(props: DatePickerProps & { Popover: ComponentType<DatePi
       {name && (
         <input
           type="hidden"
+          disabled={disabled}
           name={name}
           value={formValue(
             mode === "range" ? range : single,

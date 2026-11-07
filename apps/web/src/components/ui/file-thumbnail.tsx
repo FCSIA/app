@@ -4,38 +4,8 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useShape } from "@/lib/shape-context";
 
-// ─── Lazy pdfjs loader ────────────────────────────────────────────────────
-// Imports pdfjs-dist on first PDF, caches the module, and points the worker
-// at the matching CDN build. Consumers don't need bundler-side worker config.
-type PdfjsModule = typeof import("pdfjs-dist");
-let pdfjsPromise: Promise<PdfjsModule> | null = null;
-
-async function loadPdfjs(): Promise<PdfjsModule> {
-  if (!pdfjsPromise) {
-    pdfjsPromise = import("pdfjs-dist").then((mod) => {
-      if (!mod.GlobalWorkerOptions.workerSrc) {
-        mod.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${mod.version}/build/pdf.worker.min.mjs`;
-      }
-      return mod;
-    });
-  }
-  return pdfjsPromise;
-}
-
-async function renderPdfFirstPage(file: File, targetWidth: number): Promise<string> {
-  const pdfjs = await loadPdfjs();
-  const buffer = await file.arrayBuffer();
-  const pdf = await pdfjs.getDocument({ data: buffer }).promise;
-  const page = await pdf.getPage(1);
-  const baseViewport = page.getViewport({ scale: 1 });
-  const scale = (targetWidth * 2) / baseViewport.width; // 2× for retina
-  const viewport = page.getViewport({ scale });
-  const canvas = document.createElement("canvas");
-  canvas.width = viewport.width;
-  canvas.height = viewport.height;
-  await page.render({ canvas, viewport }).promise;
-  return canvas.toDataURL("image/png");
-}
+import { renderPdfFirstPage } from "@/lib/pdf-thumbnail";
+export { setPdfWorkerSrc } from "@/lib/pdf-thumbnail";
 
 // ─── File thumbnail ───────────────────────────────────────────────────────
 // Read-only square preview of a File. Images use object-cover via
@@ -64,40 +34,40 @@ function FileThumbnail({ file, size, className }: FileThumbnailProps) {
   // fresh URL and updates state. The one-frame "before URL" state is
   // covered by the bg-accent (no fallback icon shown for images), so the
   // transition is visually clean.
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<{ file: File; url: string } | null>(null);
+  const imageUrl = imagePreview?.file === file ? imagePreview.url : null;
   useEffect(() => {
     if (!isImage) {
       // Clear stale state if the `file` prop swaps type on the same mount —
       // otherwise a revoked blob URL would keep winning over the new preview.
-      setImageUrl(null);
+      setImagePreview(null);
       return;
     }
     const url = URL.createObjectURL(file);
-    setImageUrl(url);
+    setImagePreview({ file, url });
     return () => URL.revokeObjectURL(url);
   }, [isImage, file]);
 
   // PDFs need async rendering — loading flash is unavoidable for the first
   // ~100–300ms while pdfjs loads. Falls back to the generic icon on error
   // (corrupt/password-protected file, CDN worker blocked).
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfPreview, setPdfPreview] = useState<{ file: File; size: number; url: string } | null>(null);
+  const pdfUrl = pdfPreview?.file === file && pdfPreview.size === size ? pdfPreview.url : null;
   const [pdfError, setPdfError] = useState(false);
   useEffect(() => {
     setPdfError(false);
-    if (!isPdf) {
-      setPdfUrl(null);
-      return;
-    }
-    let cancelled = false;
-    renderPdfFirstPage(file, size)
+    setPdfPreview(null);
+    if (!isPdf) return;
+    const controller = new AbortController();
+    renderPdfFirstPage(file, size, controller.signal)
       .then((url) => {
-        if (!cancelled) setPdfUrl(url);
+        if (!controller.signal.aborted) setPdfPreview({ file, size, url });
       })
       .catch(() => {
-        if (!cancelled) setPdfError(true);
+        if (!controller.signal.aborted) setPdfError(true);
       });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [file, isPdf, size]);
 
@@ -164,5 +134,5 @@ function FileThumbnail({ file, size, className }: FileThumbnailProps) {
   );
 }
 
-export { FileThumbnail, loadPdfjs, renderPdfFirstPage };
+export { FileThumbnail };
 export type { FileThumbnailProps };

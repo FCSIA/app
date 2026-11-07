@@ -16,10 +16,55 @@ effort: dependency cleanup, upstream opportunities, and feature callsites. Their
 findings were reconciled with local source and pinned upstream source. The audit
 is broader than the earlier interaction checklist, but is not exhaustive.
 
-This is an inventory and proposed roadmap. No dependency removal, component
-installation, runtime change, deployment, issue, or upstream PR is included.
+The original inventory below describes the research snapshot above. The owner
+subsequently authorized implementation; the following status supersedes its
+proposed dispositions where noted. No deployment, external issue, or upstream
+PR is included.
 
-## Evidence and limits
+## Implementation status — 2026-11-06
+
+Implemented on `fix/ui-library-reliability` with three GPT-6.1 Sol delegates at
+low reasoning effort, followed by integration and review:
+
+| Work | Result |
+| --- | --- |
+| Dependency cleanup | Removed 20 web runtime declarations, one web type declaration, and two mobile runtime declarations; ten unused UI adapters, the unreferenced alternative-icon map, and the redundant hot-toast host. Kept the active Radix toast, Ariakit combobox, message scroller, KaTeX, OCR assets, and required native peers. Reconciled future-use native dependency wording |
+| Lock/install | Regenerated the lockfile: 67 package keys removed, including nested deduplication keys; no new keys. Two existing transitive versions (`react-visually-hidden` and `fast-equals`) move to root keys as their older sole-use versions disappear. No new resolved package versions were introduced. Victory's Skia platform/CanvasKit dependency chain is absent. Frozen install succeeds. These are dependency changes, not measured browser/native byte savings |
+| DatePicker | Disabled is forwarded to the named hidden form control. Four SSR boundary tests cover date, range, time and time-range variants; browser FormData/reset testing remains separate |
+| PDF thumbnails | Rendering owns cancellation and loading-task destruction on success/failure/abort. Preview identity prevents stale file/size results. Adopted upstream's worker-source configuration API and protected this local adaptation from automatic registry overwrite. The component remains retained inventory, without a new live consumer |
+| Channel Media/Files | Existing paginated endpoint now supplies thread provenance. The sheet can continue through empty pages to older attachments, with load/end/error/retry states and original-message/thread jumps. Links retain their bounded recent-message query |
+| Schedule image review | Existing Dialog/Tabs/Button composition switches between the local original picture and editable recognized rows, with browser open/zoom and object-URL cleanup. Edits remain in the parent state. No wider dialog API or desktop split-pane was introduced |
+| Workshop feedback | Loading follows the selected workshop's action through reactive registration changes; the existing global concurrency lock remains. Registration/capacity counts use tabular numerals |
+| Wrapped | Selects recorded participation, omits repeated zero-activity prompts, preserves non-chat highlights, and provides an honest no-activity story. Small message totals no longer imply an invented weekly average; friend totals are described as current totals |
+
+Verification: web typecheck, lint and production build; backend/mobile typechecks;
+frozen install; 14 focused DatePicker/PDF/Wrapped tests; three attachment/pagination
+tests (including inaccessible channels, deleted messages, and an attachment
+behind 305 newer messages); 56 mobile, 64 OCR and 16 chat tests pass. Eight real
+OCR image tests are skipped by the default suite. New browser interaction,
+screen-reader, visual-owner, physical-device and native artifact checks were not
+run. PDF tests mock pdfjs/canvas and exercise the actual imported renderer;
+DatePicker tests inspect rendered form controls rather than browser submission.
+
+Material visual changes await owner review on `/schedule` (Original/Review,
+edited rows, close/reopen, narrow layout), club channel details (Media/Files,
+empty/loading/retry/end/thread jump), `/flex-friday` (pending/full/registered),
+and `/wrapped` (sparse/no activity). Existing Fluid Dialog, TabsSubtle, Button,
+CardGroup/Card and Table own semantics and interaction; no ReUI component was
+installed. Current Fluid catalog/example/API and registry sources, plus local
+adapters and shadcn Radix info/dry-run/diffs, were consulted. Static C1–C4 review
+adds no new motion; retained DatePicker `duration-80` and `framer-motion` follow
+the existing approved Fluid adaptation. ReUI MCP audit tools were unavailable.
+
+**Still open:** upstream issues/patches (including Radix Combobox native-form
+semantics); Table selective-subscription adoption; emitted-byte attribution;
+optional PDF packaging and icon-provider output; volunteer Timeline, heatmap/
+dated Wrapped payload, capacity meter, hierarchy/import repair, notification
+inheritance explanation and club digest. These are not represented as fixed.
+New shared anatomy/API needs the existing design decision process. No C renderer
+rewrite or fork was undertaken.
+
+## Original inventory evidence and limits
 
 - Inspected both app manifests, web registry configuration, local UI source,
   the Fluid update protection list, current served Fluid registry sources,
@@ -400,7 +445,8 @@ and a C-rendered Fluid fork. No present finding requires those projects.
 IA verification follows repository requirements: web typecheck/lint, build when
 production compilation or bundle behavior matters, and focused behavior checks.
 Native changes need native checks. Material visual changes require owner review.
-These checks have not run because this change is documentation only.
+At the original research snapshot these checks had not run. See implementation
+status above for the subsequent local verification and its limits.
 
 Upstream CONTRIBUTING requires an issue before a PR, equivalent Radix/Base UI
 changes, rebuilt committed registry, lint/tests/build, and both-flavor popup exit

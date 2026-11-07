@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { AlertCircle, ImageUp, ScanLine, Trash2 } from "lucide-react";
 import type { CourseSummary } from "@/components/courses/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -25,6 +25,7 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { TabsSubtle, TabsSubtleItem, TabsSubtlePanel } from "@/components/ui/tabs-subtle";
 import {
   Table,
   TableBody,
@@ -54,6 +55,21 @@ export function ScheduleImportDialog({
   const [status, setStatus] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [reviewTab, setReviewTab] = useState(1);
+  const tabsId = useId();
+  const [preview, setPreview] = useState<{ file: File; url: string } | null>(null);
+  const originalUrl = preview?.file === file ? preview.url : null;
+
+  useEffect(() => {
+    if (
+      !open || !file ||
+      !["image/png", "image/jpeg", "image/webp"].includes(file.type) ||
+      file.size > 10 * 1024 * 1024
+    ) return;
+    const url = URL.createObjectURL(file);
+    setPreview({ file, url });
+    return () => URL.revokeObjectURL(url);
+  }, [file, open]);
 
   const courseMap = useMemo(
     () =>
@@ -81,6 +97,8 @@ export function ScheduleImportDialog({
     setStatus("");
     setError(null);
     setScanning(false);
+    setPreview(null);
+    setReviewTab(1);
   };
 
   const scan = async () => {
@@ -112,6 +130,7 @@ export function ScheduleImportDialog({
         );
       else {
         setRows(parsed);
+        setReviewTab(1);
         setProgress(100);
       }
     } catch (scanError) {
@@ -196,156 +215,184 @@ export function ScheduleImportDialog({
             </Alert>
           ) : null}
           {rows.length > 0 ? (
-            <div className="flex flex-col gap-2">
-              <h3 className="text-sm font-semibold text-foreground">
-                Review classes
-              </h3>
-              {!canApply ? (
-                <Alert variant="destructive">
-                  <AlertCircle />
-                  <AlertDescription>
-                    {hasDuplicatePeriod
-                      ? "Each class needs a different period."
-                      : hasLunchConflict
-                        ? "Periods 4 and 5 both contain classes. Remove the lunch entry before applying."
-                      : "Choose a period for every class before applying."}
-                  </AlertDescription>
-                </Alert>
-              ) : null}
-              <div className="overflow-x-auto overflow-y-hidden rounded-lg border border-border/70">
-                <Table className="min-w-[28rem]">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-20">Period</TableHead>
-                      <TableHead>Course</TableHead>
-                      <TableHead className="w-20">Match</TableHead>
-                      <TableHead className="w-12">
-                        <span className="sr-only">Remove</span>
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {rows.map((row, index) => (
-                      <TableRow key={row.id} index={index}>
-                        <TableCell>
-                          <Select
-                            value={
-                              row.periodNumber === null
-                                ? "unassigned"
-                                : String(row.periodNumber)
-                            }
-                            onValueChange={(value) => {
-                              if (value === "unassigned") return;
-                              const periodNumber = Number.parseInt(value, 10);
-                              if (Number.isInteger(periodNumber))
-                                setRows((current) =>
-                                  current.map((entry) =>
-                                    entry.id === row.id
-                                      ? { ...entry, periodNumber }
-                                      : entry,
-                                  ),
-                                );
-                            }}
-                          >
-                            <SelectTrigger />
-                            <SelectContent>
-                              <SelectItem value="unassigned" index={0} disabled>
-                                Choose
-                              </SelectItem>
-                              {Array.from(
-                                { length: 8 },
-                                (_, number) => number + 1,
-                              ).map((number) => (
-                                <SelectItem
-                                  key={number}
-                                  value={String(number)}
-                                  index={number}
-                                >
-                                  {number}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell className="min-w-[12rem]">
-                          <Select
-                            value={row.matchedCourse?.id ?? "custom"}
-                            onValueChange={(courseId) => {
-                              const course = courseMap.get(courseId) ?? null;
-                              setRows((current) =>
-                                current.map((entry) =>
-                                  entry.id === row.id
-                                    ? {
-                                        ...entry,
-                                        matchedCourse: course,
-                                        className:
-                                          course?.title ?? entry.sourceText,
-                                        confidence: course
-                                          ? 1
-                                          : 0,
-                                      }
-                                    : entry,
-                                ),
-                              );
-                            }}
-                          >
-                            <SelectTrigger />
-                            <SelectContent>
-                              <SelectItem value="custom" index={0}>
-                                {row.sourceText}
-                              </SelectItem>
-                              {courses.map((course, courseIndex) => (
-                                <SelectItem
-                                  key={course.id}
-                                  value={course.id}
-                                  index={courseIndex + 1}
-                                >
-                                  {course.title}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <p
-                            className="mt-1 truncate text-[11px] text-muted-foreground"
-                            title={row.sourceText}
-                          >
-                            Read as: {row.sourceText}
-                          </p>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            size="sm"
-                            color={
-                              row.confidence >= 0.8
-                                ? "emerald"
-                                : row.confidence >= 0.56
-                                  ? "amber"
-                                  : "red"
-                            }
-                          >
-                            {Math.round(row.confidence * 100)}%
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            type="button"
-                            size="icon-sm"
-                            variant="ghost"
-                            aria-label={`Remove ${row.periodNumber === null ? "unassigned class" : `period ${row.periodNumber}`}`}
-                            onClick={() =>
-                              setRows((current) =>
-                                current.filter((entry) => entry.id !== row.id),
-                              )
-                            }
-                          >
-                            <Trash2 />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+            <div className="flex flex-col gap-3">
+              <TabsSubtle
+                selectedIndex={reviewTab}
+                onSelect={setReviewTab}
+                idPrefix={tabsId}
+                aria-label="Schedule import review"
+              >
+                <TabsSubtleItem index={0} label="Original" />
+                <TabsSubtleItem index={1} label="Review classes" />
+              </TabsSubtle>
+              <TabsSubtlePanel index={0} selectedIndex={reviewTab} idPrefix={tabsId}>
+                {originalUrl ? (
+                  <div className="flex flex-col gap-2">
+                    {/* The original stays local; opening it uses the browser's image zoom. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={originalUrl}
+                      alt="Original schedule picture"
+                      className="h-auto w-full object-contain"
+                    />
+                    <Button type="button" variant="tertiary" size="sm" asChild>
+                      <a href={originalUrl} target="_blank" rel="noopener noreferrer">
+                        Open original picture
+                      </a>
+                    </Button>
+                  </div>
+                ) : null}
+              </TabsSubtlePanel>
+              <TabsSubtlePanel index={1} selectedIndex={reviewTab} idPrefix={tabsId}>
+                <div className="flex flex-col gap-2">
+                  {!canApply ? (
+                    <Alert variant="destructive">
+                      <AlertCircle />
+                      <AlertDescription>
+                        {hasDuplicatePeriod
+                          ? "Each class needs a different period."
+                          : hasLunchConflict
+                            ? "Periods 4 and 5 both contain classes. Remove the lunch entry before applying."
+                          : "Choose a period for every class before applying."}
+                      </AlertDescription>
+                    </Alert>
+                  ) : null}
+                  <div className="overflow-x-auto overflow-y-hidden rounded-lg border border-border/70">
+                    <Table className="min-w-[28rem]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-20">Period</TableHead>
+                          <TableHead>Course</TableHead>
+                          <TableHead className="w-20">Match</TableHead>
+                          <TableHead className="w-12">
+                            <span className="sr-only">Remove</span>
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {rows.map((row, index) => (
+                          <TableRow key={row.id} index={index}>
+                            <TableCell>
+                              <Select
+                                value={
+                                  row.periodNumber === null
+                                    ? "unassigned"
+                                    : String(row.periodNumber)
+                                }
+                                onValueChange={(value) => {
+                                  if (value === "unassigned") return;
+                                  const periodNumber = Number.parseInt(value, 10);
+                                  if (Number.isInteger(periodNumber))
+                                    setRows((current) =>
+                                      current.map((entry) =>
+                                        entry.id === row.id
+                                          ? { ...entry, periodNumber }
+                                          : entry,
+                                      ),
+                                    );
+                                }}
+                              >
+                                <SelectTrigger />
+                                <SelectContent>
+                                  <SelectItem value="unassigned" index={0} disabled>
+                                    Choose
+                                  </SelectItem>
+                                  {Array.from(
+                                    { length: 8 },
+                                    (_, number) => number + 1,
+                                  ).map((number) => (
+                                    <SelectItem
+                                      key={number}
+                                      value={String(number)}
+                                      index={number}
+                                    >
+                                      {number}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell className="min-w-[12rem]">
+                              <Select
+                                value={row.matchedCourse?.id ?? "custom"}
+                                onValueChange={(courseId) => {
+                                  const course = courseMap.get(courseId) ?? null;
+                                  setRows((current) =>
+                                    current.map((entry) =>
+                                      entry.id === row.id
+                                        ? {
+                                            ...entry,
+                                            matchedCourse: course,
+                                            className:
+                                              course?.title ?? entry.sourceText,
+                                            confidence: course
+                                              ? 1
+                                              : 0,
+                                          }
+                                        : entry,
+                                    ),
+                                  );
+                                }}
+                              >
+                                <SelectTrigger />
+                                <SelectContent>
+                                  <SelectItem value="custom" index={0}>
+                                    {row.sourceText}
+                                  </SelectItem>
+                                  {courses.map((course, courseIndex) => (
+                                    <SelectItem
+                                      key={course.id}
+                                      value={course.id}
+                                      index={courseIndex + 1}
+                                    >
+                                      {course.title}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <p
+                                className="mt-1 truncate text-[11px] text-muted-foreground"
+                                title={row.sourceText}
+                              >
+                                Read as: {row.sourceText}
+                              </p>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                size="sm"
+                                color={
+                                  row.confidence >= 0.8
+                                    ? "emerald"
+                                    : row.confidence >= 0.56
+                                      ? "amber"
+                                      : "red"
+                                }
+                              >
+                                {Math.round(row.confidence * 100)}%
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                type="button"
+                                size="icon-sm"
+                                variant="ghost"
+                                aria-label={`Remove ${row.periodNumber === null ? "unassigned class" : `period ${row.periodNumber}`}`}
+                                onClick={() =>
+                                  setRows((current) =>
+                                    current.filter((entry) => entry.id !== row.id),
+                                  )
+                                }
+                              >
+                                <Trash2 />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              </TabsSubtlePanel>
             </div>
           ) : null}
         </div>
@@ -353,7 +400,10 @@ export function ScheduleImportDialog({
           <Button
             type="button"
             variant="ghost"
-            onClick={() => setOpen(false)}
+            onClick={() => {
+              setOpen(false);
+              reset();
+            }}
             disabled={scanning}
           >
             Cancel

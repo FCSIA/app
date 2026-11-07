@@ -13,10 +13,10 @@ similar surface is fixed.
 
 The intended experience is clear, capable school-day utility: students and
 staff should be able to understand what matters, act quickly, and trust the
-result on phones and computers. See `.impeccable.md` for the full design
-context. The repository's UI workflow and primitive compatibility rules remain
-the authority for implementation; this guide complements them rather than
-adding a parallel component system.
+result on phones and computers. See `agent-notes/design-context.md` for the
+full design context. The repository's UI workflow and primitive compatibility
+rules remain the authority for implementation; this guide complements them
+rather than adding a parallel component system.
 
 ## What the recent fixes teach
 

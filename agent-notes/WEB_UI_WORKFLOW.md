@@ -9,8 +9,8 @@ visual inspection never substitutes for human design approval.
 
 ## Before coding
 
-1. Read `.impeccable.md`, the relevant product document, and the affected local
-   source.
+1. Read `agent-notes/design-context.md`, the relevant product document, and
+   the affected local source.
 2. Search the current Fluid component index before choosing any component, even
    when shadcn or a local composition initially seems likely.
 3. For every relevant Fluid candidate, inspect its live rendered example, Code

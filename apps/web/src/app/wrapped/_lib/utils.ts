@@ -62,7 +62,7 @@ export function buildSlides(summary: WrappedSummary, displayName: string): Slide
     kind: 'intro',
     eyebrow: `${year} · IA Wrapped`,
     value: displayName,
-    caption: 'Your year, in numbers. Tap through →',
+    caption: 'Your year at IA. Tap through →',
     icon: Star,
     gradient: 'from-fuchsia-500 via-purple-600 to-indigo-700',
     graphic: 'confetti',
@@ -79,7 +79,9 @@ export function buildSlides(summary: WrappedSummary, displayName: string): Slide
     caption:
       summary.messagesSent === 0
         ? 'No messages yet — this is your blank canvas.'
-        : `messages — about ${avgPerWeek.toLocaleString()} a week.`,
+        : summary.messagesSent < 40
+          ? 'messages shared this school year.'
+          : `messages — about ${avgPerWeek.toLocaleString()} a week.`,
     icon: MessageSquare,
     gradient: 'from-rose-500 via-orange-500 to-amber-500',
     graphic: 'blobs',
@@ -196,7 +198,7 @@ export function buildSlides(summary: WrappedSummary, displayName: string): Slide
     caption:
       summary.friends === 0
         ? 'No new friends yet — maybe this is the year.'
-        : 'friends added to your schedule this year.',
+        : 'friends on your schedule.',
     icon: Users,
     gradient: 'from-pink-500 via-rose-500 to-red-500',
     graphic: 'orbs',
@@ -316,5 +318,32 @@ export function buildSlides(summary: WrappedSummary, displayName: string): Slide
     scatterIcons: [Star, Sparkles, Heart, Rocket],
   });
 
-  return slides;
+  // Describe recorded participation rather than repeat prompts for missing
+  // activity. Non-chat participation still gives students a complete story.
+  const populated = slides.filter((slide) => {
+    switch (slide.key) {
+      case 'messages': return summary.messagesSent > 0;
+      case 'channels': return summary.channelsEngaged > 0;
+      case 'top-channel': return !!summary.topChannel && summary.topChannel.messages > 0;
+      case 'top-mention': return !!summary.topMentioned && summary.topMentioned.mentions > 0;
+      case 'friends': return summary.friends > 0;
+      case 'clubs': return summary.clubs > 0;
+      case 'credits': return summary.flexCredits > 0;
+      default: return true;
+    }
+  });
+  if (populated.length === 2) {
+    populated.splice(1, 0, {
+      key: 'unrecorded-year',
+      kind: 'name',
+      eyebrow: 'Beyond the numbers',
+      value: 'Your year is yours',
+      caption: 'No activity is recorded in this snapshot. There is more to a school year than what happens in this app.',
+      icon: Star,
+      gradient: 'from-fuchsia-500 via-purple-600 to-indigo-700',
+      graphic: 'stars',
+      scatterIcons: [Star, Sparkles, Heart],
+    });
+  }
+  return populated;
 }

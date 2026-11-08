@@ -35,3 +35,15 @@ describe('Wrapped participation story', () => {
     expect(slides.some(({ key }) => key === 'top-mention')).toBe(false);
   });
 });
+
+test('optional daily series adds truthful dated stories', () => {
+  expect(buildSlides(empty, 'Alex').some((slide) => slide.activity)).toBe(false);
+  const slides = buildSlides({ ...empty, dailyActivity: [{ date: '2026-01-02', messages: 3 }], messagesSent: 3 }, 'Alex');
+  expect(slides.find((slide) => slide.activity)?.activity?.days).toEqual([{ date: '2026-01-02', messages: 3 }]);
+  expect(slides.find((slide) => slide.highlights)?.highlights).toEqual([{ date: '2026-01-02', label: 'First recorded message day' }]);
+});
+
+test('ISO snapshot boundaries become Eastern calendar dates', () => {
+  const slides = buildSlides({ ...empty, rangeStart: '2025-08-01T04:00:00.000Z', rangeEnd: '2026-06-01T03:59:59.999Z', dailyActivity: [] }, 'Alex');
+  expect(slides.find(slide => slide.activity)?.activity).toMatchObject({ start: '2025-08-01', end: '2026-05-31' });
+});

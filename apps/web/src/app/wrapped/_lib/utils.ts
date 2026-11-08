@@ -26,6 +26,13 @@ import type { Slide, WrappedSummary } from './types';
 import { schoolYearLabel } from '~/apps/shared/school-time';
 import { PATHWAY_THEME } from './constants';
 
+function activityDate(value: string) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return '';
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+}
+
 function formatHour(hour: number): string {
   // 0 → 12 AM, 13 → 1 PM, etc.
   const h12 = hour % 12 === 0 ? 12 : hour % 12;
@@ -87,6 +94,21 @@ export function buildSlides(summary: WrappedSummary, displayName: string): Slide
     graphic: 'blobs',
     scatterIcons: [MessageSquare, MessageCircle, Volume2, Flame],
   });
+
+  if (summary.dailyActivity !== undefined) {
+    slides.push({ key: 'daily-activity', kind: 'name', eyebrow: 'Your message activity',
+      value: 'Day by day', icon: CalendarDays, gradient: 'from-sky-700 to-indigo-900',
+      graphic: 'grid', scatterIcons: [],
+      activity: { start: activityDate(summary.rangeStart), end: activityDate(summary.rangeEnd), days: summary.dailyActivity } });
+  }
+  const dated = (summary.dailyActivity ?? []).filter((day) => day.messages > 0).sort((a, b) => a.date.localeCompare(b.date));
+  const highlights: { date: string; label: string }[] = [];
+  if (dated.length) highlights.push({ date: dated[0].date, label: 'First recorded message day' });
+  if (summary.mostActiveDay?.messages) highlights.push({ date: summary.mostActiveDay.date, label: `${summary.mostActiveDay.messages.toLocaleString()} messages · busiest day` });
+  if (dated.length > 1) highlights.push({ date: dated[dated.length - 1].date, label: 'Latest recorded message day' });
+  if (highlights.length) slides.push({ key: 'dated-highlights', kind: 'name', eyebrow: 'Dates to remember', value: 'Your highlights',
+    icon: CalendarDays, gradient: 'from-violet-700 to-indigo-900', graphic: 'grid', scatterIcons: [],
+    highlights: highlights.sort((a, b) => a.date.localeCompare(b.date)) });
 
   // 3. Peak hour — skip when there are no messages
   if (summary.peakHour && summary.peakHour.messages > 0) {

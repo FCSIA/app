@@ -1,9 +1,9 @@
 // ─── Lazy pdfjs loader ────────────────────────────────────────────────────
 // Imports pdfjs-dist on first PDF, caches the module, and points the worker
-// at the matching CDN build. Consumers don't need bundler-side worker config.
+// at the same-origin worker copied from the installed version before builds.
 type PdfjsModule = typeof import("pdfjs-dist");
 let pdfjsPromise: Promise<PdfjsModule> | null = null;
-let pdfWorkerSrc: string | null = null;
+let pdfWorkerSrc = "/pdf-assets/pdf.worker.min.mjs";
 
 export function setPdfWorkerSrc(src: string) {
   pdfWorkerSrc = src;
@@ -16,14 +16,15 @@ export function setPdfWorkerSrc(src: string) {
 
 async function loadPdfjs(): Promise<PdfjsModule> {
   if (!pdfjsPromise) {
-    pdfjsPromise = import("pdfjs-dist").then((mod) => {
-      if (pdfWorkerSrc) {
+    pdfjsPromise = import("pdfjs-dist")
+      .then((mod) => {
         mod.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
-      } else if (!mod.GlobalWorkerOptions.workerSrc) {
-        mod.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${mod.version}/build/pdf.worker.min.mjs`;
-      }
-      return mod;
-    });
+        return mod;
+      })
+      .catch((error) => {
+        pdfjsPromise = null; // A failed lazy load must not poison future retries.
+        throw error;
+      });
   }
   return pdfjsPromise;
 }

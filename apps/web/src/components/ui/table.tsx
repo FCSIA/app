@@ -4,6 +4,7 @@ import {
   useRef,
   useEffect,
   useMemo,
+  useSyncExternalStore,
   createContext,
   useContext,
   forwardRef,
@@ -19,12 +20,16 @@ import { ListFilter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownTrigger } from "@/components/ui/dropdown";
 
+import { createTableHoverStore, tableRowHoverState } from "./table-hover-store";
+
 // ── Context ──────────────────────────────────────────────
 
 interface TableContextValue {
   registerItem: (index: number, element: HTMLElement | null) => void;
-  activeIndex: number | null;
+  activeStore: ReturnType<typeof createTableHoverStore>;
 }
+
+const subscribeNever = () => () => {};
 
 const TableContext = createContext<TableContextValue | null>(null);
 
@@ -53,9 +58,11 @@ const Table = forwardRef<HTMLTableElement, TableProps>(
 
     const activeRect = activeIndex !== null ? itemRects[activeIndex] : null;
 
+    const activeStore = useMemo(createTableHoverStore, []);
+    useEffect(() => activeStore.set(activeIndex), [activeStore, activeIndex]);
     const contextValue = useMemo(
-      () => ({ registerItem, activeIndex }),
-      [registerItem, activeIndex]
+      () => ({ registerItem, activeStore }),
+      [registerItem, activeStore]
     );
 
     return (
@@ -127,18 +134,20 @@ const TableRow = forwardRef<HTMLTableRowElement, TableRowProps>(
     const internalRef = useRef<HTMLTableRowElement>(null);
     const ctx = useContext(TableContext);
 
+    const registerItem = ctx?.registerItem;
     useEffect(() => {
-      if (index === undefined || !ctx) return;
-      ctx.registerItem(index, internalRef.current);
-      return () => ctx.registerItem(index, null);
-    }, [index, ctx]);
+      if (index === undefined || !registerItem) return;
+      registerItem(index, internalRef.current);
+      return () => registerItem(index, null);
+    }, [index, registerItem]);
 
     const isBodyRow = index !== undefined;
-    const activeIdx = ctx?.activeIndex ?? null;
-    const hideBorder = activeIdx !== null && (
-      (isBodyRow && (index === activeIdx || index === activeIdx - 1)) ||
-      (!isBodyRow && activeIdx === 0)
+    const litState = useSyncExternalStore(
+      ctx?.activeStore.subscribe ?? subscribeNever,
+      () => tableRowHoverState(ctx?.activeStore.get() ?? null, index),
+      () => 0,
     );
+    const hideBorder = litState > 0;
 
     return (
       <tr
@@ -151,9 +160,9 @@ const TableRow = forwardRef<HTMLTableRowElement, TableRowProps>(
         data-selected={selected || undefined}
         aria-selected={selected || undefined}
         className={cn(
-          "group/row relative z-10 border-b transition-[border-color] duration-80",
+          "group/row relative z-10 border-b transition-[border-color] duration-80 motion-reduce:transition-none",
           hideBorder ? "border-transparent" : isBodyRow ? "border-border/60" : "border-border",
-          isBodyRow && activeIdx === index && "is-active",
+          litState === 2 && "is-active",
           interactive && "cursor-pointer",
           selected && "bg-active",
           className

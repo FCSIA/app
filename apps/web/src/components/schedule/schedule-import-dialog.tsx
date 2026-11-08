@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState, useSyncExternalStore } from "react";
 import { AlertCircle, ImageUp, ScanLine, Trash2 } from "lucide-react";
 import type { CourseSummary } from "@/components/courses/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -25,7 +25,7 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { TabsSubtle, TabsSubtleItem, TabsSubtlePanel } from "@/components/ui/tabs-subtle";
+import { TabsSubtle, TabsSubtleItem } from "@/components/ui/tabs-subtle";
 import {
   Table,
   TableBody,
@@ -40,6 +40,14 @@ import {
   type ImportedScheduleRow,
   type OcrScheduleRow,
 } from "@/lib/schedule-ocr";
+
+const subscribeWideReview = (notify: () => void) => {
+  const query = window.matchMedia("(min-width: 768px)");
+  query.addEventListener("change", notify);
+  return () => query.removeEventListener("change", notify);
+};
+const isWideReview = () => window.matchMedia("(min-width: 768px)").matches;
+const serverWideReview = () => false;
 
 export function ScheduleImportDialog({
   courses,
@@ -57,6 +65,7 @@ export function ScheduleImportDialog({
   const [scanning, setScanning] = useState(false);
   const [reviewTab, setReviewTab] = useState(1);
   const tabsId = useId();
+  const wideReview = useSyncExternalStore(subscribeWideReview, isWideReview, serverWideReview);
   const [preview, setPreview] = useState<{ file: File; url: string } | null>(null);
   const originalUrl = preview?.file === file ? preview.url : null;
 
@@ -170,7 +179,7 @@ export function ScheduleImportDialog({
           Import from Picture
         </Button>
       </DialogTrigger>
-      <DialogContent size="lg" className="max-h-[85dvh] overflow-y-auto">
+      <DialogContent size={rows.length > 0 ? "xl" : "lg"} className="max-h-[85dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Import schedule</DialogTitle>
           <DialogDescription>
@@ -216,7 +225,7 @@ export function ScheduleImportDialog({
           ) : null}
           {rows.length > 0 ? (
             <div className="flex flex-col gap-3">
-              <TabsSubtle
+              {!wideReview ? <TabsSubtle
                 selectedIndex={reviewTab}
                 onSelect={setReviewTab}
                 idPrefix={tabsId}
@@ -224,8 +233,9 @@ export function ScheduleImportDialog({
               >
                 <TabsSubtleItem index={0} label="Original" />
                 <TabsSubtleItem index={1} label="Review classes" />
-              </TabsSubtle>
-              <TabsSubtlePanel index={0} selectedIndex={reviewTab} idPrefix={tabsId}>
+              </TabsSubtle> : null}
+              <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+              <section id={`${tabsId}-panel-0`} role={wideReview ? "region" : "tabpanel"} aria-labelledby={wideReview ? undefined : `${tabsId}-tab-0`} aria-label="Original picture" hidden={!wideReview && reviewTab !== 0} className="min-w-0">
                 {originalUrl ? (
                   <div className="flex flex-col gap-2">
                     {/* The original stays local; opening it uses the browser's image zoom. */}
@@ -242,8 +252,8 @@ export function ScheduleImportDialog({
                     </Button>
                   </div>
                 ) : null}
-              </TabsSubtlePanel>
-              <TabsSubtlePanel index={1} selectedIndex={reviewTab} idPrefix={tabsId}>
+              </section>
+              <section id={`${tabsId}-panel-1`} role={wideReview ? "region" : "tabpanel"} aria-labelledby={wideReview ? undefined : `${tabsId}-tab-1`} aria-label="Review classes" hidden={!wideReview && reviewTab !== 1} className="min-w-0">
                 <div className="flex flex-col gap-2">
                   {!canApply ? (
                     <Alert variant="destructive">
@@ -392,7 +402,8 @@ export function ScheduleImportDialog({
                     </Table>
                   </div>
                 </div>
-              </TabsSubtlePanel>
+              </section>
+              </div>
             </div>
           ) : null}
         </div>

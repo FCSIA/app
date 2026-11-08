@@ -21,6 +21,64 @@ subsequently authorized implementation; the following status supersedes its
 proposed dispositions where noted. No deployment, external issue, or upstream
 PR is included.
 
+## Implementation follow-through — 2026-11-07
+
+This section supersedes the earlier “still open” implementation list below.
+The owner authorized new primitives, consolidation, and feature changes; a C
+renderer remains excluded. Work remains local on `fix/ui-library-reliability`.
+
+- Table now publishes stable per-row hover snapshots. A mounted 250-row React
+  fixture confirms only two affected rows commit on first hover, without row
+  re-registration; exact-hit geometry and the existing highlight remain intact.
+- DatePicker supports native uncontrolled form reset, including time values,
+  cancellation, controlled ownership and disabled FormData exclusion.
+- PDF previews have an optional enhancement adapter; image/file consumers do
+  not import PDF.js. The worker is copied from the installed version and served
+  from the app origin for CSP compatibility. Failed module loads can retry.
+  This remains retained inventory rather than an invented product callsite.
+- OCR review uses the documented Fluid `xl` dialog width and a desktop comparison
+  layout; phones retain Original/Review tabs. Both panes preserve review state.
+- Flex availability uses a labeled native Meter and remaining-seat text. Attendance
+  loading identifies the affected student/status. Direct action failures are
+  consumed after the shared toast reports them; form callers still receive errors.
+- Wrapped snapshots optionally retain daily Eastern-date message totals. New
+  snapshots can show a weekly activity grid, keyboard-native exact values and
+  actual dated highlights. ISO snapshot bounds are converted to Eastern dates.
+  Old snapshots remain valid; no automatic refresh or shared deployment occurred.
+- Volunteer details compose a new semantic Timeline from actual service,
+  submission and review fields, preserving proof, notes and review actions.
+- People import supports repair/status filters and first-error focus. Structure
+  import previews disclose actual parent relationships and preserve the last
+  successful preview after a failed retry.
+- Club landing pages link to readable unread channels using existing navigation
+  and activity queries, without advancing read state. Notification settings explain
+  global/club/channel inheritance and mutes while preserving editable preferences.
+  They share one clock and preferences value per club rather than one per row.
+- Three pinned upstream review patches, regression fixtures and generated registry
+  output are saved under `contributions/fluid-functionalism/`. No external posting.
+
+Validation: 38 UI regression tests pass; backend typecheck and two daily-activity
+boundary tests pass; web typecheck/lint/build pass. The final integrated rerun and
+frozen offline install pass. Upstream has 70 passing focused tests, targeted
+lint and a successful registry rebuild; each packaged patch passes reverse apply
+validation against the modified pinned checkout. DOM tests use jsdom; they do not
+certify physical touch, screen readers, browser rendering or design approval.
+No shared backend, production deployment, or upstream PR was changed.
+
+Size fixtures are reproducible with `direnv exec . bun scripts/measure-ui-library.mjs`;
+raw/gzip/Brotli output is saved in `ui-library-size-fixtures-2026-11-07.json`.
+React is external and each fixture is built separately; these are not initial
+route transfer or before/after savings. Native artifact measurements and cold
+network traces remain unmeasured. OCR capability fallback assets are retained.
+
+Remaining product scope: a combined club “since last visit” digest still needs
+checkpoint/acknowledgment semantics; the implemented unread links deliberately
+make no such promise. Broader dated Flex/club milestones require additional
+snapshot fields, beyond the implemented message-day story. Full accessibility,
+localization/IME, cross-browser and native-device certification is ongoing work,
+not a finite list of defects represented as fixed. New visual anatomy awaits
+owner review on Wrapped, volunteer details, OCR, imports, Flex and notifications.
+
 ## Implementation status — 2026-11-06
 
 Implemented on `fix/ui-library-reliability` with three GPT-6.1 Sol delegates at

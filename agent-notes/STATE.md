@@ -10,16 +10,21 @@
   `agent-notes/untangle/HANDOFF.md` for the remaining work, deploy checks and
   owner decisions.
 
-- **UI library reliability (2026-11-06)**: Primary checkout branch
-  `fix/ui-library-reliability` implements the authorized dependency cleanup,
-  disabled DatePicker form boundary, PDF resource ownership, paginated channel
-  attachments, original-picture OCR review, workshop action feedback and sparse
-  Wrapped story fixes. Web typecheck/lint/build, backend/mobile typechecks,
-  frozen install and focused regressions pass. No shared deployment, push or
-  upstream posting was performed. Visual-owner/browser and native artifact
-  checks remain pending; new component/API proposals remain separate. See
-  `docs/reference/ui-library-inventory-2026-11-06.md` for implementation status,
-  exact validation scope and remaining work. Preserve other isolated worktrees.
+- **UI library reliability (2026-11-07)**: Primary checkout branch
+  `fix/ui-library-reliability` now includes the authorized primitive/feature
+  follow-through: selective Table subscriptions, native DatePicker reset,
+  optional same-origin PDF previews, desktop OCR comparison, Flex availability
+  and individual attendance loading, daily Wrapped snapshots/heatmap/highlights,
+  volunteer Timeline, import repair/structure previews, unread channel links and
+  notification inheritance explanations. Web typecheck/lint/build, frozen offline
+  install, 38 UI tests, backend typecheck and two daily-activity tests pass.
+  Three local upstream patches include generated registry output; 70 focused
+  upstream tests, targeted lint, registry rebuild and reverse apply checks pass.
+  No shared deployment, push or upstream posting occurred. Visual-owner, real
+  browser/screen-reader and native artifact review remain pending. A combined
+  since-last-visit digest and broader dated milestones remain separately scoped.
+  See `docs/reference/ui-library-inventory-2026-11-06.md` and
+  `contributions/fluid-functionalism/README.md`. Preserve other worktrees.
 
 - **Issue #176 account onboarding (2026-11-02)**: Worktree `.worktrees/issue-176`,
   branch `codex/student-onboarding`, owns the versioned account-setup lifecycle
@@ -109,7 +114,6 @@
   `codex/desktop-notification-banner`, carrying the three earlier local banner
   commits onto main after audit PR #152 squash-merged as `4c464526`.
   The original commits are preserved on `work/desktop-notification-banner`.
-
 - **Current goal**: The owner authorized including the banner in the release,
   after squash-merging audit PR #152 and running `release:ship`.
   Release PR #165 is held in draft until the banner lands; regenerate its single
@@ -117,7 +121,6 @@
   This supersedes earlier draft/awaiting-owner-review and no-production-authorization
   notes for this release. Preserve main's preferred-name display/search support
   when integrating the audit refactor. Local demo data remains intact.
-
 - **Dashboard calendar follow-up**: The owner requested a small commit directly
   in the primary `main` checkout after PR #163 squash-merged as `8b29a445` on
   October 18. After owner feedback, the month controls and full-calendar arrow
@@ -129,7 +132,6 @@
   touch date grids, keyboard selection, six-week months, and the shared schedule
   date picker. Captures: `/tmp/ia-calendar-review/`; native device review was not run.
   The prior release-headline PR #162 is squash-merged as `00bad9db`.
-
 - **Integration**: On October 17 the owner explicitly authorized squash-merging
   the reviewed UI work in #154–#158 onto main and requested React Doctor fixes.
   #154–#157 landed as `c3a15071`, `c53396d7`, `df566c46`, and `ef157d6a`.
@@ -138,7 +140,6 @@
   Each PR retains a separate squash merge.
   This authorization supersedes older awaiting-owner-review notes below.
 - Native iPhone swipe verification from the preceding UI work remains outstanding.
-
 - **Coordination note**: A parallel FERPA/compliance session owns `docs/compliance/`
   and the FERPA link in `docs/index.md`. Avoid editing those unless explicitly
   asked.

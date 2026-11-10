@@ -10,6 +10,15 @@
   `agent-notes/untangle/HANDOFF.md` for the remaining work, deploy checks and
   owner decisions.
 
+- **Fluid DataTable preparation (2026-11-09)**: The owner authorized upgrading
+  the shared Radix dependency family before reviewing DataTable source changes.
+  New Table/hover, Checkbox/Input, Select/Dropdown/MenuItem, Combobox, icon and
+  shape/type-scale contracts are merged with existing app adapters retained.
+  Admin table migration is pending; DataTable is not installed. Review the exact
+  unapplied patch and integration notes under `contributions/fluid-functionalism/`.
+  Old Rex sessions were closed at the owner's request; `admin-fluid-tables` owns
+  this task's verification and preview. No backend deployment is authorized.
+
 - **UI library reliability (2026-11-07)**: Primary checkout branch
   `fix/ui-library-reliability` now includes the authorized primitive/feature
   follow-through: selective Table subscriptions, native DatePicker reset,
@@ -114,6 +123,7 @@
   `codex/desktop-notification-banner`, carrying the three earlier local banner
   commits onto main after audit PR #152 squash-merged as `4c464526`.
   The original commits are preserved on `work/desktop-notification-banner`.
+
 - **Current goal**: The owner authorized including the banner in the release,
   after squash-merging audit PR #152 and running `release:ship`.
   Release PR #165 is held in draft until the banner lands; regenerate its single
@@ -121,6 +131,7 @@
   This supersedes earlier draft/awaiting-owner-review and no-production-authorization
   notes for this release. Preserve main's preferred-name display/search support
   when integrating the audit refactor. Local demo data remains intact.
+
 - **Dashboard calendar follow-up**: The owner requested a small commit directly
   in the primary `main` checkout after PR #163 squash-merged as `8b29a445` on
   October 18. After owner feedback, the month controls and full-calendar arrow
@@ -132,6 +143,7 @@
   touch date grids, keyboard selection, six-week months, and the shared schedule
   date picker. Captures: `/tmp/ia-calendar-review/`; native device review was not run.
   The prior release-headline PR #162 is squash-merged as `00bad9db`.
+
 - **Integration**: On October 17 the owner explicitly authorized squash-merging
   the reviewed UI work in #154–#158 onto main and requested React Doctor fixes.
   #154–#157 landed as `c3a15071`, `c53396d7`, `df566c46`, and `ef157d6a`.
@@ -140,6 +152,7 @@
   Each PR retains a separate squash merge.
   This authorization supersedes older awaiting-owner-review notes below.
 - Native iPhone swipe verification from the preceding UI work remains outstanding.
+
 - **Coordination note**: A parallel FERPA/compliance session owns `docs/compliance/`
   and the FERPA link in `docs/index.md`. Avoid editing those unless explicitly
   asked.

@@ -1,0 +1,90 @@
+--- a/apps/web/src/components/ui/data-table.tsx
++++ b/apps/web/src/components/ui/data-table.tsx
+@@ -298,6 +298,13 @@
+ }
+ 
+ interface DataTableProps<TData> {
++  /** Accessible name and description forwarded to the native table. */
++  "aria-label"?: string;
++  "aria-labelledby"?: string;
++  "aria-describedby"?: string;
++  /** Open/current record, independent of checkbox selection. Uses getRowId. */
++  activeRowId?: string;
++
+   table: TanStackTable<TData>;
+   /** Pins every row to one step of the size ladder (36px or 28px). Omitted,
+    *  rows follow the surrounding SizeProvider. */
+@@ -450,6 +457,10 @@
+ }
+ 
+ function DataTable<TData>({
++  "aria-label": ariaLabel,
++  "aria-labelledby": ariaLabelledBy,
++  "aria-describedby": ariaDescribedBy,
++  activeRowId,
+   table,
+   size,
+   empty,
+@@ -1118,6 +1129,9 @@
+   const tableEl = (
+     <EditContext.Provider value={stableEditing}>
+     <Table
++      aria-label={ariaLabel}
++      aria-labelledby={ariaLabelledBy}
++      aria-describedby={ariaDescribedBy}
+       size={size}
+       // Selected rows on this page get CheckboxGroup's merged fill.
+       selectedIndices={rows.flatMap((row, i) => (row.getIsSelected() ? [i] : []))}
+@@ -1288,6 +1302,7 @@
+               table={table}
+               row={row}
+               i={i}
++              active={row.id === activeRowId}
+               selected={row.getIsSelected()}
+               someSelected={row.getIsSomeSelected()}
+               expanded={row.getIsExpanded()}
+@@ -1766,6 +1781,7 @@
+   table: TanStackTable<TData>;
+   row: Row<TData>;
+   i: number;
++  active: boolean;
+   selected: boolean;
+   /** Compared only: some, not all, of its sub-rows are selected. */
+   someSelected: boolean;
+@@ -1798,6 +1814,7 @@
+       table,
+       row,
+       i,
++      active,
+       selected,
+       expanded,
+       expanderId,
+@@ -1818,6 +1835,8 @@
+     <TableRow
+       ref={ref}
+       data-row-id={row.id}
++      data-active={active || undefined}
++      selected={active}
+       index={i}
+       data-state={selected ? "selected" : undefined}
+       onClick={
+@@ -3167,8 +3186,8 @@
+                 <Switch
+                   label="Wrap text"
+                   checked={wrapped}
+-                  onToggle={toggleWrap}
+-                  className="w-full flex-row-reverse justify-between px-2"
++                  onCheckedChange={toggleWrap}
++                  wrapperClassName="w-full flex-row-reverse justify-between px-2"
+                 />
+                 <DropdownSeparator />
+               </>
+@@ -3517,7 +3536,7 @@
+             {items.length > 0 && (
+               <Button
+                 variant="ghost"
+-                size={compact ? "compact" : "default"}
++                size={compact ? "sm" : "lg"}
+                 onClick={() => setMenuOpen(true)}
+                 aria-keyshortcuts={shortcut ?? undefined}
+                 className="ml-1"

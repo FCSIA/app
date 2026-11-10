@@ -39,3 +39,10 @@ The reproducible fixture command `direnv exec . bun scripts/measure-ui-library.m
 records minified/gzip/Brotli output. Those isolated fixtures do not represent route
 transfer savings. IA retains Lucide defaults: the measured default icon provider
 alone does not justify breaking its fallback API or replacing the renderer.
+
+## DataTable integration preparation — 2026-11-09
+
+See [data-table-upgrade.md](data-table-upgrade.md) for the shared dependency
+upgrade, retained IA contracts, and upstream requests. The exact proposed
+DataTable source delta is [data-table-proposed.patch](data-table-proposed.patch);
+it is intentionally not applied and admin table migration remains pending.

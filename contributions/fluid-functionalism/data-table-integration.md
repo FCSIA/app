@@ -1,7 +1,8 @@
 # DataTable integration and upstream proposal
 
 The November 9 registry install uses the project's Radix flavor, Tailwind v4,
-`@/` alias and Inter variable font. Shared Fluid dependency updates are retained.
+`@/` alias and the app’s existing Work Sans variable font. Shared Fluid
+dependency updates are retained.
 No issue, message or PR has been sent upstream.
 
 ## What is installed
@@ -28,6 +29,17 @@ replaced. Audit uses native pages over explicitly labeled loaded records and
 an explicit Load older activity action. CSV and analytics use client paging,
 sorting and filtering. Feedback and moderation retain their existing product
 search predicates, queue/status actions, dialogs and pending states.
+
+## Font integration
+
+Work Sans remains the shared app font, including tables, portalled menus and
+Wrapped. The initial integration unnecessarily changed the sans token to Inter
+while explicit Work Sans callsites and the Pages router retained Work Sans.
+That mixed-family change is corrected. App Router loads the font variable on
+`html`; Pages Router sets the same variable globally using Next's documented
+`style.fontFamily` API so body portals inherit it too. Work Sans supplies the
+variable weight axis used by Fluid's weight animations; these animations do not
+require replacing the app's font family.
 
 ## Why hover and selection radii differed
 

@@ -383,7 +383,9 @@ replace TanStack instance methods or turn cursor paging into simulated client
 paging. Users retain explicit server cursor controls; audit pages explicitly
 cover loaded events and preserve server ordering/filtering.
 
-Inter is loaded at the root so portal controls inherit the same font. The new
+Work Sans remains the app font. Its variable is available on `html` in both
+routers so body portals and explicit font utilities share the same family. Do
+not change the app font family to install a primitive. The new
 Switch owns its whole labeled row; callers provide `label`, `checked` and
 `onToggle`, without a second external label. Dropdown retains the narrow
 `onCloseAutoFocus` adapter for custom-date and composer focus handoff. Other

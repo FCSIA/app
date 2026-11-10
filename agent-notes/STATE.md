@@ -16,7 +16,8 @@
   composed at callers; server cursor paging and audit server ordering remain
   explicit. Desktop audit header filters are restored. Global radius aliases
   now match Fluid's numeric animations (4/6/8px), fixing the 16px-hover versus
-  8px-selection mismatch. Inter is loaded globally, including portals. DataTable
+  8px-selection mismatch. Work Sans is restored as the shared app font; both routers expose its variable
+  at the document root for portals and font utilities. DataTable
   runtime remains registry source (one unavailable ESLint rule comment removed).
   Web typecheck/lint/build, 40 UI tests and frozen dependency install pass.
   Root `bun dev` remains in Rex `admin-fluid-tables`, web 3000/backend 3210/3211.

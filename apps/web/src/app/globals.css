@@ -64,7 +64,7 @@
   --animate-reaction-burst: reaction-burst 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
   --animate-nav-progress: nav-progress 1.2s ease-in-out infinite;
   --animate-loading-mark-breathe: loading-mark-breathe 2.4s ease-in-out infinite;
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-work-sans);
   --font-astronaut: var(--font-work-sans);
   --color-dm-drop: var(--dm-drop);
   --color-dm-ring-high: var(--dm-ring-high);

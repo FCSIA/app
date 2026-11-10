@@ -132,7 +132,7 @@ export function AuditTable({ audit }: { audit: AuditState }) {
               <TableCell><Action event={event} /></TableCell>
               <TableCell><RecordCell event={event} /></TableCell>
               <TableCell className="hidden xl:table-cell"><WhereCell event={event} /></TableCell>
-              <TableCell><Button type="button" variant="ghost" size="icon-compact" aria-label={`Details: ${auditActionLabel(event.action)} by ${auditPersonName(event)}`} onClick={() => audit.setSelectedAuditEventId(event.id)}><ChevronRight /></Button></TableCell>
+              <TableCell><span className="flex h-[1lh] items-center justify-end"><Button type="button" variant="ghost" size="icon-compact" aria-label={`Details: ${auditActionLabel(event.action)} by ${auditPersonName(event)}`} onClick={() => audit.setSelectedAuditEventId(event.id)}><ChevronRight /></Button></span></TableCell>
             </TableRow>
           </Fragment>;
         }) : <TableRow><TableCell colSpan={6}>{empty}</TableCell></TableRow>}

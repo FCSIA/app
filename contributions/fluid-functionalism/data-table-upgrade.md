@@ -1,8 +1,8 @@
 # DataTable dependency upgrade and proposed integration
 
 The shared Radix dependency upgrade is local. Admin tables are not migrated yet.
-DataTable itself is not installed in the app source; its proposed changes are
-reviewable in `data-table-proposed.patch` and have not been applied.
+DataTable itself is not installed in the app source. The former proposed source
+patch was withdrawn at the owner's request and was never applied.
 
 Registry inspected: https://www.fluidfunctionalism.com/r/radix/data-table.json
 DataTable source SHA-256: `ae0d433d8a4e7fe7111661127bb71ae5a8a45d7c1807c796739cc2f986bd7a81` (2026-11-09).
@@ -33,27 +33,23 @@ Select and Dropdown retain reduced-motion popup entry/exit.
 Users now passes Checkbox indeterminacy explicitly; Search maps its density into
 Input's new default/compact ladder.
 
-## Exact proposed DataTable changes
+## DataTable source policy
 
-See `data-table-proposed.patch`. This is an app integration patch, not an
-upstream-ready contribution (its active row uses IA's retained TableRow selected
-contract, and its Button/Switch changes target IA's existing adapters).
+The owner withdrew the proposed source patch on 2026-11-09. It was never applied
+and has been removed. Keep DataTable's upstream visuals and documented public
+composition. Do not add activeRowId, row visual overrides, or page-level cell
+padding to compensate for integration problems. DataTable remains uninstalled;
+admin migration is still pending, not represented by this dependency upgrade.
 
-1. Forward aria-label, aria-labelledby, aria-describedby to the native table.
-2. Add activeRowId, independent of checkbox selection, and pass an active boolean
-   through the memoized row so changing the open record updates affected rows.
-3. Integrate Wrap text with IA Switch's onCheckedChange and wrapperClassName.
-4. Integrate the bulk-action Button with IA's existing sm/lg size API.
+Use column definitions and upstream row-action composition. External cell state
+belongs in memoized column dependencies. Use TanStack manual modes and stable
+record IDs for remote data; keep cursor pagination in an app footer where needed.
+Do not imply that loaded rows are the entire server result.
 
-No new invalidation prop is needed: upstream already compares column definitions.
-Memoize columns with all external dependencies (drafts, permission state, mutation
-state) so closures and memoized cells refresh correctly.
-No query, pagination, selection, or business-action engine belongs in DataTable.
-Use TanStack manual modes and stable record IDs. Cursor/accumulating views retain
-an app footer; upstream DataTablePagination currently computes counts from loaded
-rows. Do not use it to imply an exact query-wide total or known last page.
-Query-wide select-all requires a server-side selection model; selectColumn only
-knows rows present in the supplied data. Keep scope explicit at each callsite.
+The audit height regression came from placing a 28px button directly in the new
+Table's padded cell. Upstream DataTableRowActions constrains its action to a
+`flex h-[1lh] items-center justify-end` wrapper; the audit Details control now
+uses the same composition. No row-height or padding override was added.
 
 ## Creator requests
 
@@ -75,5 +71,4 @@ local deployment `local-ia_app-ia_app-7` on 3210/3211 and web on port 3000.
 Convex reports functions ready; GET /login returns HTTP 200. No reset, seed,
 shared deployment or production deployment was performed.
 Browser interaction, authenticated admin
-flows and human visual approval have not been performed. The proposed DataTable
-patch is a review artifact, not an implemented or behavior-tested migration.
+flows and human visual approval have not been performed. The DataTable migration remains pending.

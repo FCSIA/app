@@ -14,8 +14,11 @@
   the shared Radix dependency family before reviewing DataTable source changes.
   New Table/hover, Checkbox/Input, Select/Dropdown/MenuItem, Combobox, icon and
   shape/type-scale contracts are merged with existing app adapters retained.
-  Admin table migration is pending; DataTable is not installed. Review the exact
-  unapplied patch and integration notes under `contributions/fluid-functionalism/`.
+  Admin table migration is pending; DataTable is not installed. The owner withdrew
+  the proposed DataTable source patch; it was never applied and is now removed.
+  Preserve upstream visuals and documented compositions. Audit Details now uses
+  upstream's one-line-height action wrapper to prevent its button inflating rows.
+  Integration notes are under `contributions/fluid-functionalism/`.
   Old Rex sessions were closed at the owner's request; `admin-fluid-tables` owns
   this task's verification and frontend on port 3000. Typecheck/lint/build and
   38 UI tests pass. The owner authorized fixing the preview: root `bun run dev`

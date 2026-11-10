@@ -18,9 +18,10 @@
   unapplied patch and integration notes under `contributions/fluid-functionalism/`.
   Old Rex sessions were closed at the owner's request; `admin-fluid-tables` owns
   this task's verification and frontend on port 3000. Typecheck/lint/build and
-  38 UI tests pass. Live preview is blocked by the configured auth backend at
-  100.66.85.13:3211 refusing connections (GET /login returns 500). No backend
-  deployment is authorized.
+  38 UI tests pass. The owner authorized fixing the preview: root `bun run dev`
+  now runs this checkout's local deployment `local-ia_app-ia_app-7` on 3210/3211
+  and web on 3000 in one Rex tab. Convex functions are ready and GET /login
+  returns 200. Shared/production deployments remain outside scope.
 
 - **UI library reliability (2026-11-07)**: Primary checkout branch
   `fix/ui-library-reliability` now includes the authorized primitive/feature

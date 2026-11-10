@@ -69,8 +69,11 @@ review. No backend deployment or upstream issue/PR is part of this work.
 ## Verification
 
 Web typecheck and lint pass; all 38 UI-library regressions pass; production build
-passes. The frontend starts on port 3000, but GET /login returns HTTP 500 because the
-configured auth backend at 100.66.85.13:3211 refuses connections. No deployment
-selection, function push, database reset or backend restart was performed. Browser interaction, authenticated admin
+passes. The initial web-only preview failed because the auth backend was offline.
+After the owner authorized repair, root `bun run dev` started this checkout's
+local deployment `local-ia_app-ia_app-7` on 3210/3211 and web on port 3000.
+Convex reports functions ready; GET /login returns HTTP 200. No reset, seed,
+shared deployment or production deployment was performed.
+Browser interaction, authenticated admin
 flows and human visual approval have not been performed. The proposed DataTable
 patch is a review artifact, not an implemented or behavior-tested migration.

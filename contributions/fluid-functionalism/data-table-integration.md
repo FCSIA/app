@@ -7,12 +7,12 @@ No issue, message or PR has been sent upstream.
 
 ## What is installed
 
-DataTable's runtime source is the published registry source. The only local
-change is removing one ESLint suppression for `react-hooks/incompatible-library`:
+DataTable starts from the published registry source, extended with the explicit
+composition API documented below. It also removes one ESLint suppression for `react-hooks/incompatible-library`:
 the project's older ESLint plugin does not define that rule. The existing
 `"use no memo"` directives remain. See `data-table-installed.diff` for the entire
-difference. There are no local DataTable geometry, search, header, menu or row
-height overrides.
+difference. Default search/header anatomy remains unchanged; the new explicit
+controls boundary accounts for body-cell padding.
 
 Audit, users, feedback, moderation, analytics table views and CSV previews use
 `useDataTable`, stable record IDs and column definitions with real accessors.
@@ -58,68 +58,11 @@ DropdownContent forwards Radix `onCloseAutoFocus`, preserving focus handoff to
 composers and the custom date-range popup. Existing adapted Dialog, DatePicker,
 Calendar, CommandMenu, ScrollArea and Tabs contracts remain in place.
 
-## Proposed DataTableColumnHeader addition — not applied
+## Implemented general composition API
 
-`ColumnDef.header` already accepts arbitrary React content. Custom filters do
-not require changing the DataTable renderer. IA currently composes the same
-approved label + Fluid filter button + DropdownContent pattern through that
-slot. A small upstream API would centralize that anatomy and avoid each app
-recreating the trigger wiring:
-
-```tsx
-<DataTableColumnHeader
-  column={column}
-  title="Person"
-  filter={{
-    active: Boolean(actorId),
-    content: <DropdownContent>{personFilterItems}</DropdownContent>,
-  }}
-/>
-```
-
-The proposed optional `filter` contains `active`, an optional accessible `label`,
-and `content`. The title keeps Fluid's existing three-state sorting and
-Shift-click behavior. The adjacent native filter trigger owns its own menu,
-focus and active state. Unsortable columns can still filter. No change is
-required at existing callsites. Exact draft source changes are in
-`data-table-header-filter.proposal.patch` (paths target our installed copy).
-This is a review proposal, not a tested or installed extension.
-
-Custom ordering already fits TanStack's public `sortingFn`, controlled
-`state.sorting`, `onSortingChange` and `manualSorting` options through
-`useDataTable`; another sort callback in the header would duplicate that state.
-A server-backed column should only advertise sorting once its query supports
-that order across the full result set.
-
-## Remaining search composition gap
-
-Audit's structured query parser, server search and visible error messages remain.
-The old token suggestions (people, actions, record types and dates) are **not
-currently present** in native `DataTableSearch`. Its public API cannot forward
-input refs, ARIA attributes or input events to `CommandInputSlot`; nesting the
-existing search component would give the command the outer span instead of the
-actual input. Recreating command keyboard handling at a page would be another
-unsafe parallel implementation.
-
-A second upstream proposal is a supported input composition boundary: an input
-ref and input props, with composed event handlers, or an input slot that keeps
-DataTableSearch's native visual anatomy and table filter binding. It must allow
-a combobox to own ARIA/keyboard focus while preserving native search behavior,
-including ArrowDown into rows when suggestions are closed. This needs an API
-decision and interaction tests before implementation. The header-filter draft
-does not solve this gap.
-
-Useful requests to the creator:
-
-- Consider the optional header filter API above, including keyboard, active,
-  disabled and open states, and interaction with column dragging/resizing.
-- Add the search input composition boundary described above so structured-query
-  suggestions can be retained without replacing the native search UI.
-- Forward DropdownContent's standard Radix close-focus callback so menu actions
-  can transfer focus without app-specific wrappers.
-- Document or namespace the radius/color token contract: stock shadcn projects
-  often remap Tailwind radius aliases and store colors as HSL channels. Static
-  classes and numeric animation values must resolve to the same geometry.
-
-Browser rendering and design-owner review remain separate from TypeScript,
-lint, CSS-contract and DOM regression checks.
+The filter-specific proposal is superseded by the implemented compound header,
+search input and controls boundaries. Audit autocomplete is restored. Stable
+feature providers keep header and user-action renderers mounted across state
+changes, preserving open multi-select controls. See [the upstream design packet](data-table-composition.md)
+for the complete API, examples, ownership rules, tradeoffs and validation limits.
+`data-table-installed.diff` now records the entire implemented source delta.

@@ -376,8 +376,9 @@ boundary first.
 ## Official Fluid DataTable (2026-11-10)
 
 The owner authorized the current Radix DataTable and coherent shared dependency
-update. DataTable runtime code matches the published registry; only an ESLint
-suppression for an unavailable plugin rule is removed. Compose native search,
+update. The owner subsequently authorized general compound header/search
+composition APIs, described in `contributions/fluid-functionalism/data-table-composition.md`.
+Default callsites retain native anatomy; explicit children inject controls. Compose native search,
 column headers, view options and pagination through the documented API. Do not
 replace TanStack instance methods or turn cursor paging into simulated client
 paging. Users retain explicit server cursor controls; audit pages explicitly
@@ -392,6 +393,6 @@ Switch owns its whole labeled row; callers provide `label`, `checked` and
 previously adapted primitive contracts remain installed.
 
 See `contributions/fluid-functionalism/data-table-integration.md` for exact
-source differences, the uninstalled header-filter proposal and the remaining
-structured-search autocomplete API gap. These are implementation diagnostics;
+source differences, the implemented general composition API and restored native-input
+structured-search autocomplete. These are implementation diagnostics;
 visual-owner and real-browser review remain pending.

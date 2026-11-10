@@ -8,6 +8,7 @@ import {
   useCallback,
   useId,
   type HTMLAttributes,
+  type ReactNode,
 } from "react";
 import { motion, useMotionValue, animate, type Transition } from "motion/react";
 import * as SwitchPrimitive from "@radix-ui/react-switch";
@@ -26,7 +27,7 @@ import { useShape } from "@/lib/shape-context";
 // ---------------------------------------------------------------------------
 
 interface SwitchProps extends HTMLAttributes<HTMLDivElement> {
-  label: string;
+  label: ReactNode;
   checked: boolean;
   /** Called by a click, the keyboard, or a drag released past the
    *  midpoint. Update `checked` here. */

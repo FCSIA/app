@@ -1,11 +1,12 @@
 import type { Metadata, Viewport } from 'next';
-import { Work_Sans } from 'next/font/google';
+import { Inter, Work_Sans } from 'next/font/google';
 import { cookies } from 'next/headers';
 import './globals.css';
 import { Providers } from './providers';
 import { Toaster } from '@/components/ui/toaster';
 import { ServiceWorkerRegistrar } from '@/components/pwa/service-worker-registrar';
 
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const workSans = Work_Sans({ subsets: ['latin'], variable: '--font-work-sans' });
 
 export const metadata: Metadata = {
@@ -48,7 +49,7 @@ export default async function RootLayout({
   const defaultSidebarOpen = (await cookies()).get('sidebar_state')?.value !== 'false';
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${workSans.variable} font-sans`} suppressHydrationWarning>
+      <body className={`${inter.variable} ${workSans.variable} font-sans`} suppressHydrationWarning>
         <Providers defaultSidebarOpen={defaultSidebarOpen}>{children}</Providers>
         <Toaster />
         <ServiceWorkerRegistrar />

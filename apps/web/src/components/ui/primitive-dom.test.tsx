@@ -7,15 +7,15 @@ import { FileThumbnail } from './file-thumbnail';
 import { ActivityHeatmap } from './activity-heatmap';
 import { Table, TableBody, TableCell, TableRow } from './table';
 
-const hover = vi.hoisted(() => ({ activeIndex: null as number | null }));
-const registration = vi.hoisted(() => vi.fn());
-vi.mock('@/hooks/use-proximity-hover', () => ({
-  useProximityHover: () => ({
-    activeIndex: hover.activeIndex, itemRects: {}, sessionRef: { current: 0 },
-    handlers: {}, registerItem: registration, measureItems: measure,
-  }),
-}));
-function measure() {}
+const hover = vi.hoisted(() => ({ setActive: undefined as undefined | ((index: number | null) => void) }));
+vi.mock('@/hooks/use-fluid-hover', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/hooks/use-fluid-hover')>();
+  return { ...actual, useFluidHover: (...args: Parameters<typeof actual.useFluidHover>) => {
+    const result = actual.useFluidHover(...args);
+    if (args[1]?.axis !== 'x') hover.setActive = result.setActiveIndex;
+    return result;
+  } };
+});
 vi.mock('./fluid-hover-highlight', () => ({ FluidHoverHighlight: () => null }));
 
 let root: Root | undefined;
@@ -114,16 +114,16 @@ test('daily counts have keyboard-native exact values including zero days', async
   expect(container.querySelector('[aria-live]')!.textContent).toContain('0 messages');
 });
 
-test('mounted table hover commits only affected rows without re-registering them', async () => {
-  hover.activeIndex = null;
+test('mounted table hover updates only affected rows and preserves their DOM', async () => {
   const commits = new Map<number, number>();
   const rows = Array.from({ length: 250 }, (_, index) => <Profiler key={index} id={String(index)} onRender={() => commits.set(index, (commits.get(index) ?? 0) + 1)}><TableRow index={index}><TableCell>{index}</TableCell></TableRow></Profiler>);
-  const children = <TableBody>{rows}</TableBody>;
-  await mount(<Table>{children}</Table>);
+  await mount(<Table><TableBody>{rows}</TableBody></Table>);
+  const originalRows = Array.from(container.querySelectorAll('tr'));
   commits.clear();
-  const calls = registration.mock.calls.length;
-  hover.activeIndex = 100;
-  await act(() => root!.render(<Table>{children}</Table>));
-  expect([...commits.keys()]).toEqual([99, 100]);
-  expect(registration.mock.calls.length).toBe(calls);
+  await act(() => hover.setActive!(100));
+  expect([...commits.keys()]).toEqual([100]);
+  commits.clear();
+  await act(() => hover.setActive!(101));
+  expect([...commits.keys()]).toEqual([100, 101]);
+  expect(Array.from(container.querySelectorAll('tr')).every((row, index) => row === originalRows[index])).toBe(true);
 });

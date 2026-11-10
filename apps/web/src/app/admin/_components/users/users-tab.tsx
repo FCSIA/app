@@ -443,8 +443,7 @@ function UserTableSection({
             <TableRow>
               <TableHead scope="col">
                 <Checkbox
-                  checked={areAllVisibleUsersSelected}
-                  indeterminate={!areAllVisibleUsersSelected && selectedVisibleCount > 0}
+                  checked={areAllVisibleUsersSelected ? true : selectedVisibleCount > 0 ? 'indeterminate' : false}
                   onCheckedChange={(checked) => toggleVisibleUsers(checked === true)}
                   disabled={selectableUsers.length === 0 || isDeleteUsersPending}
                   aria-label="Select all users shown on this page"

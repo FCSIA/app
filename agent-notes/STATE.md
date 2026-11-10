@@ -10,22 +10,6 @@
   `agent-notes/untangle/HANDOFF.md` for the remaining work, deploy checks and
   owner decisions.
 
-- **Fluid DataTable preparation (2026-11-09)**: The owner authorized upgrading
-  the shared Radix dependency family before reviewing DataTable source changes.
-  New Table/hover, Checkbox/Input, Select/Dropdown/MenuItem, Combobox, icon and
-  shape/type-scale contracts are merged with existing app adapters retained.
-  Admin table migration is pending; DataTable is not installed. The owner withdrew
-  the proposed DataTable source patch; it was never applied and is now removed.
-  Preserve upstream visuals and documented compositions. Audit Details now uses
-  upstream's one-line-height action wrapper to prevent its button inflating rows.
-  Integration notes are under `contributions/fluid-functionalism/`.
-  Old Rex sessions were closed at the owner's request; `admin-fluid-tables` owns
-  this task's verification and frontend on port 3000. Typecheck/lint/build and
-  38 UI tests pass. The owner authorized fixing the preview: root `bun run dev`
-  now runs this checkout's local deployment `local-ia_app-ia_app-7` on 3210/3211
-  and web on 3000 in one Rex tab. Convex functions are ready and GET /login
-  returns 200. Shared/production deployments remain outside scope.
-
 - **UI library reliability (2026-11-07)**: Primary checkout branch
   `fix/ui-library-reliability` now includes the authorized primitive/feature
   follow-through: selective Table subscriptions, native DatePicker reset,

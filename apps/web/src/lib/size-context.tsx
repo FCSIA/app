@@ -8,23 +8,13 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
-import {
-  typeStyles,
-  typeScale,
-  typeClasses,
-  typeClass,
-  fieldTouchClass,
-  type TypeScaleRole,
-  type TypeScalePair,
-  type TypeScaleStep,
-} from "@/lib/type-scale";
 
 type SizeVariant = "default" | "compact";
 
 interface SizeClasses {
   /** The variant these classes belong to — handy for conditionals. */
   variant: SizeVariant;
-  /** Bounded control height — buttons, inputs, select triggers, tabs —
+  /** Bounded control height — buttons, inputs, select triggers, subtle tabs —
    *  AND list/menu rows (select options, dropdown, checkbox and radio rows).
    *  One token by design: a popup row lines up with the trigger that opened
    *  it because they share this height. */
@@ -37,16 +27,8 @@ interface SizeClasses {
   segmentItem: string;
   /** Padding of the segmented list around its tabs. */
   segmentPad: string;
-  /** Body text inside controls (size + line height), same as `type.body`.
-   *  Its 20px line box (18px compact) is what puts a padded row on the
-   *  ladder: 8 + 20 + 8 = 36, 5 + 18 + 5 = 28. */
+  /** Body text inside controls. */
   text: string;
-  /** `text` for an editable field: the same body role, plus 16px on touch
-   *  screens (`fieldTouchClass`), since iOS Safari zooms the page into a
-   *  focused field set under 16px. */
-  field: string;
-  /** One class string per type role at this step (size + leading). */
-  type: Record<TypeScaleRole, string>;
   /** Horizontal padding of bounded controls (select trigger, inputs). */
   px: string;
   /** Horizontal padding of list/menu rows, which sit inside a padded popup
@@ -71,9 +53,7 @@ const sizeMap: Record<SizeVariant, SizeClasses> = {
     controlHeight: 36,
     segmentItem: "h-7",
     segmentPad: "p-1",
-    text: typeClasses.default.body,
-    field: `${typeClasses.default.body} ${fieldTouchClass}`,
-    type: typeClasses.default,
+    text: "text-[13px]",
     px: "px-3",
     itemPx: "px-2",
     gap: "gap-2",
@@ -88,9 +68,7 @@ const sizeMap: Record<SizeVariant, SizeClasses> = {
     controlHeight: 28,
     segmentItem: "h-6",
     segmentPad: "p-0.5",
-    text: typeClasses.compact.body,
-    field: `${typeClasses.compact.body} ${fieldTouchClass}`,
-    type: typeClasses.compact,
+    text: "text-[12px]",
     px: "px-2.5",
     itemPx: "px-1.5",
     gap: "gap-1",
@@ -98,9 +76,40 @@ const sizeMap: Record<SizeVariant, SizeClasses> = {
   },
 };
 
-/** The type scale resolved for the active ladder step (font size in px per
- *  role): explicit override > surrounding SizeProvider > "default". Line
- *  heights live in `typeStyles` and the --lh-* tokens. */
+/** One role of the type scale: px per ladder step. */
+interface TypeScaleStep {
+  default: number;
+  compact: number;
+}
+
+/**
+ * Role-based type scale, per ladder step (px values).
+ *
+ * The default column is the system as shipped; the compact column steps each
+ * role down one notch so dense regions read as a smaller sibling of the same
+ * hierarchy, not a squeezed copy. `body`, `caption`, and `subtitle` are what
+ * the sized components already render through `SizeClasses.text` and their
+ * compact conditionals; `display` and `title` are the page-level roles
+ * for consumers composing their own screens.
+ */
+const typeScale = {
+  /** Page titles. */
+  display: { default: 28, compact: 24 },
+  /** Section headings, dialog titles. */
+  title: { default: 16, compact: 15 },
+  /** Card titles, chat bubbles, emphasized rows. */
+  subtitle: { default: 14, compact: 13 },
+  /** Control labels and body copy — `SizeClasses.text`. */
+  body: { default: 13, compact: 12 },
+  /** Secondary text: descriptions, meta rows, errors, eyebrows and group
+   *  labels (the former overline role — an uppercase or muted caption). */
+  caption: { default: 12, compact: 11 },
+} as const satisfies Record<string, TypeScaleStep>;
+
+type TypeScaleRole = keyof typeof typeScale;
+
+/** The type scale resolved for the active ladder step (px per role):
+ *  explicit override > surrounding SizeProvider > "default". */
 function useTypeScale(
   override?: SizeVariant | null
 ): Record<TypeScaleRole, number> {
@@ -111,7 +120,6 @@ function useTypeScale(
     subtitle: typeScale.subtitle[variant],
     body: typeScale.body[variant],
     caption: typeScale.caption[variant],
-    micro: typeScale.micro[variant],
   };
 }
 
@@ -181,16 +189,6 @@ export {
   useSizeContext,
   useTypeScale,
   sizeMap,
-  typeStyles,
   typeScale,
-  typeClasses,
-  typeClass,
-  fieldTouchClass,
 };
-export type {
-  SizeVariant,
-  SizeClasses,
-  TypeScaleRole,
-  TypeScalePair,
-  TypeScaleStep,
-};
+export type { SizeVariant, SizeClasses, TypeScaleRole, TypeScaleStep };

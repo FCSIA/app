@@ -12,16 +12,16 @@ import {
   type ReactNode,
 } from "react";
 import type { IconComponent } from "@/lib/icon-context";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { fontWeights } from "@/lib/font-weight";
-import { usePopupShape } from "@/lib/shape-context";
+import { popupShape } from "@/components/ui/popup-shape";
 import { useSize } from "@/lib/size-context";
-import {
-  useFluidHoverSelect,
-  useRegisterFluidHoverItem,
-  type FluidHoverActiveStore,
-} from "@/hooks/use-fluid-hover";
+import { useRegisterFluidHoverItem } from "@/hooks/use-fluid-hover";
+
+// MenuItem is only used inside Dropdown, which opts out of the global pill
+// shape — see dropdown.tsx for the rationale.
+const shape = popupShape;
 
 // ---------------------------------------------------------------------------
 // Dropdown context — the single shared context for every Dropdown build.
@@ -62,9 +62,7 @@ export interface MenuItemRenderOptions {
 
 export interface DropdownContextValue {
   registerItem: (index: number, element: HTMLElement | null) => void;
-  /** The highlighted row, read per row with `useFluidHoverSelect` so a
-   *  highlight change re-renders two rows instead of the whole menu. */
-  activeStore: FluidHoverActiveStore;
+  activeIndex: number | null;
   checkedIndex?: number;
   /** Multiple selection (`checkedIndices` on the dropdown): rows are
    *  checkbox items and activating one keeps the menu open by default. */
@@ -134,11 +132,10 @@ export interface MenuItemProps extends HTMLAttributes<HTMLDivElement> {
   disabled?: boolean;
   /** Popup-only (inside DropdownContent): whether activating the item closes
    *  the menu. Ignored in the inline Dropdown panel. @default true */
-  destructive?: boolean;
   closeOnClick?: boolean;
-  /** Content before the icon, e.g. a drag handle. Its clicks are its own:
-   *  they don't activate the item. */
-  leading?: ReactNode;
+  /** Destructive action (remove, delete): label and icon in the destructive
+   *  colour instead of the muted/foreground pair. */
+  destructive?: boolean;
 }
 
 const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
@@ -152,18 +149,16 @@ const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
       disabled,
       closeOnClick,
       destructive = false,
-      leading,
       className,
       onClick,
       ...props
     },
     ref
   ) => {
-    const shape = usePopupShape();
     const internalRef = useRef<HTMLDivElement>(null);
     const {
       registerItem,
-      activeStore,
+      activeIndex,
       checkedIndex,
       multiple,
       checkedIndices,
@@ -173,7 +168,7 @@ const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
 
     useRegisterFluidHoverItem(registerItem, index, internalRef);
 
-    const isActive = useFluidHoverSelect(activeStore, (i) => i === index);
+    const isActive = activeIndex === index;
     const sizeClasses = useSize();
 
     const mergeRef = (node: HTMLDivElement | null) => {
@@ -201,16 +196,8 @@ const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
 
     const content = (
       <>
-        {leading && (
-          <span
-            className="flex shrink-0 items-center"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {leading}
-          </span>
-        )}
         {Icon && (
-          <span className="inline-grid shrink-0">
+          <span className="inline-grid">
             <span className="col-start-1 row-start-1 invisible">
               <Icon size={sizeClasses.icon} strokeWidth={2} />
             </span>
@@ -219,22 +206,20 @@ const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
               strokeWidth={isActive || checked ? 2 : 1.5}
               className={cn(
                 "col-start-1 row-start-1 transition-[color,stroke-width] duration-80",
-                isActive || checked
-                  ? (destructive ? "text-destructive" : "text-foreground")
-                  : (destructive ? "text-destructive" : "text-muted-foreground")
+                destructive
+                  ? "text-destructive"
+                  : isActive || checked
+                    ? "text-foreground"
+                    : "text-muted-foreground"
               )}
             />
           </span>
         )}
         {/* Both stacked spans carry the text-box trim so the invisible bold
-            sizer and the visible label keep identical boxes. Both truncate:
-            the popup has a fixed width and the row a fixed height, so a long
-            label clips with an ellipsis instead of wrapping into the next
-            row. The padding pair extends the clip box past the trim so
-            ascenders and descenders aren't shaved. */}
-        <span className={cn("inline-grid min-w-0 flex-1", sizeClasses.text)}>
+            sizer and the visible label keep identical boxes. */}
+        <span className={cn("inline-grid flex-1", sizeClasses.text)}>
           <span
-            className="col-start-1 row-start-1 invisible truncate pt-[0.25em] -mt-[0.25em] pb-[0.25em] -mb-[0.25em] [text-box:trim-both_cap_alphabetic]"
+            className="col-start-1 row-start-1 invisible [text-box:trim-both_cap_alphabetic]"
             style={{ fontVariationSettings: fontWeights.semibold }}
             aria-hidden="true"
           >
@@ -242,10 +227,12 @@ const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
           </span>
           <span
             className={cn(
-              "col-start-1 row-start-1 truncate pt-[0.25em] -mt-[0.25em] pb-[0.25em] -mb-[0.25em] transition-[color,font-variation-settings] duration-80 [text-box:trim-both_cap_alphabetic]",
-              isActive || checked
-                ? (destructive ? "text-destructive" : "text-foreground")
-                : (destructive ? "text-destructive" : "text-muted-foreground")
+              "col-start-1 row-start-1 transition-[color,font-variation-settings] duration-80 [text-box:trim-both_cap_alphabetic]",
+              destructive
+                ? "text-destructive"
+                : isActive || checked
+                  ? "text-foreground"
+                  : "text-muted-foreground"
             )}
             style={{
               fontVariationSettings: checked

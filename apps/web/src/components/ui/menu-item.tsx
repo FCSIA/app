@@ -224,15 +224,12 @@ const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
             />
           </span>
         )}
-        {/* Both stacked spans carry the text-box trim so the invisible bold
-            sizer and the visible label keep identical boxes. Both truncate:
-            the popup has a fixed width and the row a fixed height, so a long
-            label clips with an ellipsis instead of wrapping into the next
-            row. The padding pair extends the clip box past the trim so
-            ascenders and descenders aren't shaved. */}
+        {/* Stacked regular/bold labels reserve weight changes without shifting
+            layout. Keep the normal line box inside truncation: cap/alphabetic
+            trim can clip font-dependent descenders at the overflow edge. */}
         <span className={cn("inline-grid min-w-0 flex-1", sizeClasses.text)}>
           <span
-            className="col-start-1 row-start-1 invisible truncate pt-[0.25em] -mt-[0.25em] pb-[0.25em] -mb-[0.25em] [text-box:trim-both_cap_alphabetic]"
+            className="col-start-1 row-start-1 invisible truncate"
             style={{ fontVariationSettings: fontWeights.semibold }}
             aria-hidden="true"
           >
@@ -240,7 +237,7 @@ const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
           </span>
           <span
             className={cn(
-              "col-start-1 row-start-1 truncate pt-[0.25em] -mt-[0.25em] pb-[0.25em] -mb-[0.25em] transition-[color,font-variation-settings] duration-80 [text-box:trim-both_cap_alphabetic]",
+              "col-start-1 row-start-1 truncate transition-[color,font-variation-settings] duration-80",
               isActive || checked
                 ? "text-foreground"
                 : "text-muted-foreground"

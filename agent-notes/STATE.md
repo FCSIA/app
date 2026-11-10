@@ -10,6 +10,21 @@
   `agent-notes/untangle/HANDOFF.md` for the remaining work, deploy checks and
   owner decisions.
 
+- **Native admin DataTable (2026-11-10)**: On `fix/ui-library-reliability`, the
+  owner-authorized latest Radix Fluid DataTable and shared dependencies replace
+  admin table compositions. Native search, column controls and pagination are
+  composed at callers; server cursor paging and audit server ordering remain
+  explicit. Desktop audit header filters are restored. Global radius aliases
+  now match Fluid's numeric animations (4/6/8px), fixing the 16px-hover versus
+  8px-selection mismatch. Inter is loaded globally, including portals. DataTable
+  runtime remains registry source (one unavailable ESLint rule comment removed).
+  Web typecheck/lint/build, 40 UI tests and frozen dependency install pass.
+  Root `bun dev` remains in Rex `admin-fluid-tables`, web 3000/backend 3210/3211.
+  Audit query-token autocomplete is a known remaining API gap; parser/server
+  search remain available. Exact installed delta and uninstalled header-filter
+  proposal: `contributions/fluid-functionalism/data-table-integration.md`.
+  Browser/design-owner review remains pending. No push or shared deployment.
+
 - **UI library reliability (2026-11-07)**: Primary checkout branch
   `fix/ui-library-reliability` now includes the authorized primitive/feature
   follow-through: selective Table subscriptions, native DatePicker reset,
@@ -61,7 +76,6 @@
   pushes run CI without deployment. Main permits direct pushes while rejecting
   force pushes/deletion; `v*` tag rules reject updates/deletion. This supersedes
   the older release-PR instructions below. See `docs/reference/versioning.md`.
-
 
 - **Browser OCR production repair (2026-10-30)**: Worktree
   `.worktrees/browser-schedule-ocr`, branch `codex/browser-schedule-ocr`, switches

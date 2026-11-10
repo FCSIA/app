@@ -1,0 +1,10 @@
+--- published/data-table.tsx
++++ installed/data-table.tsx
+@@ -188,7 +188,6 @@
+  *  filtered and paginated. Anything TanStack accepts still goes through. */
+ function useDataTable<TData>({ pageSize = 10, initialState, ...options }: UseDataTableOptions<TData>) {
+   "use no memo";
+-  // eslint-disable-next-line react-hooks/incompatible-library -- handled below and by "use no memo" in each part
+   const table = useReactTable<TData>({
+     getCoreRowModel: getCoreRowModel(),
+     getSortedRowModel: getSortedRowModel(),

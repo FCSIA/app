@@ -1,11 +1,16 @@
 // @vitest-environment jsdom
-import { act } from 'react';
+import { act, createRef } from 'react';
+import { createPortal } from 'react-dom';
+import { Command, CommandInputSlot, CommandList, CommandItem } from './command';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, expect, test, vi } from 'vitest';
 import {
   useDataTable,
   DataTable,
   DataTableColumnHeader,
+  DataTableColumnHeaderLabel,
+  DataTableControls,
+  DataTableSearchInput,
   DataTableSearch,
   DataTablePagination,
   selectColumn,
@@ -28,13 +33,27 @@ const columns: ColumnDef<Person>[] = [
     ),
   },
 ];
+let composed = false;
+let hits = 0;
+const inputRef = createRef<HTMLInputElement>();
+const extendedColumns: ColumnDef<Person>[] = [
+  selectColumn<Person>(),
+  { accessorKey: 'name', header: ({ column }) => <DataTableColumnHeader column={column} title="Name">
+    <DataTableColumnHeaderLabel />
+    <DataTableControls>
+      <button onClick={() => { hits++; }}>Inspect</button>
+      {createPortal(<button data-testid="portal-control">Portal action</button>, document.body)}
+    </DataTableControls>
+  </DataTableColumnHeader> },
+  { accessorKey: 'id', header: 'ID' },
+];
 let table: Table<Person>;
 let root: Root;
 let container: HTMLDivElement;
 function Fixture({ remote = false }: { remote?: boolean }) {
   table = useDataTable({
     data: people,
-    columns,
+    columns: composed ? extendedColumns : columns,
     pageSize: 2,
     getRowId: (row) => row.id,
     enableRowSelection: (row) => row.original.id !== 'owner',
@@ -42,8 +61,15 @@ function Fixture({ remote = false }: { remote?: boolean }) {
   });
   return (
     <>
-      <DataTableSearch table={table} />
-      <DataTable table={table} />
+      {composed ? <Command shouldFilter={false} label="People">
+        <DataTableSearch table={table}>
+          <CommandInputSlot asChild value={String(table.getState().globalFilter ?? '')}>
+            <DataTableSearchInput ref={inputRef} aria-label="Find people" aria-expanded={true} />
+          </CommandInputSlot>
+        </DataTableSearch>
+        <CommandList><CommandItem value="Ada" onSelect={() => table.setGlobalFilter('Ada')}>Ada</CommandItem></CommandList>
+      </Command> : <DataTableSearch table={table} />}
+      <DataTable table={table} reorderColumns />
       {!remote && <DataTablePagination table={table} />}
     </>
   );
@@ -59,6 +85,8 @@ beforeAll(() => {
       removeListener() {},
     })),
   });
+  Object.assign(globalThis, { CSS: { escape: (value: string) => value } });
+  Element.prototype.scrollIntoView = vi.fn();
   globalThis.ResizeObserver = class {
     observe() {}
     disconnect() {}
@@ -68,6 +96,8 @@ beforeAll(() => {
 afterEach(async () => {
   if (root) await act(() => root.unmount());
   container?.remove();
+  composed = false;
+  hits = 0;
 });
 async function mount(remote = false) {
   container = document.createElement('div');
@@ -131,4 +161,48 @@ test('manual cursor pages are not sliced again by the client', async () => {
   await mount(true);
   expect(table.getRowModel().rows).toHaveLength(3);
   expect(container.querySelector('tbody')!.rows).toHaveLength(3);
+});
+
+test('injected controls keep click and keyboard ownership; default labels still sort', async () => {
+  composed = true;
+  await mount();
+  const inspect = Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent === 'Inspect')!;
+  await act(() => inspect.click());
+  expect(hits).toBe(1);
+  expect(table.getState().sorting).toEqual([]);
+  await act(() => inspect.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, bubbles: true })));
+  expect(table.getState().columnOrder).toEqual([]);
+  const sort = Array.from(container.querySelectorAll<HTMLButtonElement>('thead button')).find((b) => b.textContent === 'Name')!;
+  await act(() => sort.click());
+  expect(table.getState().sorting).toEqual([{ id: 'name', desc: false }]);
+  await act(() => sort.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, bubbles: true })));
+  expect(table.getState().columnOrder).toEqual(['select', 'id', 'name']);
+});
+test('portal events do not select table rows or reorder columns', async () => {
+  composed = true;
+  await mount();
+  const portal = document.querySelector<HTMLButtonElement>('[data-testid="portal-control"]')!;
+  await act(() => portal.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', ctrlKey: true, bubbles: true })));
+  await act(() => portal.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, bubbles: true })));
+  expect(table.getState().rowSelection).toEqual({});
+  expect(table.getState().columnOrder).toEqual([]);
+});
+test('search decorators receive the actual input ref and preserve one filter state', async () => {
+  composed = true;
+  await mount();
+  const input = inputRef.current!;
+  expect(input.tagName).toBe('INPUT');
+  expect(input.getAttribute('role')).toBe('combobox');
+  expect(input.getAttribute('aria-label')).toBe('Find people');
+  await act(() => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'Ada');
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  expect(table.getState().globalFilter).toBe('Ada');
+  expect(table.getState().pagination.pageIndex).toBe(0);
+  await act(() => {
+    input.focus();
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+  });
+  expect(document.activeElement).toBe(input);
 });

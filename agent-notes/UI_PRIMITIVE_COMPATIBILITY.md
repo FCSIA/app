@@ -292,8 +292,10 @@ References:
 
 Select and Dropdown share `popup-shape.ts`: 12px container, 8px item/highlight,
 and 10px focus ring at a 4px inset. The trigger can follow the global shape;
-the menu must not inherit it. Use fixed values here: the application's
-`rounded-lg` resolves to 16px, unlike the registry's expected 8px. Nested popup
+the menu must not inherit it. The November 10 DataTable integration corrected the global Tailwind radius
+ladder to sm=4px, md=6px and lg=8px. `rounded-lg` now matches Fluid's numeric
+8px selection animation; do not restore the legacy 16px alias or add page-level
+radius compensation. Nested popup
 portals use the same overlay layer so later inner portals paint above their
 parent; changing only the parent's z-index can hide its controls.
 
@@ -369,3 +371,25 @@ decision and escalation protocol.
 
 If any answer is uncertain, stop styling the page and inspect the primitive
 boundary first.
+
+
+## Official Fluid DataTable (2026-11-10)
+
+The owner authorized the current Radix DataTable and coherent shared dependency
+update. DataTable runtime code matches the published registry; only an ESLint
+suppression for an unavailable plugin rule is removed. Compose native search,
+column headers, view options and pagination through the documented API. Do not
+replace TanStack instance methods or turn cursor paging into simulated client
+paging. Users retain explicit server cursor controls; audit pages explicitly
+cover loaded events and preserve server ordering/filtering.
+
+Inter is loaded at the root so portal controls inherit the same font. The new
+Switch owns its whole labeled row; callers provide `label`, `checked` and
+`onToggle`, without a second external label. Dropdown retains the narrow
+`onCloseAutoFocus` adapter for custom-date and composer focus handoff. Other
+previously adapted primitive contracts remain installed.
+
+See `contributions/fluid-functionalism/data-table-integration.md` for exact
+source differences, the uninstalled header-filter proposal and the remaining
+structured-search autocomplete API gap. These are implementation diagnostics;
+visual-owner and real-browser review remain pending.

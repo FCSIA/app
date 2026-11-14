@@ -60,35 +60,41 @@ export function AdminDataTable<T>({
   const toolbar = (
     <>
       <SearchToolbarRow className="flex-row flex-wrap items-center gap-2">
-            <DataTableSearch
-              table={table}
-              placeholder={searchPlaceholder}
-              className="min-w-0 basis-full sm:basis-0 sm:flex-1"
-            />
-            {controls}
-            <DataTableViewOptions table={table} className="hidden md:inline-flex" />
-            {count != null ? <DataTableCount>{count}</DataTableCount> : null}
+        <DataTableSearch table={table} placeholder={searchPlaceholder} />
+        {/* Trailing controls sit at the row's end, as in the audit log. */}
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          {controls}
+          <DataTableViewOptions table={table} className="hidden md:inline-flex" />
+          {count != null ? <DataTableCount>{count}</DataTableCount> : null}
+        </div>
       </SearchToolbarRow>
       {toolbarBelow}
     </>
   );
+  // Client pages cover the table only; phone cards list every row.
+  const pagination =
+    footer === undefined ? (
+      <div className="pt-3">
+        <DataTablePagination table={table} />
+      </div>
+    ) : null;
   const body = (
     <>
       {mobile ? (
         <>
-          <div className="hidden min-w-0 md:block">{desktop}</div>
+          <div className="hidden min-w-0 md:block">
+            {desktop}
+            {pagination}
+          </div>
           <div className="md:hidden">{mobile}</div>
         </>
       ) : (
-        desktop
+        <>
+          {desktop}
+          {pagination}
+        </>
       )}
-      {footer === undefined ? (
-        <div className="pt-3">
-          <DataTablePagination table={table} />
-        </div>
-      ) : (
-        footer
-      )}
+      {footer}
     </>
   );
   if (!label)

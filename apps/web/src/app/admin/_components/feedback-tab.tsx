@@ -276,17 +276,15 @@ export function FeedbackTab({ canUpdateFeedback = true }: { canUpdateFeedback?: 
           toolbar={
             <>
               <SearchToolbarRow className="flex-row flex-wrap items-center gap-2">
-                <DataTableSearch
-                  table={table}
-                  className="min-w-0 basis-full sm:basis-0 sm:flex-1"
-                  placeholder="Search feedback…"
-                />
-                <DataTableViewOptions table={table} className="hidden md:inline-flex" />
-                <DataTableCount>
+                <DataTableSearch table={table} placeholder="Search feedback…" />
+                <div className="ml-auto flex shrink-0 items-center gap-2">
+                  <DataTableViewOptions table={table} className="hidden md:inline-flex" />
+                  <DataTableCount>
                   {isLoading
                     ? '—'
                     : `${filteredReports.length} ${deferredFeedbackSearch ? (filteredReports.length === 1 ? 'match' : 'matches') : 'items'}`}
                 </DataTableCount>
+                </div>
               </SearchToolbarRow>
               <TabsList aria-label="Feedback views">
                 {VIEWS.map((item) => (

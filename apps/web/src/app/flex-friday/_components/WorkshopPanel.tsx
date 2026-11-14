@@ -148,7 +148,7 @@ export function WorkshopPanel({
                             </span>
                           </div>
 
-                          {spotsLeft !== null ? (
+                          {w.capacity && spotsLeft !== null ? (
                             <div className="mt-3 max-w-xs">
                               <Meter
                                 min={0}

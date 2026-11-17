@@ -120,4 +120,3 @@ export function getMobileTabEditorItems(props: AppShellNavigationProps) {
       item.mobileTabId !== undefined,
   );
 }
-

@@ -26,7 +26,13 @@ sources, alongside the installed adapters.
 
 Verification covers layout normalization, authenticated preference ownership,
 independent desktop/mobile storage, reset, and invalid/unauthenticated writes.
-Authenticated browser interactions, narrow layouts, themes, reduced motion,
-and design-owner visual approval remain pending. The optional schema field and
+On 2026-11-17, the actual shared editor passed isolated Chromium interaction
+checks at 1440px and 390px, including dark mode and reduced motion: selection
+limits, Save, Cancel, Reset, keyboard reordering, failed-save recovery, Escape,
+and a fitting dialog, with no page errors. The fixture uses an in-memory save
+callback; authenticated full-app interactions, physical devices, and
+design-owner visual approval remain pending. Web/shared tests, navigation
+ownership tests, backend/web typechecks, web lint, and production build passed
+on the combined main integration. The optional schema field and
 mutation require a normal backend deployment before using the desktop editor;
 no shared deployment is selected or modified by this implementation.

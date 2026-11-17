@@ -10,9 +10,9 @@ exceptions extended without reassessment by `39deed45`. This review starts from
 November 10. This is a point-in-time assessment; renewed exceptions retain
 residual risk and do not constitute upstream fixes.
 
-## November 16 integration review
+## November 17 UTC integration review
 
-PR #238 was updated against main `1ba81ef5`. The original November 10
+PR #238 was updated against main `aa1af15e`. The original November 10
 assessment below is historical; the following changes supersede it:
 
 - Remove the deepmerge exception: OSV withdrew
@@ -20,9 +20,9 @@ assessment below is historical; the following changes supersede it:
   on November 16 because it does not describe a security vulnerability. Retain
   the existing defensive patch and ordinary-merge coverage; neither requires
   an OSV exception.
-- Nine advisory-specific exceptions remain, expiring January 24, 2027. Eight
-  retain their November 10 review. The device-authorization exception is
-  reassessed November 16 (69 days before expiry).
+- Nine advisory-specific exceptions remain, reviewed November 17 UTC and
+  expiring January 16, 2027 (60 days), matching the concurrent main review in
+  [the current reassessment](security-exceptions-2026-11-17.md).
 - Main now enables Device Authorization for the CLI. The earlier claim that
   this plugin is absent no longer applies. The
   [upstream advisory](https://github.com/better-auth/better-auth/security/advisories/GHSA-q84f-53jg-9ppm)
@@ -38,8 +38,9 @@ assessment below is historical; the following changes supersede it:
   the code with a terminal they control. This is a local mitigation, not an
   upstream Better Auth fix.
 - The refreshed full scan found eight additional advisories. Adopt compatible
-  patch releases: Hono 4.13.19 (five advisories fixed since 4.13.16), `@hono/node-server` 2.1.6
-  (two), and Next.js 16.4.5 (one). No new exception is added. Sources:
+  patch releases: Hono 4.13.19 (five advisories fixed since 4.13.16), `@hono/node-server` 2.1.8
+  (two fixed since 2.1.6), and Next.js 16.4.6 (one fixed since 16.4.5).
+  No new exception is added. Sources:
   [Hono release](https://github.com/honojs/hono/releases/tag/v4.13.16),
   [Node adapter release](https://github.com/honojs/node-server/releases/tag/v2.1.6),
   [Next.js advisory](https://github.com/vercel/next.js/security/advisories/GHSA-mfr8-8qww-v76h).
@@ -49,7 +50,7 @@ layout, styles and interactions are unchanged. Authenticated browser,
 physical-device and design-owner review were not performed. No shared or
 production deployment was selected or mutated.
 
-Final November 16 validation: frozen install; all 22 audit regressions; all
+Validation before the concurrent main integration: frozen install; all 22 audit regressions; all
 586 backend tests in 103 files; backend/web typechecks; web lint; and the
 Next.js 16.4.5 production build pass. The 2,320-instance full inventory scan
 reports 14 raw package/advisory pairs across the nine retained advisories;

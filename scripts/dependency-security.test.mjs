@@ -177,16 +177,16 @@ test("audit exceptions expire and cover only the reviewed package versions", () 
   ].sort());
   for (const block of blocks) {
     assert.match(block, /owner @rebanto/);
-    const expectedReview = block.includes('id = "GHSA-q84f-53jg-9ppm"') ? "2026-11-16" : "2026-11-10";
-    assert.ok(block.includes(`Reviewed ${expectedReview}`));
+    assert.match(block, /Reviewed 2026-11-17/);
     const expiry = block.match(/ignoreUntil = (\d{4}-\d{2}-\d{2})/)[1];
-    assert.equal(expiry, "2027-01-24");
-    const review = block.match(/Reviewed (\d{4}-\d{2}-\d{2})/)[1];
-    const reviewWindowDays = (Date.parse(expiry) - Date.parse(review)) / 86_400_000;
-    assert.ok(reviewWindowDays >= 60 && reviewWindowDays <= 90, `Review window must be 60-90 days: ${block}`);
+    assert.equal(expiry, "2027-01-16");
+    const reviewedAt = Date.parse("2026-11-17T00:00:00Z");
+    const reviewWindow = Date.parse(`${expiry}T00:00:00Z`) - reviewedAt;
+    assert.ok(reviewWindow >= 60 * 86400000 && reviewWindow <= 90 * 86400000, "Review window must be 60-90 days");
     assert.ok(Date.now() < Date.parse(`${expiry}T00:00:00Z`), `Expired audit exception: ${block}`);
   }
   assert.doesNotMatch(config, /\[\[PackageOverrides\]\]/);
+  assert.doesNotMatch(config, /GHSA-gcqx-w48m-w2h4/, "Withdrawn deepmerge advisory must not be ignored");
   const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   assert.equal(manifest.overrides["node-forge"], "1.4.3");
   assert.equal(manifest.patchedDependencies["node-forge@1.4.0"], undefined);
@@ -196,6 +196,15 @@ function globInstallations() {
   const nextPlugin = createRequire(require.resolve("@next/eslint-plugin-next"));
   return [require.resolve("glob/package.json"), nextPlugin.resolve("glob/package.json")];
 }
+
+test("Next.js and Hono stay on the reviewed security patch releases", () => {
+  const lock = JSON.parse(readFileSync(new URL("../bun.lock", import.meta.url), "utf8").replace(/,\s*([}\]])/g, "$1"));
+  for (const [name, version] of Object.entries({ next: "16.4.6", hono: "4.13.19", "@hono/node-server": "2.1.8" })) {
+    const instances = Object.values(lock.packages).map(([id]) => id).filter(id => id.startsWith(`${name}@`));
+    assert.ok(instances.length > 0, `Missing security-reviewed ${name}`);
+    assert.deepEqual([...new Set(instances)], [`${name}@${version}`]);
+  }
+});
 
 test("minimatch CJS/ESM backports bound preprocessing while retaining ordinary matches", async () => {
   for (const globPackage of globInstallations()) {

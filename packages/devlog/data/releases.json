@@ -2,6 +2,59 @@
   "channel": "alpha",
   "releases": [
     {
+      "version": "0.8.47",
+      "date": "2026-11-17",
+      "commit": "edd1bc7c",
+      "changes": [
+        {
+          "category": "Added",
+          "scope": "cli",
+          "summary": "You can now use IA App from a terminal with fcsia: check your day, clubs, Flex signups, and messages, and update it with fcsia upgrade.",
+          "commit": "dddd2271"
+        },
+        {
+          "category": "Improved",
+          "scope": "navigation",
+          "summary": "Customize your desktop sidebar and mobile bottom bar in Settings, including destination order and what appears in More.",
+          "commit": "e8f25f7a"
+        },
+        {
+          "category": "Improved",
+          "scope": "dashboard",
+          "summary": "Snake responds to direction changes on the next frame without speeding up during rapid turns.",
+          "commit": "1ba81ef5"
+        },
+        {
+          "category": "Improved",
+          "scope": "dashboard",
+          "summary": "You can view Snake leaderboards during class while gameplay stays locked.",
+          "commit": "0900b058"
+        },
+        {
+          "category": "Internal",
+          "scope": "navigation",
+          "summary": "Address navigation React Doctor findings and keep route options shared.",
+          "commit": "b9302c05"
+        },
+        {
+          "category": "Security",
+          "summary": "Command-line sign-in now checks the requesting client and clearly explains account access before approval.",
+          "commit": "9b3fd682"
+        },
+        {
+          "category": "Security",
+          "summary": "Updated app dependencies with security fixes.",
+          "commit": "aa1af15e"
+        },
+        {
+          "category": "Internal",
+          "summary": "Reassess dependency audit exceptions and keep them limited to reviewed versions and configurations.",
+          "commit": "6bfe4fe2",
+          "scope": "security"
+        }
+      ]
+    },
+    {
       "version": "0.8.46",
       "date": "2026-11-10",
       "commit": "47ef860a",

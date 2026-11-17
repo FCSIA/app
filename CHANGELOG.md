@@ -12,6 +12,28 @@ capability bumps the minor version, and a fix-only release bumps the patch.
 Entries marked **Internal** are tooling, dependency, and documentation work. They
 are recorded here for maintainers and hidden from the in-app devlog.
 
+## v0.8.47 — 2026-11-17 (alpha)
+
+### Added
+
+- **cli** — You can now use IA App from a terminal with fcsia: check your day, clubs, Flex signups, and messages, and update it with fcsia upgrade. ([`dddd2271`](https://github.com/FCSIA/ia-app/commit/dddd2271))
+
+### Improved
+
+- **navigation** — Customize your desktop sidebar and mobile bottom bar in Settings, including destination order and what appears in More. ([`e8f25f7a`](https://github.com/FCSIA/ia-app/commit/e8f25f7a))
+- **dashboard** — Snake responds to direction changes on the next frame without speeding up during rapid turns. ([`1ba81ef5`](https://github.com/FCSIA/ia-app/commit/1ba81ef5))
+- **dashboard** — You can view Snake leaderboards during class while gameplay stays locked. ([`0900b058`](https://github.com/FCSIA/ia-app/commit/0900b058))
+
+### Security
+
+- Command-line sign-in now checks the requesting client and clearly explains account access before approval. ([`9b3fd682`](https://github.com/FCSIA/ia-app/commit/9b3fd682))
+- Updated app dependencies with security fixes. ([`aa1af15e`](https://github.com/FCSIA/ia-app/commit/aa1af15e))
+
+### Internal
+
+- **navigation** — Address navigation React Doctor findings and keep route options shared. ([`b9302c05`](https://github.com/FCSIA/ia-app/commit/b9302c05))
+- **security** — Reassess dependency audit exceptions and keep them limited to reviewed versions and configurations. ([`6bfe4fe2`](https://github.com/FCSIA/ia-app/commit/6bfe4fe2))
+
 ## v0.8.46 — 2026-11-10 (alpha)
 
 ### Added

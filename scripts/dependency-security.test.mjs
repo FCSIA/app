@@ -58,6 +58,20 @@ test("upstream node-forge 1.4.3 retains Buffer PEM compatibility", () => {
   assert.equal(forge.pki.privateKeyFromPem(Buffer.from(pem)).n.toString(), privateKey.n.toString());
 });
 
+test("Ed25519 rejects a forged signature with an identity public key (GHSA-6889-vf6x-f3g5)", () => {
+  const message = Buffer.from("dependency security regression");
+  const publicKey = Buffer.alloc(32);
+  publicKey[0] = 1;
+  const signature = Buffer.alloc(64);
+  signature[0] = 1;
+  assert.equal(forge.ed25519.verify({ message, publicKey, signature }), false);
+
+  const keyPair = forge.ed25519.generateKeyPair({ seed: Buffer.alloc(32, 7) });
+  const validSignature = forge.ed25519.sign({ message, privateKey: keyPair.privateKey });
+  assert.equal(forge.ed25519.verify({ message, publicKey: keyPair.publicKey, signature: validSignature }), true);
+  assert.equal(forge.ed25519.verify({ message: Buffer.from("tampered"), publicKey: keyPair.publicKey, signature: validSignature }), false);
+});
+
 test("Expo code signing round-trips certificates and produces valid manifest signatures", () => {
   const expoSigning = require("@expo/code-signing-certificates");
   const certificate = expoSigning.generateSelfSignedCodeSigningCertificate({
@@ -392,7 +406,13 @@ test("Better Auth audit exceptions remain limited to the pinned unused feature c
   assert.ok(ts.isArrayLiteralExpression(plugins));
   assert.ok(plugins.elements.every(ts.isCallExpression));
   assert.deepEqual(plugins.elements.map((plugin) => plugin.expression.getText(ast)), [
-    "createLoginRateLimitPlugin", "username", "admin", "expo", "convex",
+    "createLoginRateLimitPlugin",
+    "username",
+    "admin",
+    "createCliSignInPlugin",
+    "createCliDeviceAuthorization",
+    "expo",
+    "convex",
   ]);
   assert.doesNotMatch(source, /(?:magicLink|genericOAuth|oauthProxy|deviceAuthorization|drizzleAdapter|kyselyAdapter)\s*\(/);
 });

@@ -1,20 +1,48 @@
 export type Point = { x: number; y: number };
+const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
+export const pathLength = (path: Point[]) => path.slice(1).reduce((sum, point, i) => sum + distance(path[i], point), 0);
 
-const point = (cell: number, width: number): Point => ({ x: cell % width + 0.5, y: Math.floor(cell / width) + 0.5 });
-const mix = (from: Point, to: Point, progress: number): Point => ({
-  x: from.x + (to.x - from.x) * progress,
-  y: from.y + (to.y - from.y) * progress,
-});
-
-/** Follow the occupied path: corners stay put while the head and tail advance. */
-export function snakePoints(previous: number[], current: number[], width: number, progress: number): Point[] {
-  const amount = Math.max(0, Math.min(1, progress));
-  const head = mix(point(previous[0], width), point(current[0], width), amount);
-  const body = current.slice(1).map(cell => point(cell, width));
-  if (current.length === previous.length) {
-    const tail = mix(point(previous[previous.length - 1], width), body[body.length - 1], amount);
-    return [head, ...body, tail];
+/** Add a head position, preserve corners, and trim only the tail. */
+export function moveSnakePath(path: Point[], head: Point, length: number): Point[] {
+  const result = [head];
+  // Straight movement extends the first segment instead of accumulating a
+  // vertex on every animation frame.
+  const first = path[0];
+  const second = path[1];
+  const straight = second && ((head.x === first.x && first.x === second.x) || (head.y === first.y && first.y === second.y));
+  const route = straight ? path.slice(1) : path;
+  let remaining = length;
+  for (const point of route) {
+    const last = result[result.length - 1];
+    const segment = distance(last, point);
+    if (segment < 0.000001) continue;
+    if (segment >= remaining) {
+      result.push({ x: last.x + (point.x - last.x) * remaining / segment, y: last.y + (point.y - last.y) * remaining / segment });
+      break;
+    }
+    result.push(point);
+    remaining -= segment;
   }
-  // On growth, the tail stays still as one cell of new body enters the board.
-  return [head, ...body];
+  return result;
+}
+
+/** Minimum centerline distance, optionally skipping the connected neck. */
+export function distanceToPath(point: Point, path: Point[], skip = 0): number {
+  let nearest = Infinity;
+  for (let i = 1; i < path.length; i++) {
+    let a = path[i - 1];
+    const b = path[i];
+    const segment = distance(a, b);
+    if (segment < 0.000001) continue;
+    if (skip >= segment) { skip -= segment; continue; }
+    if (skip > 0) {
+      a = { x: a.x + (b.x - a.x) * skip / segment, y: a.y + (b.y - a.y) * skip / segment };
+      skip = 0;
+    }
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const fraction = Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / (dx * dx + dy * dy)));
+    nearest = Math.min(nearest, distance(point, { x: a.x + dx * fraction, y: a.y + dy * fraction }));
+  }
+  return nearest;
 }

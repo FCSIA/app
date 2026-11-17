@@ -134,18 +134,22 @@ test("audit exceptions expire and cover only the reviewed package versions", () 
   const config = readFileSync(new URL("../osv-scanner.toml", import.meta.url), "utf8");
   const blocks = config.split("[[IgnoredVulns]]").slice(1);
   assert.deepEqual(blocks.map((block) => block.match(/id = "([^"]+)"/)[1]).sort(), [
-    "GHSA-fm4j-4xhm-xpwx", "GHSA-gc25-3vc5-2jf9", "GHSA-mrhx-c7xc-m3w5", "GHSA-gcqx-w48m-w2h4",
+    "GHSA-fm4j-4xhm-xpwx", "GHSA-gc25-3vc5-2jf9", "GHSA-mrhx-c7xc-m3w5",
     "GHSA-44jh-23m7-hpcf", "GHSA-965c-763c-88jm", "GHSA-q84f-53jg-9ppm", "GHSA-r4xp-prcw-77qf",
     "GHSA-g3hv-75wg-m249", "GHSA-3g3m-2fjr-6pw4",
   ].sort());
   for (const block of blocks) {
     assert.match(block, /owner @rebanto/);
-    assert.match(block, /Reviewed 2026-10-30/);
+    assert.match(block, /Reviewed 2026-11-17/);
     const expiry = block.match(/ignoreUntil = (\d{4}-\d{2}-\d{2})/)[1];
-    assert.equal(expiry, "2026-11-16");
+    assert.equal(expiry, "2027-01-16");
+    const reviewedAt = Date.parse("2026-11-17T00:00:00Z");
+    const reviewWindow = Date.parse(`${expiry}T00:00:00Z`) - reviewedAt;
+    assert.ok(reviewWindow >= 60 * 86400000 && reviewWindow <= 90 * 86400000, "Review window must be 60-90 days");
     assert.ok(Date.now() < Date.parse(`${expiry}T00:00:00Z`), `Expired audit exception: ${block}`);
   }
   assert.doesNotMatch(config, /\[\[PackageOverrides\]\]/);
+  assert.doesNotMatch(config, /GHSA-gcqx-w48m-w2h4/, "Withdrawn deepmerge advisory must not be ignored");
   const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   assert.equal(manifest.overrides["node-forge"], "1.4.3");
   assert.equal(manifest.patchedDependencies["node-forge@1.4.0"], undefined);
@@ -155,6 +159,15 @@ function globInstallations() {
   const nextPlugin = createRequire(require.resolve("@next/eslint-plugin-next"));
   return [require.resolve("glob/package.json"), nextPlugin.resolve("glob/package.json")];
 }
+
+test("Next.js and Hono stay on the reviewed security patch releases", () => {
+  const lock = JSON.parse(readFileSync(new URL("../bun.lock", import.meta.url), "utf8").replace(/,\s*([}\]])/g, "$1"));
+  for (const [name, version] of Object.entries({ next: "16.4.6", hono: "4.13.19", "@hono/node-server": "2.1.8" })) {
+    const instances = Object.values(lock.packages).map(([id]) => id).filter(id => id.startsWith(`${name}@`));
+    assert.ok(instances.length > 0, `Missing security-reviewed ${name}`);
+    assert.deepEqual([...new Set(instances)], [`${name}@${version}`]);
+  }
+});
 
 test("minimatch CJS/ESM backports bound preprocessing while retaining ordinary matches", async () => {
   for (const globPackage of globInstallations()) {

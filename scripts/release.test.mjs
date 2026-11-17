@@ -1,17 +1,26 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
 import { execFileSync, spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseReleaseArgs } from "./release-args.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const temporaryDirectories = [];
+// Each integration test performs real local Git operations and starts several
+// processes. Bound child processes too, since synchronous calls block timers.
+setDefaultTimeout(30_000);
+const childTimeout = 20_000;
+const isWindows = process.platform === "win32";
+const nodeExecutable = execFileSync("node", ["-p", "process.execPath"], { encoding: "utf8", timeout: childTimeout }).trim();
+const bashExecutable = isWindows
+  ? path.resolve(execFileSync("git", ["--exec-path"], { encoding: "utf8", timeout: childTimeout }).trim(), "../../../bin/bash.exe")
+  : "bash";
 
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
-    rmSync(directory, { recursive: true, force: true });
+    rmSync(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 });
 
@@ -27,18 +36,19 @@ function releaseFixture() {
   const env = {
     ...process.env,
     GIT_CONFIG_NOSYSTEM: "1",
-    GIT_CONFIG_GLOBAL: "/dev/null",
+    GIT_CONFIG_GLOBAL: path.join(directory, "gitconfig"),
     PATH: `${bin}${path.delimiter}${process.env.PATH}`,
     RELEASE_TEST_GH_ARGS: ghArgsPath,
   };
   for (const name of ["GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL"]) delete env[name];
-  const capture = (command, args) => execFileSync(command, args, { cwd: checkout, env, encoding: "utf8", stdio: "pipe" }).trim();
+  const capture = (command, args) => execFileSync(command, args, { cwd: checkout, env, encoding: "utf8", stdio: "pipe", timeout: childTimeout }).trim();
   const git = (...args) => capture("git", args);
   const node = (...args) => capture("node", args);
   mkdirSync(path.join(checkout, "scripts"), { recursive: true });
   mkdirSync(path.join(checkout, "packages/devlog/data"), { recursive: true });
   mkdirSync(path.join(checkout, "packages/devlog/src"), { recursive: true });
   mkdirSync(bin);
+  writeFileSync(env.GIT_CONFIG_GLOBAL, "");
   mkdirSync(path.join(directory, "hooks"));
   for (const file of ["release.mjs", "release-args.mjs", "devlog.mjs", "validate-release.mjs"]) {
     copyFileSync(path.join(root, "scripts", file), path.join(checkout, "scripts", file));
@@ -52,14 +62,30 @@ function releaseFixture() {
     channel: "alpha",
     releases: [{ version: "0.1.0", date: "2026-01-01", changes: [{ category: "Added", summary: "Initial release." }] }],
   }));
-  writeFileSync(path.join(bin, "gh"), `#!/usr/bin/env node
-import { readFileSync, writeFileSync } from "node:fs";
-writeFileSync(process.env.RELEASE_TEST_GH_ARGS, JSON.stringify(process.argv.slice(2)));
-if (process.argv[2] === "api") process.stdout.write(readFileSync(process.env.RELEASE_TEST_PR_JSON, "utf8"));
+  const ghStub = `import { readFileSync, writeFileSync } from "node:fs";
+const args = process.argv.slice(${isWindows ? 1 : 2});
+${isWindows ? 'args[0] = (await import("node:path")).basename(args[0]);' : ""}
+writeFileSync(process.env.RELEASE_TEST_GH_ARGS, JSON.stringify(args));
+if (args[0] === "api") process.stdout.write(readFileSync(process.env.RELEASE_TEST_PR_JSON, "utf8"));
 else process.stdout.write("https://github.com/example/fixture/pull/1\\n");
-`, { mode: 0o755 });
+`;
+  if (isWindows) {
+    // Native execFile cannot launch an extensionless shebang or a .cmd stub.
+    // A private Node copy preloads the stub before resolving its first arg
+    // as a script; other Node children load the guard without intercepting them.
+    const preload = path.join(bin, "gh-preload.mjs");
+    writeFileSync(preload, `if (process.execPath.toLowerCase().endsWith("gh.exe")) {\n${ghStub}\nprocess.exit(0);\n}`.replace(
+      'import { readFileSync, writeFileSync } from "node:fs";',
+      'const { readFileSync, writeFileSync } = await import("node:fs");',
+    ));
+    copyFileSync(nodeExecutable, path.join(bin, "gh.exe"));
+    env.NODE_OPTIONS = `${env.NODE_OPTIONS ?? ""} --import=${pathToFileURL(preload).href}`.trim();
+  } else {
+    writeFileSync(path.join(bin, "gh"), `#!/usr/bin/env node\n${ghStub}`, { mode: 0o755 });
+  }
 
   git("init", "--initial-branch=main");
+  git("config", "core.autocrlf", "false");
   git("config", "user.name", "Release test");
   git("config", "user.email", "release-test@example.invalid");
   git("config", "core.hooksPath", path.join(directory, "hooks"));
@@ -75,14 +101,23 @@ else process.stdout.write("https://github.com/example/fixture/pull/1\\n");
   git("push", "--set-upstream", "origin", "main");
   const main = git("rev-parse", "main");
 
+  let shellIndex = 0;
   return {
     git,
     node,
     main,
     directory,
     ghArgsPath,
-    run: (command, ...args) => spawnSync("bun", ["run", command, ...args], { cwd: checkout, env, encoding: "utf8" }),
-    shell: (script, variables) => spawnSync("bash", ["-e", "-c", script], { cwd: checkout, env: { ...env, ...variables }, encoding: "utf8" }),
+    run: (command, ...args) => spawnSync(process.execPath, ["run", command, ...args], { cwd: checkout, env, encoding: "utf8", timeout: childTimeout }),
+    shell: (script, variables) => {
+      // Preserve the workflow bytes across Windows argv quoting, including jq
+      // regex escapes. Execute the actual script rather than a -c argument.
+      const scriptPath = path.join(directory, `workflow-${shellIndex++}.sh`);
+      writeFileSync(scriptPath, script);
+      return spawnSync(bashExecutable, ["-e", scriptPath], {
+        cwd: checkout, env: { ...env, ...variables }, encoding: "utf8", timeout: childTimeout,
+      });
+    },
   };
 }
 

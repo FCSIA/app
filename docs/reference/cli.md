@@ -58,6 +58,13 @@ fcsia login
 code, opens the page in your browser, and waits for you to approve the code.
 `fcsia login --no-browser` prints the page and code without opening anything.
 
+Only the `fcsia-cli` client with no requested scopes may start or approve a
+device sign-in. The server checks the stored client and scope before displaying
+or approving a code, including codes issued before this restriction. The
+approval warning explains that the CLI receives the account's existing access,
+without restricted permissions. Approve only a code displayed on a terminal
+you control; deny unexpected links or codes sent by someone else.
+
 The session token is kept in the operating system's credential store
 (Keychain, Secret Service, or Credential Manager) under the site it belongs to.
 When no store is available, it goes in a file readable only by your account.

@@ -36,7 +36,7 @@ reason = "Reviewed 2026-11-17; owner @rebanto; scope enforced by scripts/depende
 [[IgnoredVulns]]
 id = "GHSA-q84f-53jg-9ppm"
 ignoreUntil = 2027-01-16
-reason = "Reviewed 2026-11-17; owner @rebanto; scope enforced by scripts/dependency-security.test.mjs. Configuration-specific non-applicability: the opt-in deviceAuthorization plugin is not enabled. scripts/dependency-security.test.mjs enforces the exact auth option/plugin list and locked 1.6.22 package instances. This is not a package-level fix; reassess before auth configuration changes."
+reason = "Reviewed 2026-11-17; owner @rebanto; scope enforced by scripts/dependency-security.test.mjs and apps/convex/src/auth/cliDeviceAuthorization.test.ts. Device Authorization is enabled for the CLI. Local mitigation enforces only fcsia-cli with no requested scopes at issuance and rechecks trusted stored clientId/scope before lookup and approval, including previously issued codes. The approval page identifies the FCS IA command-line client, explains unrestricted access within the user's account permissions and warns against unsolicited codes. Tests reject other clients and hidden scopes. This is a configuration-specific mitigation, not an upstream package fix; reassess before expanding clients, scopes or changing the approval page. Integration 0.13.0 supports fixed Better Auth 1.7, but the custom local adapter/schema and session-cookie changes require a separately validated migration (see docs/reference/security-exceptions-2026-11-10.md)."
 
 [[IgnoredVulns]]
 id = "GHSA-r4xp-prcw-77qf"

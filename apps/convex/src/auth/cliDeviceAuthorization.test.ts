@@ -1,11 +1,21 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
+import type { GenericCtx } from "@convex-dev/better-auth";
+import type { DataModel } from "../_generated/dataModel";
 import {
   CLI_CLIENT_ID,
   cliDeviceVerificationUri,
   isCliClient,
+  isCliDeviceRequest,
+  createCliSignInPlugin,
   requestsPreboundUser,
 } from "./cliDeviceAuthorization";
 import { describeCliClient } from "../users/cliSessions";
+
+vi.mock("better-auth/api", async (importOriginal) => ({
+  ...await importOriginal<typeof import("better-auth/api")>(),
+  createAuthMiddleware: (handler: unknown) => handler,
+  getSessionFromCtx: async () => null,
+}));
 
 describe("CLI device authorization", () => {
   test("accepts only the command-line client", () => {
@@ -30,6 +40,40 @@ describe("CLI device authorization", () => {
     expect(requestsPreboundUser({ client_id: CLI_CLIENT_ID })).toBe(false);
     expect(requestsPreboundUser(null)).toBe(false);
     expect(requestsPreboundUser("user_id")).toBe(false);
+  });
+
+  test("allows only the client and permissions described by the approval page", () => {
+    for (const scope of [undefined, null, ""]) expect(isCliDeviceRequest(CLI_CLIENT_ID, scope)).toBe(true);
+    for (const scope of ["read", "admin", " ", [], {}]) expect(isCliDeviceRequest(CLI_CLIENT_ID, scope)).toBe(false);
+    expect(isCliDeviceRequest("another-client", "")).toBe(false);
+  });
+
+  test("checks stored requests before lookup and direct approval, including old codes", async () => {
+    const plugin = createCliSignInPlugin({} as GenericCtx<DataModel>);
+    const hook = plugin.hooks!.before![1]!;
+    for (const path of ["/device", "/device/approve"]) {
+      expect(hook.matcher({ path } as never)).toBe(true);
+      for (const record of [null, { clientId: "other" }, { clientId: CLI_CLIENT_ID, scope: "admin" }]) {
+        const findOne = vi.fn().mockResolvedValue(record);
+        await expect(hook.handler({
+          path, query: { user_code: "ABCD-EFGH" }, body: { userCode: "ABCD-EFGH" },
+          context: { adapter: { findOne } },
+        } as never)).rejects.toMatchObject({ body: { error: "invalid_request" } });
+        expect(findOne).toHaveBeenCalledWith({ model: "deviceCode", where: [{ field: "userCode", value: "ABCDEFGH" }] });
+      }
+      await expect(hook.handler({
+        path, query: { user_code: "ABCDEFGH" }, body: { userCode: "ABCDEFGH" },
+        context: { adapter: { findOne: vi.fn().mockResolvedValue({ clientId: CLI_CLIENT_ID, scope: null }) } },
+      } as never)).resolves.toBeUndefined();
+    }
+  });
+
+  test("rejects scoped requests at issuance before creating a code", async () => {
+    const hook = createCliSignInPlugin({} as GenericCtx<DataModel>).hooks!.before![0]!;
+    for (const body of [{ client_id: CLI_CLIENT_ID, scope: "admin" }, { client_id: "other" }, { client_id: CLI_CLIENT_ID, user_id: "victim" }]) {
+      await expect(hook.handler({ body } as never)).rejects.toMatchObject({ body: { error: "invalid_request" } });
+    }
+    await expect(hook.handler({ body: { client_id: CLI_CLIENT_ID } } as never)).resolves.toBeUndefined();
   });
 });
 

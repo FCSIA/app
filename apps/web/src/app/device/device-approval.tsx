@@ -189,8 +189,9 @@ export function DeviceApproval({ initialCode }: { initialCode: string }) {
                 {formatCode(step.code)}
               </p>
               <Banner status="warning">
-                <BannerTitle>Approving signs a terminal in as {name}.</BannerTitle>
+                <BannerTitle>Approving signs the FCS IA command-line client in as {name}.</BannerTitle>
                 <BannerDescription>
+                  It can read and change everything your account can access. No restricted permissions apply.{' '}
                   Only approve a code you started yourself. If someone sent you this link, deny it.
                 </BannerDescription>
               </Banner>

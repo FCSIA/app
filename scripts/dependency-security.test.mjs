@@ -91,6 +91,43 @@ test("Expo code signing round-trips certificates and produces valid manifest sig
   assert.equal(verify("sha256", Buffer.from("tampered"), key, signature), false);
 });
 
+test("Forge TLS ignores stray handshakes after close and refuses unsupported compression", () => {
+  const errors = [];
+  const client = () => forge.tls.createConnection({
+    server: false, connected() {}, tlsDataReady() {}, dataReady() {}, closed() {},
+    error(_connection, error) { errors.push(error.message); },
+  });
+  const closed = client();
+  closed.handshake();
+  closed.process(forge.util.hexToBytes("15030100020100"));
+  assert.equal(closed.session, null);
+  assert.doesNotThrow(() => closed.process(forge.util.hexToBytes("160301000402000000")));
+  const compression = client();
+  compression.handshake();
+  const hello = forge.util.createBuffer();
+  hello.putBytes("\x03\x01" + "\x00".repeat(32) + "\x00\x00\x2f\xff");
+  const handshake = forge.util.createBuffer();
+  handshake.putByte(2);
+  handshake.putInt24(hello.length());
+  handshake.putBytes(hello.getBytes());
+  const record = forge.util.createBuffer();
+  record.putBytes("\x16\x03\x01");
+  record.putInt16(handshake.length());
+  record.putBytes(handshake.getBytes());
+  assert.doesNotThrow(() => compression.process(record.getBytes()));
+  assert.ok(errors.includes("Unsupported compression method."));
+});
+
+test("Forge HTTP trims adversarial whitespace without quadratic backtracking", () => {
+  const http = require("node-forge/lib/http");
+  vm.runInNewContext(`
+    const response = http.createResponse();
+    const value = "x" + " ".repeat(1_000_000) + "x";
+    response.setField("X-Test", value + "  ");
+    assert.equal(response.getField("X-Test"), value);
+  `, { http, assert }, { timeout: 2000 });
+});
+
 test("fixed Zod rejects oversized collections before validating their elements", () => {
   let visited = 0;
   const element = zod.z.string().superRefine(() => { visited += 1; });
@@ -324,7 +361,7 @@ test("deepmerge rejects prototype keys from both merge inputs (GHSA-gcqx-w48m-w2
   });
 });
 
-test("Better Auth audit exceptions remain limited to the pinned unused feature configuration", () => {
+test("Better Auth audit exceptions remain limited to the pinned reviewed configuration", () => {
   const lock = JSON.parse(readFileSync(new URL("../bun.lock", import.meta.url), "utf8").replace(/,\s*([}\]])/g, "$1"));
   const names = ["better-auth", "@better-auth/drizzle-adapter", "@better-auth/kysely-adapter"];
   for (const name of names) {

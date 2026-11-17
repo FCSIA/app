@@ -64,10 +64,15 @@ describes the mitigations; this review supersedes its dates and upstream snapsho
   3.22.4/3.25.76 with the previously documented residual oversized-input risk.
 - The four Better Auth advisory ranges are unchanged. The guarded 1.6.22
   configuration uses the Convex adapter and excludes the affected PostgreSQL,
-  Magic Link/social OAuth, upstream Device Authorization, and OAuth Proxy
-  implementations. The CLI's repository-owned device flow is distinct from
-  Better Auth's `deviceAuthorization()` plugin; the exact configured plugin
-  list is still tested. Installed Convex integration 0.12.2 requires Better
+  Magic Link/social OAuth, and OAuth Proxy implementations. The CLI wrapper
+  does call Better Auth's `deviceAuthorization()` plugin. PR #238 corrects the
+  earlier non-applicability claim: issuance permits only `fcsia-cli` without
+  scopes, trusted stored client/scope are checked again before lookup and
+  approval, and the existing approval warning identifies the client and its
+  full access within the account's permissions. Tests reject hidden scopes and
+  other clients, including old codes and direct approval calls. This is a local
+  mitigation of GHSA-q84f-53jg-9ppm, not an upstream package fix. The exact
+  configured plugin list is still tested. Installed Convex integration 0.12.2 requires Better
   Auth `>=1.6.9 <1.7.0`. Available integration 0.13.0 supports
   `>=1.7.16 <1.8.0`, and current Better Auth is 1.7.25. Removing these four
   configuration-specific exceptions requires that coordinated auth migration;

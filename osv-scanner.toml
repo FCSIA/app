@@ -1,4 +1,9 @@
 [[IgnoredVulns]]
+id = "GHSA-fc5q-39xc-vjpf"
+ignoreUntil = 2027-01-16
+reason = "Reviewed 2026-11-17; owner @rebanto; scope enforced by scripts/dependency-security.test.mjs. All locked picomatch 2.3.2 and 4.0.7 installations are source-patched to literalize repeated extglobs containing a top-level unbounded wildcard, including the single-branch +(*a) case. Time-bounded regressions exercise every locked caller path and ordinary glob, extglob, escaped-star and bracket behavior. No fixed upstream release exists (latest 4.0.7); this is a version-scoped local hardening exception, not an upstream fix. Remove it after validating a fixed release."
+
+[[IgnoredVulns]]
 id = "GHSA-g3hv-75wg-m249"
 ignoreUntil = 2027-01-16
 reason = "Reviewed 2026-11-17; owner @rebanto; scope enforced by scripts/dependency-security.test.mjs. minimatch 9.0.9 and 10.2.6 carry the upstream 77a0f5c preprocessing bounds in both CJS and ESM builds; regressions verify bounded amplification, skipped quadratic deduplication and ordinary matches. Fixed upstream 11 changes the matcher engine, so preserve old caller APIs until their migration is reviewed. Legacy 3.1.5 lacks the implicated firstPhasePreProcess/optimizationLevel algorithm, which the regression verifies. This is a version-scoped patch/non-applicability exception, not a package-wide fix."

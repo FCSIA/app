@@ -1,0 +1,42 @@
+diff --git a/lib/parse.js b/lib/parse.js
+--- a/lib/parse.js
++++ b/lib/parse.js
+@@ -280,6 +280,29 @@
+   return depth;
+ };
+ 
++// Repeated extglobs must not wrap an unbounded wildcard in another repeat.
++// GHSA-fc5q-39xc-vjpf: even a single branch such as `*a` can backtrack
++// exponentially. Use the parser's existing risky-pattern literalization.
++const hasUnboundedWildcard = branch => {
++  let depth = 0;
++  for (let i = 0; i < branch.length; i++) {
++    const ch = branch[i];
++    if (ch === '\\') { i++; continue; }
++    if (ch === '[') {
++      let end = i + 1;
++      for (; end < branch.length; end++) {
++        if (branch[end] === '\\') { end++; continue; }
++        if (branch[end] === ']') break;
++      }
++      if (end < branch.length) { i = end; continue; }
++    }
++    if (ch === '(') { depth++; continue; }
++    if (ch === ')' && depth > 0) { depth--; continue; }
++    if (depth === 0 && ch === '*' && branch[i + 1] !== '(') return true;
++  }
++  return false;
++};
++
+ const analyzeRepeatedExtglob = (body, options) => {
+   if (options.maxExtglobRecursion === false) {
+     return { risky: false };
+@@ -291,6 +314,8 @@
+       : constants.DEFAULT_MAX_EXTGLOB_RECURSION;
+ 
+   const branches = splitTopLevel(body).map(branch => branch.trim());
++
++  if (branches.some(hasUnboundedWildcard)) return { risky: true };
+ 
+   if (branches.length > 1) {
+     if (

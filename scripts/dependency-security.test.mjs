@@ -5,6 +5,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { generateKeyPairSync, verify } from "node:crypto";
 import { createRequire } from "node:module";
+import { spawnSync } from "node:child_process";
 import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
@@ -156,6 +157,7 @@ test("audit exceptions expire and cover only the reviewed package versions", () 
     zod: ["3.22.4", "3.25.76", "4.6.7"],
     glob: ["7.2.3", "10.5.0", "13.0.6"],
     minimatch: ["3.1.5", "9.0.9", "10.2.6"],
+    picomatch: ["2.3.2", "4.0.7"],
     "better-auth": ["1.6.22"],
     "@better-auth/core": ["1.6.22"],
     "@better-auth/drizzle-adapter": ["1.6.22"],
@@ -174,6 +176,7 @@ test("audit exceptions expire and cover only the reviewed package versions", () 
     "GHSA-fm4j-4xhm-xpwx", "GHSA-gc25-3vc5-2jf9", "GHSA-mrhx-c7xc-m3w5",
     "GHSA-44jh-23m7-hpcf", "GHSA-965c-763c-88jm", "GHSA-q84f-53jg-9ppm", "GHSA-r4xp-prcw-77qf",
     "GHSA-g3hv-75wg-m249", "GHSA-3g3m-2fjr-6pw4",
+    "GHSA-fc5q-39xc-vjpf",
   ].sort());
   for (const block of blocks) {
     assert.match(block, /owner @rebanto/);
@@ -190,6 +193,40 @@ test("audit exceptions expire and cover only the reviewed package versions", () 
   const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   assert.equal(manifest.overrides["node-forge"], "1.4.3");
   assert.equal(manifest.patchedDependencies["node-forge@1.4.0"], undefined);
+});
+
+test("every locked picomatch rejects repeated wildcard backtracking and retains ordinary globs", { timeout: 25_000 }, () => {
+  const lock = JSON.parse(readFileSync(new URL("../bun.lock", import.meta.url), "utf8").replace(/,\s*([}\]])/g, "$1"));
+  const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  const packages = Object.entries(lock.packages).filter(([, [id]]) => id.startsWith("picomatch@"));
+  assert.ok(packages.length > 0);
+  for (const [key, [id]] of packages) {
+    let requester = require;
+    for (const parent of key.split("/").slice(0, -1)) requester = createRequire(requester.resolve(parent));
+    const entry = requester.resolve("picomatch");
+    const version = JSON.parse(readFileSync(join(dirname(entry), "package.json"), "utf8")).version;
+    assert.equal(id, `picomatch@${version}`);
+    assert.equal(manifest.patchedDependencies[id], `patches/${id}.patch`);
+    // Run the actual match in a time-bounded child: a regression must fail
+    // rather than block the test runner on exponential regex backtracking.
+    const result = spawnSync("node", ["-e", `
+      const assert = require('node:assert/strict');
+      const pm = require(process.argv[1]);
+      for (const pattern of ['+(*)', '*(*)', '+(*a)', '*(*a)', '+(a*)', '+(a*b)', '+(a*|b)', '+([a*b)']) {
+        assert.equal(pm(pattern)('a'.repeat(80) + '!'), false, pattern);
+        assert.equal(pm(pattern)(pattern), true, pattern + ' becomes literal');
+      }
+      assert.equal(pm('**/*.ts')('src/nested/app.ts'), true);
+      assert.equal(pm('**/*.ts')('src/app.js'), false);
+      assert.equal(pm('+(foo|bar)')('foobarfoo'), true);
+      assert.equal(pm('*(foo|bar)')('foobar'), true);
+      assert.equal(pm('+([*])')('***'), true);
+      assert.equal(pm('+(\\\\*)')('***'), true);
+      assert.equal(pm('src/*.ts')('src/nested/app.ts'), false);
+    `, entry], { encoding: "utf8", timeout: 3_000 });
+    assert.equal(result.error, undefined, `${key}: ${result.error?.message}`);
+    assert.equal(result.status, 0, `${key}: ${result.stderr}`);
+  }
 });
 
 function globInstallations() {

@@ -82,7 +82,8 @@ describe("login", () => {
     });
     const path = join(config, "credentials.json");
     expect(JSON.parse(readFileSync(path, "utf8"))).toEqual({ tokens: { [HOST]: "issued1" } });
-    expect(statSync(path).mode & 0o777).toBe(0o600);
+    // Windows access is controlled by ACLs; stat's mode bits cannot verify it.
+    if (process.platform !== "win32") expect(statSync(path).mode & 0o777).toBe(0o600);
   });
 
   test("is a no-op when already signed in", async () => {

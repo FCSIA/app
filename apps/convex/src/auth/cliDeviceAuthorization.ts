@@ -15,6 +15,12 @@ export function isCliClient(clientId: string) {
   return clientId === CLI_CLIENT_ID;
 }
 
+// The approval page describes one unscoped account session, never arbitrary
+// OAuth permissions. Enforce that same contract for new and stored requests.
+export function isCliDeviceRequest(clientId: unknown, scope: unknown) {
+  return clientId === CLI_CLIENT_ID && (scope == null || scope === "");
+}
+
 export function cliDeviceVerificationUri(siteUrl: string) {
   return new URL("/device", siteUrl).toString();
 }
@@ -100,10 +106,10 @@ export function createCliSignInPlugin(convexCtx: GenericCtx<DataModel>): BetterA
         {
           matcher: (ctx) => ctx.path === "/device/code",
           handler: createAuthMiddleware(async (ctx) => {
-            if (requestsPreboundUser(ctx.body)) {
+            if (requestsPreboundUser(ctx.body) || !isCliDeviceRequest(ctx.body?.client_id, ctx.body?.scope)) {
               throw new APIError("BAD_REQUEST", {
                 error: "invalid_request",
-                error_description: "Device codes can't be bound to a user.",
+                error_description: "Only unscoped command-line sign-ins without a pre-bound user are allowed.",
               });
             }
             await limit("deviceCodesGlobal", "deployment");
@@ -118,6 +124,23 @@ export function createCliSignInPlugin(convexCtx: GenericCtx<DataModel>): BetterA
               "deviceLookupsByUser",
               session ? `user:${session.user.id}` : `ip:${trustedClientIp(ctx.request)}`,
             );
+            // Check trusted storage before revealing or approving a request.
+            // This also rejects previously issued codes with hidden scopes.
+            if (ctx.path === "/device" || ctx.path === "/device/approve") {
+              const userCode = ctx.path === "/device" ? ctx.query?.user_code : ctx.body?.userCode;
+              const request = typeof userCode === "string"
+                ? await ctx.context.adapter.findOne<{ clientId: string; scope?: string | null }>({
+                    model: "deviceCode",
+                    where: [{ field: "userCode", value: userCode.replace(/-/g, "") }],
+                  })
+                : null;
+              if (!request || !isCliDeviceRequest(request.clientId, request.scope)) {
+                throw new APIError("BAD_REQUEST", {
+                  error: "invalid_request",
+                  error_description: "This is not an unscoped command-line sign-in. Request a new code.",
+                });
+              }
+            }
           }),
         },
       ],

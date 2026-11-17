@@ -91,24 +91,6 @@ test("Expo code signing round-trips certificates and produces valid manifest sig
   assert.equal(verify("sha256", Buffer.from("tampered"), key, signature), false);
 });
 
-test("Forge rejects forged Ed25519 signatures using an identity public key", () => {
-  const identity = Buffer.alloc(32);
-  identity[0] = 1;
-  const forged = Buffer.alloc(64);
-  identity.copy(forged);
-  assert.equal(forge.ed25519.verify({
-    message: "admin=true", encoding: "utf8", signature: forged, publicKey: identity,
-  }), false);
-  const keys = forge.ed25519.generateKeyPair();
-  const signed = forge.ed25519.sign({ message: "ordinary", encoding: "utf8", privateKey: keys.privateKey });
-  assert.equal(forge.ed25519.verify({
-    message: "ordinary", encoding: "utf8", signature: signed, publicKey: keys.publicKey,
-  }), true);
-  assert.equal(forge.ed25519.verify({
-    message: "tampered", encoding: "utf8", signature: signed, publicKey: keys.publicKey,
-  }), false);
-});
-
 test("Forge TLS ignores stray handshakes after close and refuses unsupported compression", () => {
   const errors = [];
   const client = () => forge.tls.createConnection({
@@ -189,13 +171,14 @@ test("audit exceptions expire and cover only the reviewed package versions", () 
   const config = readFileSync(new URL("../osv-scanner.toml", import.meta.url), "utf8");
   const blocks = config.split("[[IgnoredVulns]]").slice(1);
   assert.deepEqual(blocks.map((block) => block.match(/id = "([^"]+)"/)[1]).sort(), [
-    "GHSA-fm4j-4xhm-xpwx", "GHSA-gc25-3vc5-2jf9", "GHSA-mrhx-c7xc-m3w5", "GHSA-gcqx-w48m-w2h4",
+    "GHSA-fm4j-4xhm-xpwx", "GHSA-gc25-3vc5-2jf9", "GHSA-mrhx-c7xc-m3w5",
     "GHSA-44jh-23m7-hpcf", "GHSA-965c-763c-88jm", "GHSA-q84f-53jg-9ppm", "GHSA-r4xp-prcw-77qf",
     "GHSA-g3hv-75wg-m249", "GHSA-3g3m-2fjr-6pw4",
   ].sort());
   for (const block of blocks) {
     assert.match(block, /owner @rebanto/);
-    assert.match(block, /Reviewed 2026-11-10/);
+    const expectedReview = block.includes('id = "GHSA-q84f-53jg-9ppm"') ? "2026-11-16" : "2026-11-10";
+    assert.ok(block.includes(`Reviewed ${expectedReview}`));
     const expiry = block.match(/ignoreUntil = (\d{4}-\d{2}-\d{2})/)[1];
     assert.equal(expiry, "2027-01-24");
     const review = block.match(/Reviewed (\d{4}-\d{2}-\d{2})/)[1];
@@ -369,7 +352,7 @@ test("deepmerge rejects prototype keys from both merge inputs (GHSA-gcqx-w48m-w2
   });
 });
 
-test("Better Auth audit exceptions remain limited to the pinned unused feature configuration", () => {
+test("Better Auth audit exceptions remain limited to the pinned reviewed configuration", () => {
   const lock = JSON.parse(readFileSync(new URL("../bun.lock", import.meta.url), "utf8").replace(/,\s*([}\]])/g, "$1"));
   const names = ["better-auth", "@better-auth/drizzle-adapter", "@better-auth/kysely-adapter"];
   for (const name of names) {

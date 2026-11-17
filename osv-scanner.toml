@@ -24,11 +24,6 @@ ignoreUntil = 2027-01-24
 reason = "Reviewed 2026-11-10; owner @rebanto; scope enforced by scripts/dependency-security.test.mjs. Application Zod 4 instances are fixed at 4.6.7. Remaining 3.22.4 and 3.25.76 instances belong to CLI tooling with no compatible patched Zod 3 release as of this review. New shadcn 4.23.0 and registry 0.2.1 use Zod 4, but latest Vercel backends/express/hono 25.0.0 and python-analysis 0.15.3 still pin 3.22.4; locked Expo CLI 57.0.27, shadcn 4.21.1, @shadcn/registry 0.1.0 and Vercel adapters still require Zod 3. This is a time-limited tooling risk exception, not a blanket false-positive claim: 3.25.76 also bundles old v4 code, and size-bounded Zod 3 arrays still visit every element. Do not validate untrusted bulk data with those tooling instances; migrate their callers before removing this exception."
 
 [[IgnoredVulns]]
-id = "GHSA-gcqx-w48m-w2h4"
-ignoreUntil = 2027-01-24
-reason = "Reviewed 2026-11-10; owner @rebanto; scope enforced by scripts/dependency-security.test.mjs. Registry latest deepmerge remains 4.3.1 on 2026-11-10; there is no fixed upstream release. patches/deepmerge@4.3.1.patch rejects __proto__ keys in both target-copy and source-merge paths in source, CommonJS and UMD entry points. scripts/dependency-security.test.mjs reproduces the null-prototype, null-placeholder and poisoned-target attacks and checks ordinary merges. This exception covers the patched version identifier only; remove when a fixed release is adopted."
-
-[[IgnoredVulns]]
 id = "GHSA-44jh-23m7-hpcf"
 ignoreUntil = 2027-01-24
 reason = "Reviewed 2026-11-10; owner @rebanto; scope enforced by scripts/dependency-security.test.mjs. Configuration-specific non-applicability: this app uses the Convex adapter, never the PostgreSQL Drizzle/Kysely adapters implicated by the rate-limit race. scripts/dependency-security.test.mjs enforces the exact createAuthOptions configuration and locked better-auth/adapter 1.6.22 versions. Installed Convex integration 0.12.2 supports <1.7.0. Integration 0.13.0 now supports >=1.7.16 <1.8.0, but requires local adapter/schema migration and disables session.cookieCache; the app uses a custom local schema/adapter and enabled cookie cache. Retain until that migration is validated, not because upstream support is absent; reassess on integration upgrade or any auth configuration change. This does not mark upstream code patched."
@@ -41,7 +36,7 @@ reason = "Reviewed 2026-11-10; owner @rebanto; scope enforced by scripts/depende
 [[IgnoredVulns]]
 id = "GHSA-q84f-53jg-9ppm"
 ignoreUntil = 2027-01-24
-reason = "Reviewed 2026-11-10; owner @rebanto; scope enforced by scripts/dependency-security.test.mjs. Configuration-specific non-applicability: the opt-in deviceAuthorization plugin is not enabled. scripts/dependency-security.test.mjs enforces the exact auth option/plugin list and locked 1.6.22 package instances. This is not a package-level fix; reassess before auth configuration changes. Integration 0.13.0 supports fixed Better Auth 1.7, but the custom local adapter/schema and session-cookie changes require a separately validated migration (see docs/reference/security-exceptions-2026-11-10.md)."
+reason = "Reviewed 2026-11-16; owner @rebanto; scope enforced by scripts/dependency-security.test.mjs and apps/convex/src/auth/cliDeviceAuthorization.test.ts. Device Authorization is enabled for the CLI. Local mitigation enforces only fcsia-cli with no requested scopes at issuance and rechecks trusted stored clientId/scope before lookup and approval, including previously issued codes. The approval page identifies the FCS IA command-line client, explains unrestricted access within the user's account permissions and warns against unsolicited codes. Tests reject other clients and hidden scopes. This is a configuration-specific mitigation, not an upstream package fix; reassess before expanding clients, scopes or changing the approval page. Integration 0.13.0 supports fixed Better Auth 1.7, but the custom local adapter/schema and session-cookie changes require a separately validated migration (see docs/reference/security-exceptions-2026-11-10.md)."
 
 [[IgnoredVulns]]
 id = "GHSA-r4xp-prcw-77qf"

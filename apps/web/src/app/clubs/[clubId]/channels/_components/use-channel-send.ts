@@ -179,6 +179,9 @@ export function useChannelSend({
             : undefined,
         }),
       );
+      if (files.some((file) => file.type.startsWith("image/"))) {
+        toast({ title: "Images sent for staff review" });
+      }
       onEdited();
     } catch {
       toast({ title: "Couldn't save your changes", variant: 'destructive' });
@@ -236,6 +239,9 @@ export function useChannelSend({
           discardAfterUse: true,
         },
       );
+      if (files.some((file) => file.type.startsWith("image/"))) {
+        toast({ title: "Images sent for staff review" });
+      }
       setFailedSends((current) =>
         current.filter(
           (item) =>

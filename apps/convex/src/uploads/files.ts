@@ -456,6 +456,7 @@ export const discardChatAttachment = mutation({
     const staged = await ctx.db.get(args.attachmentUploadId);
     if (!staged) return null;
     assertStagedChatAttachmentOwner(staged, user._id);
+    if (staged.pendingMessageId) return null;
     await deleteStorageQuietly(ctx, staged.storageId);
     await ctx.db.delete(staged._id);
     return null;

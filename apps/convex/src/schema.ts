@@ -1120,7 +1120,11 @@ export const schema = defineSchema({
     mimeType: v.string(),
     size: v.number(),
     createdAt: v.number(),
+    pendingMessageId: v.optional(v.id("clubChannelMessages")),
+    reviewSubmittedAt: v.optional(v.number()),
   })
+    .index("by_reviewSubmittedAt", ["reviewSubmittedAt"])
+    .index("by_pendingMessageId", ["pendingMessageId"])
     .index("by_storageId", ["storageId"])
     .index("by_uploaderId_and_createdAt", ["uploaderId", "createdAt"]),
 

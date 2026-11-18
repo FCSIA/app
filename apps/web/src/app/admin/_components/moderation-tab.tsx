@@ -1,5 +1,10 @@
 'use client';
 
+import { useState } from 'react';
+import { useMutation, useQuery } from '@/lib/convex-react';
+import { useToast } from '@/hooks/use-toast';
+import { api } from '~/apps/convex/src/_generated/api';
+import type { Id } from '~/apps/convex/src/_generated/dataModel';
 import { displayName } from '~/apps/shared/user-name';
 
 import {
@@ -102,6 +107,54 @@ const CONTENT_TYPE_LABELS: Record<string, string> = {
   EVENT: 'Event',
   CLUB_CHANNEL_MESSAGE: 'Club message',
 };
+
+function ChatImageReview() {
+  const pending = useQuery(api.uploads.chatAttachments.listPendingImages, {});
+  const decideImage = useMutation(api.uploads.chatAttachments.decideImage);
+  const { toast } = useToast();
+  const [reviewing, setReviewing] = useState<Id<'clubChannelAttachmentUploads'> | null>(null);
+
+  async function decide(attachmentUploadId: Id<'clubChannelAttachmentUploads'>, approve: boolean) {
+    setReviewing(attachmentUploadId);
+    try {
+      const decided = await decideImage({ attachmentUploadId, approve });
+      toast({ title: decided ? (approve ? 'Image approved' : 'Image rejected') : 'Image is no longer pending' });
+    } catch {
+      toast({ title: 'Could not save the review', variant: 'destructive' });
+    } finally {
+      setReviewing(null);
+    }
+  }
+
+  if (!pending?.length) return null;
+  return (
+    <section aria-label="Chat images awaiting review" className="space-y-2">
+      <h2 className="text-sm font-semibold">Chat images awaiting review</h2>
+      <CardGroup>
+        {pending.map(({ _id, fileName }) => (
+          <Card key={_id}>
+            <CardHeader>
+              <CardTitle>{fileName}</CardTitle>
+            </CardHeader>
+            <CardFooter>
+              <Button asChild variant="secondary">
+                <a href={`/api/admin/chat-attachment-review/${_id}`} target="_blank" rel="noreferrer">
+                  Open image
+                </a>
+              </Button>
+              <Button disabled={reviewing !== null} onClick={() => void decide(_id, true)}>
+                Approve
+              </Button>
+              <Button variant="destructive" disabled={reviewing !== null} onClick={() => void decide(_id, false)}>
+                Reject
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </CardGroup>
+    </section>
+  );
+}
 
 export function ModerationTab() {
   const {
@@ -274,6 +327,7 @@ export function ModerationTab() {
         </SearchToolbarRow>
       }
     >
+      <ChatImageReview />
       <div className="hidden md:block">
         <Table
           className="table-fixed"

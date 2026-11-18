@@ -14,6 +14,14 @@ export const cleanupDeletedMessage = internalMutation({
     const message = await ctx.db.get(args.messageId);
     if (!message?.deletedAt) return null;
 
+    const pending = await ctx.db.query("clubChannelAttachmentUploads")
+      .withIndex("by_pendingMessageId", (q) => q.eq("pendingMessageId", message._id))
+      .take(CHANNEL_MESSAGE_CLEANUP_BATCH_SIZE);
+    for (const attachment of pending) {
+      await deleteStoredChatAttachment(ctx, attachment);
+      await ctx.db.delete(attachment._id);
+    }
+
     const queryLimit = CHANNEL_MESSAGE_CLEANUP_BATCH_SIZE + 1;
     const [attachments, reactions, mentions, mentionRecipients, votes] =
       await Promise.all([

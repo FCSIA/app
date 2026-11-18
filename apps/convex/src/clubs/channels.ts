@@ -2313,7 +2313,10 @@ export const updateMessage = mutation({
     if (!removeIds.every((id) => existingIds.has(id))) {
       throw new ConvexError("Attachment not found");
     }
-    const remainingCount = existingAttachments.length - removeIds.length;
+    const pendingAttachments = await ctx.db.query("clubChannelAttachmentUploads")
+      .withIndex("by_pendingMessageId", (q) => q.eq("pendingMessageId", message._id))
+      .take(MAX_CHANNEL_MESSAGE_ATTACHMENTS);
+    const remainingCount = existingAttachments.length - removeIds.length + pendingAttachments.length;
     if (remainingCount + addIds.length > MAX_CHANNEL_MESSAGE_ATTACHMENTS) {
       throw new ConvexError(`A message can include at most ${MAX_CHANNEL_MESSAGE_ATTACHMENTS} attachments`);
     }

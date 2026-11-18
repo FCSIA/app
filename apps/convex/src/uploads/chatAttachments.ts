@@ -1,7 +1,10 @@
+import { STAFF_ROLES } from "../../../shared/roles";
+import { internal } from "../_generated/api";
+import { getCurrentAppUser, requireAnyRole, viewerWithRoles } from "../../lib/currentUser";
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { deleteStorageQuietly } from "../../lib/storage";
-import { internalMutation, type MutationCtx } from "../_generated/server";
+import { httpAction, internalMutation, internalQuery, mutation, query, type MutationCtx } from "../_generated/server";
 import {
   isSupportedStoredFileMime,
   normalizeStoredFileMime,
@@ -13,6 +16,8 @@ import {
 } from "../../../shared/chat/attachments";
 
 export const STAGED_CHAT_ATTACHMENT_TTL_MS = 60 * 60 * 1000;
+
+const CHAT_IMAGE_REVIEW_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 type StorageMetadataInput = {
   contentType?: string;
@@ -101,33 +106,134 @@ export async function consumeStagedChatAttachments(
     ) {
       throw new ConvexError("Attachment metadata changed");
     }
-    const fileUrl = await ctx.storage.getUrl(staged.storageId);
-    if (!fileUrl) throw new ConvexError("Attachment upload not found");
-
-    await ctx.db.insert("clubChannelMessageAttachments", {
-      messageId: input.messageId,
-      storageId: staged.storageId,
-      uploaderId: staged.uploaderId,
-      fileName: staged.fileName,
-      fileUrl,
-      mimeType: authoritative.mimeType,
-      size: authoritative.size,
-      createdAt: Date.now(),
-    });
-    await ctx.db.delete(staged._id);
+    if (staged.pendingMessageId) {
+      throw new ConvexError("Attachment is already awaiting review");
+    }
+    if (authoritative.mimeType.startsWith("image/")) {
+      await ctx.db.patch(staged._id, {
+        pendingMessageId: input.messageId,
+        reviewSubmittedAt: Date.now(),
+      });
+      await ctx.scheduler.runAfter(
+        CHAT_IMAGE_REVIEW_TTL_MS,
+        internal.uploads.chatAttachments.expirePendingImage,
+        { attachmentUploadId },
+      );
+    } else {
+      await publishAttachment(ctx, staged, input.messageId);
+    }
   }
 }
 
+async function publishAttachment(
+  ctx: MutationCtx,
+  staged: Doc<"clubChannelAttachmentUploads">,
+  messageId: Id<"clubChannelMessages">,
+) {
+  const fileUrl = await ctx.storage.getUrl(staged.storageId);
+  if (!fileUrl) throw new ConvexError("Attachment upload not found");
+  await ctx.db.insert("clubChannelMessageAttachments", {
+    messageId,
+    storageId: staged.storageId,
+    uploaderId: staged.uploaderId,
+    fileName: staged.fileName,
+    fileUrl,
+    mimeType: staged.mimeType,
+    size: staged.size,
+    createdAt: Date.now(),
+  });
+  await ctx.db.delete(staged._id);
+}
+
+async function removeStaged(ctx: MutationCtx, staged: Doc<"clubChannelAttachmentUploads">) {
+  await deleteStorageQuietly(ctx, staged.storageId);
+  await ctx.db.delete(staged._id);
+}
+
 export const cleanupStagedChatAttachment = internalMutation({
-  args: {
-    attachmentUploadId: v.id("clubChannelAttachmentUploads"),
-  },
+  args: { attachmentUploadId: v.id("clubChannelAttachmentUploads") },
   returns: v.null(),
   handler: async (ctx, args) => {
     const staged = await ctx.db.get(args.attachmentUploadId);
-    if (!staged) return null;
-    await deleteStorageQuietly(ctx, staged.storageId);
-    await ctx.db.delete(staged._id);
+    if (staged && !staged.pendingMessageId) await removeStaged(ctx, staged);
     return null;
   },
+});
+
+export const expirePendingImage = internalMutation({
+  args: { attachmentUploadId: v.id("clubChannelAttachmentUploads") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const staged = await ctx.db.get(args.attachmentUploadId);
+    if (staged?.pendingMessageId) await removeStaged(ctx, staged);
+    return null;
+  },
+});
+
+export const listPendingImages = query({
+  args: {},
+  returns: v.array(v.object({
+    _id: v.id("clubChannelAttachmentUploads"),
+    fileName: v.string(),
+  })),
+  handler: async (ctx) => {
+    if (!(await viewerWithRoles(ctx, STAFF_ROLES))) return [];
+    const rows = await ctx.db.query("clubChannelAttachmentUploads")
+      .withIndex("by_reviewSubmittedAt", (q) => q.gt("reviewSubmittedAt", undefined))
+      .take(20);
+    return rows.map(({ _id, fileName }) => ({ _id, fileName }));
+  },
+});
+
+export const decideImage = mutation({
+  args: { attachmentUploadId: v.id("clubChannelAttachmentUploads"), approve: v.boolean() },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const reviewer = await getCurrentAppUser(ctx);
+    requireAnyRole(reviewer, STAFF_ROLES);
+    const staged = await ctx.db.get(args.attachmentUploadId);
+    if (!staged?.pendingMessageId) return false;
+    const message = await ctx.db.get(staged.pendingMessageId);
+    if (args.approve && message && !message.deletedAt) {
+      await publishAttachment(ctx, staged, message._id);
+      return true;
+    }
+    await removeStaged(ctx, staged);
+    return !args.approve;
+  },
+});
+
+export const getPendingImageStorage = internalQuery({
+  args: { attachmentUploadId: v.id("clubChannelAttachmentUploads") },
+  returns: v.union(v.null(), v.object({
+    storageId: v.id("_storage"),
+    mimeType: v.string(),
+  })),
+  handler: async (ctx, args) => {
+    if (!(await viewerWithRoles(ctx, STAFF_ROLES))) return null;
+    const row = await ctx.db.get(args.attachmentUploadId);
+    return row?.pendingMessageId ? { storageId: row.storageId, mimeType: row.mimeType } : null;
+  },
+});
+
+export const previewPendingImage = httpAction(async (ctx, request) => {
+  if (!(await ctx.auth.getUserIdentity())) return new Response(null, { status: 401 });
+  const id = new URL(request.url).searchParams.get("attachmentUploadId");
+  if (!id) return new Response(null, { status: 404 });
+  try {
+    const image = await ctx.runQuery(internal.uploads.chatAttachments.getPendingImageStorage, {
+      attachmentUploadId: id as Id<"clubChannelAttachmentUploads">,
+    });
+    const blob = image && await ctx.storage.get(image.storageId);
+    if (!blob || !image) return new Response(null, { status: 404 });
+    return new Response(blob, {
+      headers: {
+        "Content-Type": image.mimeType,
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  } catch {
+    return new Response(null, { status: 404 });
+  }
 });

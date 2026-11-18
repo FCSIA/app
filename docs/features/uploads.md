@@ -32,6 +32,14 @@ Uploads let users attach files to supported features through Convex storage.
 - Club profile/hero images.
 - Club channel message attachments.
 
+## Club chat image review
+
+Images and GIFs attached to club messages enter the Reports review queue. Staff
+can open the original animation and approve or reject it. Approval makes the
+attachment visible in the message. Rejection deletes the upload, and unreviewed
+uploads expire after seven days. Message text and other supported file types
+can appear immediately. Review previews require staff access.
+
 ## Permissions
 
 The finalize mutation enforces the domain permission. Generating an upload URL

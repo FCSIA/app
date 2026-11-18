@@ -4,6 +4,8 @@ import { httpImpersonate } from "./users/impersonation";
 import { httpGithubFeedbackWebhook } from "./moderation/feedbackGithub";
 import { getVolunteerProof } from "./clubs/volunteerProofHttp";
 
+import { previewPendingImage } from "./uploads/chatAttachments";
+
 const http = httpRouter();
 
 authComponent.registerRoutes(http, createAuth);
@@ -25,5 +27,7 @@ http.route({
   method: "GET",
   handler: getVolunteerProof,
 });
+
+http.route({ path: "/chat-attachment-review", method: "GET", handler: previewPendingImage });
 
 export default http;

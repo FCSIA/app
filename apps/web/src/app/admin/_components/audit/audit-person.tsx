@@ -75,6 +75,8 @@ export function AuditPerson({ event, onFilter }: {
             person={actor}
             seed={actor.id}
             name={name}
+            title={name}
+            className="focus-visible:ring-inset"
             aria-label={`View ${name}'s profile`}
           />
         }

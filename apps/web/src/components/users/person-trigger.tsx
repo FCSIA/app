@@ -16,8 +16,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * The inline avatar-and-name that opens a person's preview. The hand cursor,
- * the avatar's lift and the name's underline fading in all mark the whole
- * thing as one target. Pass it as PersonTrigger's `trigger`.
+ * and the name's underline fading in mark the whole thing as one target. Pass it as PersonTrigger's `trigger`.
  */
 export const PersonTriggerButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement> & {
   person: AvatarPerson;
@@ -36,7 +35,7 @@ export const PersonTriggerButton = forwardRef<HTMLButtonElement, ButtonHTMLAttri
     {...props}
   >
     <UserAvatar person={person} seed={seed} size={avatarSize} className="shrink-0" />
-    <span className="truncate underline decoration-transparent decoration-1 underline-offset-4 transition-[text-decoration-color] duration-150 ease-out group-hover/person:decoration-current group-data-[state=open]/person:decoration-current">
+    <span className="truncate underline decoration-transparent decoration-1 underline-offset-2 transition-[text-decoration-color] duration-150 ease-out group-hover/person:decoration-current group-data-[state=open]/person:decoration-current">
       {name}
     </span>
   </button>

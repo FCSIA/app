@@ -313,7 +313,7 @@ export function useAuditDataTable(audit: AuditState) {
         id: 'person',
         accessorFn: auditPersonName,
         header: ({ column }) => <AuditColumnHeader column={column} title="Person" />,
-        meta: { label: 'Person' },
+        meta: { label: 'Person', className: 'overflow-visible' },
         cell: ({ row }) => (
           <AuditPersonCell event={row.original} />
         ),
@@ -329,7 +329,7 @@ export function useAuditDataTable(audit: AuditState) {
         id: 'record',
         accessorFn: auditRecordTitle,
         header: ({ column }) => <AuditColumnHeader column={column} title="Record" />,
-        meta: { label: 'Record' },
+        meta: { label: 'Record', className: 'w-full' },
         cell: ({ row }) => <RecordCell event={row.original} />,
       },
       {
@@ -384,7 +384,7 @@ export function AuditTable({
         }}
         onRowClick={(row) => audit.setSelectedAuditEventId(row.id === audit.selectedAuditEventId ? null : row.id)}
         rowDetail={(row) => row.id === audit.selectedAuditEventId
-          ? <AuditEventContent eventId={row.original.id} />
+          ? <AuditEventContent event={row.original} />
           : null}
       />
       </AuditTableContext.Provider>

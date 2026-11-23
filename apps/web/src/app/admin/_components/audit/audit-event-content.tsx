@@ -2,18 +2,17 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { AdminNotice } from '../admin-ui';
 import { CodeBlock } from '@/components/ui/code-block';
 import { useQuery } from "@/lib/convex-react";
 import { api } from "~/apps/convex/src/_generated/api";
-import type { AuditEventDetail } from '../../_lib/types';
+import type { AuditEventRecord } from '../../_lib/types';
 import type { Id } from '~/apps/convex/src/_generated/dataModel';
 import {
   auditMetaFields,
 } from '~/apps/shared/audit';
 import { WhiteboardAuditSnapshot } from './whiteboard-audit-snapshot';
 
-function whiteboardSnapshotTarget(event: AuditEventDetail) {
+function whiteboardSnapshotTarget(event: AuditEventRecord) {
   if (
     event.entityType !== 'ClubWhiteboard' ||
     !['CLUB_WHITEBOARD_EDITED', 'CLUB_WHITEBOARD_RESTORED'].includes(
@@ -26,7 +25,7 @@ function whiteboardSnapshotTarget(event: AuditEventDetail) {
     return null;
   return { boardId: meta.boardId as Id<'clubWhiteboards'>, atSeq: meta.toSeq };
 }
-function displayValue(value: unknown, event: AuditEventDetail): string {
+function displayValue(value: unknown, event: AuditEventRecord): string {
   if (typeof value === 'string')
     return (
       event.context?.references.find((ref) => ref.id === value)?.name ?? value
@@ -46,24 +45,18 @@ function Detail({ label, children, wide = false }: { label: string; children: Re
   );
 }
 
-/**
- * What was recorded, side by side on one line (wrapping when it must), then
- * the stored event as a raised block. Each label is a caption above its value.
- */
-export function AuditEventContent({ eventId }: { eventId: Id<"auditEvents"> }) {
-  const eventDetail = useQuery(api.audit.events.get, { auditEventId: eventId });
-  if (eventDetail === undefined) return <p role="status" className="pl-[22px] text-muted-foreground">Loading…</p>;
-  if (!eventDetail) return <AdminNotice message="This activity record could not be loaded." />;
-  const snapshot = whiteboardSnapshotTarget(eventDetail);
-  const preview = eventDetail.entityPreview;
-  const links = eventDetail.context?.links ?? [];
+export function AuditEventContent({ event }: { event: AuditEventRecord }) {
+  const detail = useQuery(api.audit.events.get, { auditEventId: event.id });
+  const snapshot = whiteboardSnapshotTarget(event);
+  const preview = detail?.entityPreview;
+  const links = event.context?.links ?? [];
   const previewFields = (preview?.fields ?? []).filter(
     (field) => !/\bID\b/i.test(field.label) && !['0', 'No', 'None', 'null', 'false', ''].includes(field.value),
   );
   return (
-    <dl className="flex flex-wrap gap-x-10 gap-y-4 pl-[22px] text-sm [overflow-wrap:anywhere]">
-      {auditMetaFields(eventDetail).map((field) => (
-        <Detail key={field.key} label={field.label}>{displayValue(field.value, eventDetail)}</Detail>
+    <dl className="flex min-w-0 flex-wrap gap-x-8 gap-y-3 border-l border-border bg-surface-2 px-4 py-3 text-sm [overflow-wrap:anywhere] lg:bg-surface-3">
+      {auditMetaFields(event).map((field) => (
+        <Detail key={field.key} label={field.label}>{displayValue(field.value, event)}</Detail>
       ))}
       {links.map((ref) => (
         <Detail key={`${ref.label}:${ref.id}`} label={ref.label}>
@@ -74,9 +67,22 @@ export function AuditEventContent({ eventId }: { eventId: Id<"auditEvents"> }) {
           )}
         </Detail>
       ))}
-      {preview ? (
+      <Detail label="Stored event" wide>
+        <CodeBlock
+          json={{
+            action: event.action,
+            entityType: event.entityType,
+            entityId: event.entityId,
+            actorId: event.actorId,
+            client: event.client,
+            createdAt: event.createdAt,
+            meta: event.meta,
+          }}
+        />
+      </Detail>
+      {preview && !links.some((link) => link.id === event.entityId) ? (
         <Detail label="Record">
-          {preview.href && !links.length ? (
+          {preview.href ? (
             <Link href={preview.href} className="underline underline-offset-4">{preview.title}</Link>
           ) : (
             preview.title
@@ -93,19 +99,6 @@ export function AuditEventContent({ eventId }: { eventId: Id<"auditEvents"> }) {
           <WhiteboardAuditSnapshot boardId={snapshot.boardId} atSeq={snapshot.atSeq} />
         </Detail>
       ) : null}
-      <Detail label="Stored event" wide>
-        <CodeBlock
-          json={{
-            action: eventDetail.action,
-            entityType: eventDetail.entityType,
-            entityId: eventDetail.entityId,
-            actorId: eventDetail.actorId,
-            client: eventDetail.client,
-            createdAt: eventDetail.createdAt,
-            meta: eventDetail.meta,
-          }}
-        />
-      </Detail>
     </dl>
   );
 }

@@ -1,4 +1,10 @@
+"use client";
+
+import { Copy } from "lucide-react";
 import { forwardRef, type HTMLAttributes, type ReactNode } from "react";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { copyText } from "@/lib/share";
 import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
@@ -40,19 +46,49 @@ interface CodeBlockProps extends HTMLAttributes<HTMLPreElement> {
 }
 
 const CodeBlock = forwardRef<HTMLPreElement, CodeBlockProps>(
-  ({ json, children, className, ...props }, ref) => (
-    <pre
-      ref={ref}
-      className={cn(
-        "surface-raised rounded-lg px-4 py-3 font-mono text-xs leading-5 text-foreground",
-        "whitespace-pre-wrap [overflow-wrap:anywhere]",
-        className,
-      )}
-      {...props}
-    >
-      <code>{json !== undefined ? highlightJson(JSON.stringify(json, null, 2) ?? "undefined") : children}</code>
-    </pre>
-  ),
+  ({ json, children, className, ...props }, ref) => {
+    const { toast } = useToast();
+    const text = json === undefined ? undefined : (JSON.stringify(json, null, 2) ?? "undefined");
+
+    async function copyJson() {
+      if (text === undefined) return;
+      try {
+        await copyText(text);
+        toast({ title: "JSON copied" });
+      } catch {
+        toast({ title: "Could not copy JSON", variant: "destructive" });
+      }
+    }
+
+    return (
+      <div className="surface-top-edge relative rounded-lg border border-border bg-surface-4 lg:bg-surface-5">
+        <pre
+          ref={ref}
+          className={cn(
+            "px-3 py-2 font-mono text-xs leading-5 text-foreground whitespace-pre-wrap [overflow-wrap:anywhere]",
+            text !== undefined && "pr-12",
+            className,
+          )}
+          {...props}
+        >
+          <code>{text === undefined ? children : highlightJson(text)}</code>
+        </pre>
+        {text !== undefined ? (
+          <Button
+            type="button"
+            size="icon-compact"
+            variant="ghost"
+            aria-label="Copy JSON"
+            title="Copy JSON"
+            className="absolute right-1.5 top-1.5"
+            onClick={copyJson}
+          >
+            <Copy />
+          </Button>
+        ) : null}
+      </div>
+    );
+  },
 );
 CodeBlock.displayName = "CodeBlock";
 

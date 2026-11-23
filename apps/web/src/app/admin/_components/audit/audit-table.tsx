@@ -353,6 +353,8 @@ export function useAuditDataTable(audit: AuditState) {
     getRowId: (event) => event.id,
     manualFiltering: true,
     enableSorting: false,
+    // Five columns read left to right; there is nothing to freeze.
+    enableColumnPinning: false,
     state: { globalFilter: audit.auditSearch },
     onGlobalFilterChange: (update) =>
       audit.setAuditSearch(

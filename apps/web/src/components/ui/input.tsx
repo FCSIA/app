@@ -16,7 +16,7 @@ import { useSize, type SizeVariant } from "@/lib/size-context";
 // ---------------------------------------------------------------------------
 
 const inputClasses = [
-  "w-full min-w-0 border border-border bg-transparent text-foreground outline-none",
+  "surface-top-edge w-full min-w-0 border border-border bg-transparent text-foreground outline-none",
   "transition-[background-color,border-color] duration-80",
   "placeholder:text-muted-foreground",
   "hover:bg-hover",

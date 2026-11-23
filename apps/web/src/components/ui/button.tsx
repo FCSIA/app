@@ -235,6 +235,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           aria-hidden
           className={cn(
             "absolute inset-px rounded-[inherit] transition-[box-shadow,background-color] [transition-duration:180ms,80ms] [transition-timing-function:cubic-bezier(0.23,1,0.32,1),ease] group-active:[transition-duration:80ms,80ms]",
+            variant !== "ghost" && "surface-top-edge",
             bgClass
           )}
         />

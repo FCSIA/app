@@ -1,9 +1,9 @@
 "use client";
 
 import { Copy } from "lucide-react";
-import { forwardRef, type HTMLAttributes, type ReactNode } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { forwardRef, useEffect, useRef, useState, type HTMLAttributes, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 import { copyText } from "@/lib/share";
 import { cn } from "@/lib/utils";
 
@@ -47,17 +47,24 @@ interface CodeBlockProps extends HTMLAttributes<HTMLPreElement> {
 
 const CodeBlock = forwardRef<HTMLPreElement, CodeBlockProps>(
   ({ json, children, className, ...props }, ref) => {
-    const { toast } = useToast();
+    const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">("idle");
+    const resetCopy = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    const reduceMotion = useReducedMotion();
+    const copyMessage = copyStatus === "copied" ? "JSON copied" : copyStatus === "error" ? "Could not copy JSON" : "";
+
+    useEffect(() => () => clearTimeout(resetCopy.current), []);
     const text = json === undefined ? undefined : (JSON.stringify(json, null, 2) ?? "undefined");
 
     async function copyJson() {
       if (text === undefined) return;
       try {
         await copyText(text);
-        toast({ title: "JSON copied" });
+        setCopyStatus("copied");
       } catch {
-        toast({ title: "Could not copy JSON", variant: "destructive" });
+        setCopyStatus("error");
       }
+      clearTimeout(resetCopy.current);
+      resetCopy.current = setTimeout(() => setCopyStatus("idle"), 1800);
     }
 
     return (
@@ -74,17 +81,41 @@ const CodeBlock = forwardRef<HTMLPreElement, CodeBlockProps>(
           <code>{text === undefined ? children : highlightJson(text)}</code>
         </pre>
         {text !== undefined ? (
-          <Button
-            type="button"
-            size="icon-compact"
-            variant="ghost"
-            aria-label="Copy JSON"
-            title="Copy JSON"
-            className="absolute right-1.5 top-1.5"
-            onClick={copyJson}
-          >
-            <Copy />
-          </Button>
+          <>
+            <Button
+              type="button"
+              size="icon-compact"
+              variant="ghost"
+              aria-label="Copy JSON"
+              title={copyMessage || "Copy JSON"}
+              className="absolute right-1.5 top-1.5"
+              onClick={copyJson}
+            >
+              <span aria-hidden className="grid size-3.5 place-items-center">
+                <span className={cn(
+                  "col-start-1 row-start-1 transition-[opacity,scale] duration-100 ease-out motion-reduce:transition-none",
+                  copyStatus !== "idle" && "scale-90 opacity-0",
+                )}>
+                  <Copy />
+                </span>
+                <span className={cn(
+                  "col-start-1 row-start-1 transition-opacity duration-100 ease-out motion-reduce:transition-none",
+                  copyStatus === "idle" && "opacity-0",
+                  copyStatus === "error" && "text-destructive",
+                )}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                    <motion.path
+                      d={copyStatus === "error" ? "M7 7L17 17M17 7L7 17" : "M5 12L10 17L19 8"}
+                      initial={false}
+                      animate={{ pathLength: copyStatus === "idle" ? 0 : 1 }}
+                      transition={{ duration: reduceMotion ? 0 : 0.16, ease: "easeOut" }}
+                    />
+                  </svg>
+                </span>
+              </span>
+            </Button>
+            <span className="sr-only" role="status">{copyMessage}</span>
+          </>
         ) : null}
       </div>
     );

@@ -119,7 +119,8 @@ export function auditContextResolver(ctx: QueryCtx) {
       recordName(meta) ??
       (entity ? recordName(entity) : null) ??
       (live && table && entity ? recordText(table, entity) : null) ??
-      auditRecordLabel(event.entityType);
+      (table === "moderationReports" && typeof entity?.githubIssueNumber === "number"
+        ? `Feedback #${entity.githubIssueNumber}` : auditRecordLabel(event.entityType));
     const references = (
       await Promise.all(
         Object.entries(REFERENCE_TABLES).map(async ([key, refTable]) => {

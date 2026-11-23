@@ -19,6 +19,7 @@ import { useIcons } from "@/lib/icon-context";
 import { useSize } from "@/lib/size-context";
 import { useSurface } from "@/lib/surface-context";
 import { SURFACE_BG } from "@/lib/surface-classes";
+import { usePopupShape } from "@/lib/shape-context";
 
 // ---------------------------------------------------------------------------
 // Search inside a dropdown menu.
@@ -81,6 +82,14 @@ function precedes(a: Node, b: Node) {
 function menuRows(from: HTMLElement | null): HTMLElement[] {
   const menu = from?.closest<HTMLElement>('[role="menu"]');
   return menu ? Array.from(menu.querySelectorAll<HTMLElement>(ROW_SELECTOR)) : [];
+}
+
+/** The box the rows sit in: the search field's parent, skipping
+ *  display:contents wrappers (the menu's radio group) that have no box. */
+function rowsBox(from: HTMLElement | null): HTMLElement | null {
+  let el = from?.closest<HTMLElement>(".group\\/search")?.parentElement ?? null;
+  while (el && getComputedStyle(el).display === "contents") el = el.parentElement;
+  return el;
 }
 
 /** Scroll the menu's scrolling list back to its top. The walk stops at the
@@ -231,6 +240,7 @@ const DropdownSearch = forwardRef<HTMLInputElement, DropdownSearchProps>(
     // field, and the field's parent is often a display:contents group (the
     // menu's radio group) that `bg-inherit` would resolve to transparent.
     const surface = useSurface();
+    const shape = usePopupShape();
     const inputRef = useRef<HTMLInputElement | null>(null);
 
     // Latest value / callback for the imperative handle and the unmount
@@ -247,6 +257,42 @@ const DropdownSearch = forwardRef<HTMLInputElement, DropdownSearchProps>(
       autoFocusRef.current = autoFocus;
     });
 
+    // No results keeps the height the last results showed (what was on
+    // screen of it, not what scrolled), so DropdownEmpty sits where the rows
+    // were and the menu doesn't jump on each keystroke into and out of an
+    // empty query. The height is read as a key is typed, while the layout
+    // is still clean; after a commit only the rows are counted (no layout
+    // read), so a commit that isn't a keystroke (the menu closing, the page
+    // re-rendering around it) never forces the page's layout.
+    const shownHeightRef = useRef(0);
+    const listRef = useRef<HTMLElement | null>(null);
+    const heldRef = useRef(false);
+    const recordShownHeight = () => {
+      if (heldRef.current) return;
+      const list = (listRef.current ??= rowsBox(inputRef.current));
+      if (!list || menuRows(inputRef.current).length === 0) return;
+      const viewport = list.closest<HTMLElement>('[data-slot="scroll-area-viewport"]');
+      shownHeightRef.current = Math.min(list.offsetHeight, viewport?.clientHeight ?? Infinity);
+    };
+    // For the redirected keystrokes (typed on a row), registered once.
+    const recordShownHeightRef = useRef(recordShownHeight);
+    useIsoLayoutEffect(() => {
+      recordShownHeightRef.current = recordShownHeight;
+    });
+    useIsoLayoutEffect(() => {
+      const empty = menuRows(inputRef.current).length === 0;
+      if (empty === heldRef.current) return;
+      const list = listRef.current;
+      if (!list) return;
+      if (!empty) {
+        list.style.minHeight = "";
+        heldRef.current = false;
+      } else if (shownHeightRef.current) {
+        list.style.minHeight = `${shownHeightRef.current}px`;
+        heldRef.current = true;
+      }
+    });
+
     useEffect(() => {
       if (!host) return;
       return host.register({
@@ -256,9 +302,14 @@ const DropdownSearch = forwardRef<HTMLInputElement, DropdownSearchProps>(
         get autoFocus() {
           return autoFocusRef.current;
         },
-        append: (text) => onValueChangeRef.current(valueRef.current + text),
-        deleteBackward: () =>
-          onValueChangeRef.current(valueRef.current.slice(0, -1)),
+        append: (text) => {
+          recordShownHeightRef.current();
+          onValueChangeRef.current(valueRef.current + text);
+        },
+        deleteBackward: () => {
+          recordShownHeightRef.current();
+          onValueChangeRef.current(valueRef.current.slice(0, -1));
+        },
       });
     }, [host]);
 
@@ -318,21 +369,42 @@ const DropdownSearch = forwardRef<HTMLInputElement, DropdownSearchProps>(
       <div
         // Sticky at the top of the scrolling popup, bleeding into its 4px
         // padding so the divider runs edge to edge and rows scroll underneath
-        // it; margin + the list gap put the first row 4px below the divider —
-        // the same inset as the popup's side padding.
+        // it. The field is a row's height (box-content: the padding and the
+        // 1px rule sit outside it), with the popup's 4px inset above and
+        // below it inside the sticky band, and the first row 4px below the
+        // divider: the same 4px as the popup's sides.
         className={cn(
-          "group/search sticky top-0 z-20 -mx-1 -mt-1 mb-0.5 flex shrink-0 items-center border-b border-border/60",
+          "group/search sticky top-0 z-20 -mx-1 -mt-1 mb-1 box-content flex shrink-0 items-center border-b border-border/60 py-1",
           SURFACE_BG[surface],
           sizeClasses.control,
           sizeClasses.gap,
           compact ? "px-2.5" : "px-3",
+          "cursor-text",
           className
         )}
+        // The whole band is the field: a press on its padding or the icon
+        // puts the caret in the input instead of doing nothing.
+        onPointerDown={(e) => {
+          if (e.target === inputRef.current) return;
+          e.preventDefault();
+          inputRef.current?.focus();
+        }}
       >
+        {/* Hover: the rows' fill, inset like a row (the band bleeds 4px into
+            the popup's padding, the rows sit 4px in), as a field's hover
+            fill is. Typing in it (focused), it steps back like Input's. */}
+        <span
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute inset-1 -z-10 bg-transparent transition-[background-color] duration-80",
+            "group-hover/search:bg-hover group-focus-within/search:bg-transparent!",
+            shape.item
+          )}
+        />
         <SearchIcon
           size={sizeClasses.icon}
           strokeWidth={1.5}
-          className="shrink-0 text-muted-foreground transition-[color,stroke-width] duration-80 group-focus-within/search:text-foreground group-focus-within/search:stroke-[2]"
+          className="shrink-0 text-muted-foreground transition-[color,stroke-width] duration-80 group-hover/search:text-foreground group-focus-within/search:text-foreground group-focus-within/search:stroke-[2]"
         />
         <input
           ref={(node) => {
@@ -346,7 +418,10 @@ const DropdownSearch = forwardRef<HTMLInputElement, DropdownSearchProps>(
           autoCorrect="off"
           spellCheck={false}
           value={value}
-          onChange={(e) => onValueChange(e.target.value)}
+          onChange={(e) => {
+            recordShownHeight();
+            onValueChange(e.target.value);
+          }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           // rounded-none: the site's base :focus-visible rule hands focused
@@ -354,10 +429,7 @@ const DropdownSearch = forwardRef<HTMLInputElement, DropdownSearchProps>(
           // its own corners (pill mode nicks the caret at the left edge).
           className={cn(
             "min-w-0 flex-1 rounded-none bg-transparent text-foreground placeholder:text-muted-foreground outline-none font-[inherit]",
-            // Registry compatibility: the local ladder has no `field` role; editable
-            // text keeps 16px on coarse pointers so iOS does not zoom.
-            sizeClasses.text,
-            "pointer-coarse:text-[16px]",
+            sizeClasses.field,
             // The line box: Safari runs the caret its full height, so the
             // ladder's leading keeps it in proportion to the row. (Chrome
             // sizes the caret to the font itself, whatever the leading.)
@@ -385,7 +457,8 @@ const DropdownEmpty = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>
         role="status"
         aria-live="polite"
         className={cn(
-          "px-2 py-6 text-center text-muted-foreground",
+          // my-auto centers the message in the height the rows left.
+          "my-auto px-2 py-6 text-center text-muted-foreground",
           sizeClasses.text,
           className
         )}

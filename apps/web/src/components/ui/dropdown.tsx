@@ -15,20 +15,21 @@ import {
   type HTMLAttributes,
   type ComponentPropsWithoutRef,
 } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { cn } from "@/lib/utils";
 import { spring, exitFallbackMs } from "@/lib/springs";
-import { useFluidHover, isOwnEvent } from "@/hooks/use-fluid-hover";
+import { useFluidHover, useFluidHoverSelect, isOwnEvent } from "@/hooks/use-fluid-hover";
 import {
   useMergeSplitBlocks,
   useSelectionRuns,
   SelectionBackgrounds,
 } from "@/hooks/use-merge-split";
-import { SizeProvider, useSize, type SizeVariant } from "@/lib/size-context";
-import { popupShape } from "@/components/ui/popup-shape";
+import { usePopupShape } from "@/lib/shape-context";
+import { SizeProvider, useSize, typeClass, type SizeVariant } from "@/lib/size-context";
 import { Elevated } from "@/lib/elevated";
 import {
+  PopupShield,
   popupMotionClass,
   popupScrollAreaClass,
   popupViewportClass,
@@ -60,20 +61,6 @@ import {
   SubmenuChevron,
   type DropdownSubTriggerProps,
 } from "@/components/ui/dropdown-sub";
-
-// Dropdown opts out of the global pill/rounded shape context — popover surfaces
-// look cleaner with the smaller "rounded" radii regardless of how the rest of
-// the UI is shaped (the heavy pill bubbling distorts perceived padding at this
-// scale and produces the corner-shadow asymmetry).
-// Registry compatibility: the app's `rounded-lg` resolves to 16px, so popup
-// lists keep the fixed nested radii they share with Select (popup-shape.ts).
-const shape = { ...popupShape, mergedBg: popupShape.bg, bgRadius: 8 } as const;
-
-// Registry compatibility: retain the app's existing type ladder (see
-// command-menu.tsx) instead of importing the registry's type-scale helper.
-function typeClass(role: "caption", variant: SizeVariant): string {
-  return variant === "compact" ? "text-[11px] leading-[14px]" : "text-[12px] leading-4";
-}
 
 // ---------------------------------------------------------------------------
 // Panel context — shared by the inline Dropdown and the popup DropdownContent.
@@ -112,10 +99,11 @@ interface DropdownProps extends HTMLAttributes<HTMLDivElement> {
 
 const Dropdown = forwardRef<HTMLDivElement, DropdownProps>(
   ({ children, checkedIndex, checkedIndices, size, className, ...props }, ref) => {
+    const shape = usePopupShape();
     const containerRef = useRef<HTMLDivElement>(null);
     const hover = useFluidHover(containerRef, { isItemDisabled: isDisabledRow });
     const {
-      activeIndex,
+      activeStore,
       setActiveIndex,
       itemRects,
       handlers,
@@ -132,8 +120,8 @@ const Dropdown = forwardRef<HTMLDivElement, DropdownProps>(
     const runs = useSelectionRuns(checkedIndices ?? []);
     const blocks = useMergeSplitBlocks(runs, itemRects, shape.bgRadius);
     const panelCtx = useMemo(
-      () => ({ registerItem, activeIndex, checkedIndex, multiple, checkedIndices }),
-      [registerItem, activeIndex, checkedIndex, multiple, checkedIndices]
+      () => ({ registerItem, activeStore, checkedIndex, multiple, checkedIndices }),
+      [registerItem, activeStore, checkedIndex, multiple, checkedIndices]
     );
     const panel = (
       <DropdownContext.Provider value={panelCtx}>
@@ -191,7 +179,7 @@ const Dropdown = forwardRef<HTMLDivElement, DropdownProps>(
           }}
           role="group"
           className={cn(
-            `relative flex flex-col w-72 max-w-full ${shape.container} p-1 select-none`,
+            `relative flex flex-col gap-0.5 w-72 max-w-full ${shape.container} p-1 select-none`,
             className
           )}
           {...props}
@@ -224,7 +212,6 @@ const Dropdown = forwardRef<HTMLDivElement, DropdownProps>(
           {/* Hover background */}
           <FluidHoverHighlight
             hover={hover}
-            from={checkedRect}
             className={shape.bg}
           />
 
@@ -278,6 +265,33 @@ interface DropdownMenuContextValue {
   disabled: boolean;
   /** Set by DropdownSub: the content is a submenu. */
   sub: boolean;
+  /** Hover-to-open wiring for a trigger with `openOnHover` (root menus
+   *  only). Radix has no hover mode, so the trigger and the popup share
+   *  one timer here: the pointer can cross the gap between them. */
+  hover?: HoverControl;
+}
+
+interface HoverControl {
+  /** Arms the open after `delay` ms. */
+  enter: (delay: number) => void;
+  /** Arms the close after `closeDelay` ms, if the menu was opened by hover. */
+  leave: (closeDelay: number) => void;
+  /** Cancels a pending open or close (the pointer reached the popup). */
+  cancel: () => void;
+  /** A click on a hover-opened trigger pins the menu open instead of
+   *  toggling it closed. Returns true when it pinned. */
+  pin: () => boolean;
+  /** True once, right after a pin: the popup's outside-press dismissal sees
+   *  that same press on the trigger and must let it go. */
+  takePin: () => boolean;
+  /** The close delay the trigger asked for, read by the popup. Null when
+   *  the trigger doesn't open on hover. */
+  getCloseDelay: () => number | null;
+  setCloseDelay: (closeDelay: number | null) => void;
+  /** Whether the current (or last) open came from hover. A hover-opened
+   *  menu neither takes focus when it opens nor hands it back to the
+   *  trigger when it closes: the reader's focus stays where it was. */
+  openedByHover: () => boolean;
 }
 
 const DropdownMenuContext = createContext<DropdownMenuContextValue | null>(null);
@@ -312,9 +326,34 @@ function DropdownMenu({
   size,
 }: DropdownMenuProps) {
   const [open, handleOpenChange] = useControllableOpen(openProp, defaultOpen, onOpenChange);
+  // A hover-opened menu gets no shield: the pointer leaving it is what
+  // closes it. The hover timer opens through the first setter, everything
+  // else (a click, the keyboard) through the primitive's.
+  const [openedByHover, setOpenedByHover] = useState(false);
+  const hoverControl = useHoverControl(open, (next) => {
+    if (next) setOpenedByHover(true);
+    handleOpenChange(next);
+  });
+  // A click that pins a hover-opened menu makes it a clicked-open one.
+  const hover = useMemo<HoverControl>(
+    () => ({
+      ...hoverControl,
+      pin: () => {
+        const pinned = hoverControl.pin();
+        if (pinned) setOpenedByHover(false);
+        return pinned;
+      },
+    }),
+    [hoverControl]
+  );
+  // Closed by any route, a parent's own `open` included: the next open
+  // starts as a clicked one until the hover timer says otherwise.
+  if (!open && openedByHover) setOpenedByHover(false);
 
-
-  const ctx = useMemo(() => ({ open, disabled, sub: false }), [open, disabled]);
+  const ctx = useMemo(
+    () => ({ open, disabled, sub: false, hover }),
+    [open, disabled, hover]
+  );
 
   // A size prop pins the whole compound (trigger content + portalled popup —
   // React context crosses portals) to one ladder step.
@@ -326,11 +365,15 @@ function DropdownMenu({
           scrolling and the popup tracks its anchor instead of detaching. */}
       <DropdownMenuPrimitive.Root
         open={open}
-        onOpenChange={handleOpenChange}
+        onOpenChange={(next) => {
+          if (next) setOpenedByHover(false);
+          handleOpenChange(next);
+        }}
         modal={false}
       >
         {children}
       </DropdownMenuPrimitive.Root>
+      <PopupShield open={open && !openedByHover} />
     </DropdownMenuContext.Provider>
   );
 
@@ -338,6 +381,107 @@ function DropdownMenu({
 }
 
 DropdownMenu.displayName = "DropdownMenu";
+
+/** How long after the hover timer asks to open an open still counts as the
+ *  hover's: one commit, with room for a slow frame. */
+const HOVER_CLAIM_MS = 100;
+
+/** One timer shared by a hover-opening trigger and its popup. A menu opened
+ *  by hover closes when the pointer leaves both; one opened by click, the
+ *  keyboard, or pinned by a click stays until dismissed as usual. Exported for
+ *  the unit test. */
+export function useHoverControl(
+  open: boolean,
+  setOpen: (open: boolean) => void
+): HoverControl {
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const hoverOpened = useRef(false);
+  const closeDelayRef = useRef<number | null>(null);
+  const justPinned = useRef(false);
+  const byHover = useRef(false);
+  // When the hover timer last asked to open. A controlled parent can turn
+  // that request down; an open arriving long after it is someone else's.
+  const hoverAskedAt = useRef(0);
+  const openRef = useRef(open);
+  const setOpenRef = useRef(setOpen);
+  useEffect(() => {
+    setOpenRef.current = setOpen;
+  });
+  // Closed by any route (Escape, an outside press, a row): the next open
+  // starts fresh. Opened by anything but the hover timer (a click, the
+  // keyboard), focus moves as usual.
+  useEffect(() => {
+    openRef.current = open;
+    if (!open) {
+      // byHover outlives the close on purpose: the close autofocus reads it
+      // after this, when the popup unmounts.
+      hoverOpened.current = false;
+      return;
+    }
+    const fromHover =
+      hoverOpened.current && performance.now() - hoverAskedAt.current < HOVER_CLAIM_MS;
+    if (!fromHover) {
+      hoverOpened.current = false;
+      byHover.current = false;
+    }
+  }, [open]);
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  return useMemo<HoverControl>(() => {
+    const cancel = () => clearTimeout(timer.current);
+    return {
+      cancel,
+      getCloseDelay: () => closeDelayRef.current,
+      setCloseDelay: (closeDelay) => {
+        closeDelayRef.current = closeDelay;
+      },
+      enter: (delay) => {
+        cancel();
+        timer.current = setTimeout(() => {
+          // A menu already open from a click or a pin stays the reader's:
+          // hover only takes ownership of a menu it opens itself.
+          if (openRef.current) return;
+          hoverOpened.current = true;
+          byHover.current = true;
+          hoverAskedAt.current = performance.now();
+          setOpenRef.current(true);
+        }, delay);
+      },
+      leave: (closeDelay) => {
+        cancel();
+        timer.current = setTimeout(() => {
+          if (!hoverOpened.current) return;
+          hoverOpened.current = false;
+          setOpenRef.current(false);
+        }, closeDelay);
+      },
+      pin: () => {
+        cancel();
+        // Only a menu the hover actually opened is pinned; a request the
+        // parent turned down leaves nothing to pin, and the press opens it.
+        if (!hoverOpened.current || !openRef.current) {
+          hoverOpened.current = false;
+          byHover.current = false;
+          return false;
+        }
+        hoverOpened.current = false;
+        byHover.current = false;
+        justPinned.current = true;
+        // Only the press that pinned: cleared once this event is done.
+        setTimeout(() => {
+          justPinned.current = false;
+        }, 0);
+        return true;
+      },
+      openedByHover: () => byHover.current,
+      takePin: () => {
+        const pinned = justPinned.current;
+        justPinned.current = false;
+        return pinned;
+      },
+    };
+  }, []);
+}
 
 // ---------------------------------------------------------------------------
 // DropdownTrigger
@@ -359,12 +503,62 @@ interface DropdownTriggerProps
   /** Element to render as the trigger (Base-UI-style `render` composition
    *  API). */
   render?: ReactElement;
+  /** Opens the menu when a mouse rests on the trigger, and closes it when
+   *  the pointer leaves both the trigger and the menu. A click pins it open.
+   *  Touch and the keyboard open it as usual. Same prop as Base UI's. */
+  openOnHover?: boolean;
+  /** With openOnHover: ms the pointer rests before the menu opens. */
+  delay?: number;
+  /** With openOnHover: ms before the menu closes once the pointer has left,
+   *  long enough to cross the gap to the menu. */
+  closeDelay?: number;
 }
 
 const DropdownTrigger = forwardRef<HTMLButtonElement, DropdownTriggerProps>(
-  ({ render, children, disabled, ...props }, ref) => {
-    const { disabled: rootDisabled } = useDropdownMenuContext();
+  (
+    {
+      render,
+      children,
+      disabled,
+      openOnHover = false,
+      delay = 100,
+      closeDelay = 150,
+      onPointerEnter,
+      onPointerLeave,
+      onPointerDown,
+      ...props
+    },
+    ref
+  ) => {
+    const { disabled: rootDisabled, hover } = useDropdownMenuContext();
     const isDisabled = disabled || rootDisabled;
+    const hoverMode = openOnHover && !isDisabled && hover;
+
+    // The popup reads the close delay to arm the same timer when the
+    // pointer leaves it.
+    useEffect(() => {
+      if (!hover) return;
+      hover.setCloseDelay(hoverMode ? closeDelay : null);
+    }, [hover, hoverMode, closeDelay]);
+
+    const hoverProps = hoverMode
+      ? {
+          onPointerEnter: (e: React.PointerEvent<HTMLButtonElement>) => {
+            onPointerEnter?.(e);
+            if (e.pointerType === "mouse") hover.enter(delay);
+          },
+          onPointerLeave: (e: React.PointerEvent<HTMLButtonElement>) => {
+            onPointerLeave?.(e);
+            if (e.pointerType === "mouse") hover.leave(closeDelay);
+          },
+          onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+            onPointerDown?.(e);
+            // Radix toggles on pointerdown; a menu the hover already opened
+            // stays open and stops closing on leave.
+            if (hover.pin()) e.preventDefault();
+          },
+        }
+      : { onPointerEnter, onPointerLeave, onPointerDown };
 
     if (render) {
       return (
@@ -373,13 +567,19 @@ const DropdownTrigger = forwardRef<HTMLButtonElement, DropdownTriggerProps>(
           asChild
           disabled={isDisabled}
           {...props}
+          {...hoverProps}
         >
           {render}
         </DropdownMenuPrimitive.Trigger>
       );
     }
     return (
-      <DropdownMenuPrimitive.Trigger ref={ref} disabled={isDisabled} {...props}>
+      <DropdownMenuPrimitive.Trigger
+        ref={ref}
+        disabled={isDisabled}
+        {...props}
+        {...hoverProps}
+      >
         {children}
       </DropdownMenuPrimitive.Trigger>
     );
@@ -419,6 +619,12 @@ interface DropdownContentProps {
   sideOffset?: number;
   /** Shift along the trigger edge, in px. */
   alignOffset?: number;
+  /** Keeps the popup inside this element's box rather than the window's
+   *  (a table's, a panel's): it shifts or flips to stay within. */
+  collisionBoundary?: Element | null;
+  /** Space kept from the boundary's edges, in px. @default 0 */
+  collisionPadding?: number;
+  /** Let actions hand focus to a composer, dialog or another popup. */
   onCloseAutoFocus?: RadixContentProps["onCloseAutoFocus"];
 }
 
@@ -433,17 +639,19 @@ const DropdownContent = forwardRef<HTMLDivElement, DropdownContentProps>(
       align = "start",
       sideOffset = 6,
       alignOffset = 0,
+      collisionBoundary,
+      collisionPadding,
       onCloseAutoFocus,
     },
     ref
   ) => {
-    const { open, sub } = useDropdownMenuContext();
+    const shape = usePopupShape();
+    const { open, sub, hover: menuHover } = useDropdownMenuContext();
     const containerRef = useRef<HTMLDivElement>(null);
-    const reduceMotion = useReducedMotion() ?? false;
 
     const hover = useFluidHover(containerRef, { isItemDisabled: isDisabledRow });
     const {
-      activeIndex,
+      activeStore,
       setActiveIndex,
       itemRects,
       handlers,
@@ -472,7 +680,8 @@ const DropdownContent = forwardRef<HTMLDivElement, DropdownContentProps>(
     // submenu: hovering its trigger must leave focus in the parent, and a
     // keyboard open already lands on its first row.
     useEffect(() => {
-      if (!open || sub) return;
+      // A hover-opened menu is a preview: focus stays where the reader left it.
+      if (!open || sub || menuHover?.openedByHover()) return;
       let inner: number | undefined;
       const outer = requestAnimationFrame(() => {
         inner = requestAnimationFrame(() => {
@@ -489,7 +698,7 @@ const DropdownContent = forwardRef<HTMLDivElement, DropdownContentProps>(
         cancelAnimationFrame(outer);
         if (inner !== undefined) cancelAnimationFrame(inner);
       };
-    }, [open, sub, hasSearch]);
+    }, [open, sub, hasSearch, menuHover]);
 
     // Portal lifetime: mounts as soon as `open` flips true; on close it stays
     // mounted (forceMount below) until the exit tween finishes.
@@ -520,28 +729,16 @@ const DropdownContent = forwardRef<HTMLDivElement, DropdownContentProps>(
     const multiple = checkedIndices != null;
     const checkedRect =
       !multiple && checkedIndex != null ? itemRects[checkedIndex] : null;
-    // What lights the highlight: the open itself (its first-row focus), the
-    // pointer, or the keyboard. A highlight that appears from nothing fades
-    // in at `from` and glides to its row. That suits the pointer entering the
-    // list (it rises from the checked row toward the cursor), not a row lit
-    // by the open or by arrowing in from the search field: those would slide
-    // over from the checked row, so they fade in where they are.
-    // The handlers read the ref: a key press updates it before the focus it
-    // moves arrives, in the same event. The render reads the state, which
-    // the highlight's `from` depends on. Each open starts over as "open".
+    // What lit the highlight: the open itself (its first-row focus), the
+    // pointer, or the keyboard. The handlers read it as a ref: a key press
+    // updates it before the focus it moves arrives, in the same event.
+    // Each open starts over as "open".
     const litByRef = useRef<LitBy>("open");
-    const [litBy, setLitBy] = useState<LitBy>("open");
-    const [litByOpen, setLitByOpen] = useState(open);
-    if (litByOpen !== open) {
-      setLitByOpen(open);
-      if (open) setLitBy("open");
-    }
     useEffect(() => {
       if (open) litByRef.current = "open";
     }, [open]);
     const markLitBy = (by: LitBy) => {
       litByRef.current = by;
-      setLitBy(by);
     };
     // Multiple: one merged block per contiguous run of checked rows.
     const runs = useSelectionRuns(checkedIndices ?? []);
@@ -601,7 +798,7 @@ const DropdownContent = forwardRef<HTMLDivElement, DropdownContentProps>(
     const contentCtx = useMemo(
       () => ({
         registerItem,
-        activeIndex,
+        activeStore,
         checkedIndex,
         multiple,
         checkedIndices,
@@ -611,7 +808,7 @@ const DropdownContent = forwardRef<HTMLDivElement, DropdownContentProps>(
       }),
       [
         registerItem,
-        activeIndex,
+        activeStore,
         checkedIndex,
         multiple,
         checkedIndices,
@@ -638,20 +835,47 @@ const DropdownContent = forwardRef<HTMLDivElement, DropdownContentProps>(
           align={align}
           sideOffset={sideOffset}
           alignOffset={alignOffset}
-          onCloseAutoFocus={onCloseAutoFocus}
+          collisionBoundary={collisionBoundary}
+          collisionPadding={collisionPadding}
+          // A press that pinned a hover-opened menu lands on the trigger,
+          // which Radix counts as outside the menu.
+          onPointerDownOutside={(e) => {
+            if (menuHover?.takePin()) e.preventDefault();
+          }}
+          // Hover is not a request for focus: a hover-opened menu leaves it
+          // where it is, on open and on close.
+          // Radix types the open focus handler as private, but MenuContent
+          // passes it to its FocusScope and skips its own focus call once
+          // ours prevents default.
+          {...({
+            onOpenAutoFocus: (e: Event) => {
+              if (menuHover?.openedByHover()) e.preventDefault();
+            },
+          } as object)}
+          onCloseAutoFocus={(e) => {
+            onCloseAutoFocus?.(e);
+            if (menuHover?.openedByHover()) e.preventDefault();
+          }}
         >
           <motion.div
-            className={cn("z-50 outline-none", popupMotionClass)}
-            // Reduced motion keeps the fade (app adaptation).
-            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: "var(--popup-enter-y)", scaleY: 0.96 }}
+            className={cn("z-[var(--z-popover,60)] outline-none", popupMotionClass)}
+            initial={{ opacity: 0, y: "var(--popup-enter-y)", scaleY: 0.96 }}
             animate={
               open
                 ? { opacity: 1, y: 0, scaleY: 1 }
-                : reduceMotion
-                  ? { opacity: 0 }
-                  : { opacity: 0, y: "var(--popup-enter-y)", scaleY: 0.96 }
+                : { opacity: 0, y: "var(--popup-enter-y)", scaleY: 0.96 }
             }
             transition={open ? spring.fast : spring.fast.exit}
+            // A hover-opened menu stays while the pointer is over it and
+            // closes once it leaves both the menu and its trigger.
+            onPointerEnter={(e) => {
+              if (e.pointerType === "mouse" && menuHover?.getCloseDelay() != null)
+                menuHover.cancel();
+            }}
+            onPointerLeave={(e) => {
+              const closeDelay = menuHover?.getCloseDelay();
+              if (e.pointerType === "mouse" && closeDelay != null) menuHover?.leave(closeDelay);
+            }}
             // Release the deferred unmount once the exit spring has finished
             // so the close animation fully plays.
             onAnimationComplete={() => {
@@ -735,7 +959,7 @@ const DropdownContent = forwardRef<HTMLDivElement, DropdownContentProps>(
                 <ScrollArea className={popupScrollAreaClass} viewportClassName={cn(popupViewportClass, !searchMounted && "scroll-fade")}>
                   <div
                     ref={containerRef}
-                    className="relative flex flex-col p-1"
+                    className="relative flex flex-col gap-0.5 p-1"
                   >
                 {/* Selected backgrounds — merged runs in multiple mode */}
                 {multiple && <SelectionBackgrounds blocks={blocks} />}
@@ -765,7 +989,6 @@ const DropdownContent = forwardRef<HTMLDivElement, DropdownContentProps>(
                 {/* Hover background */}
                 <FluidHoverHighlight
                   hover={hover}
-                  from={litBy === "pointer" ? checkedRect : null}
                   className={shape.bg}
                 />
 
@@ -845,7 +1068,7 @@ const DropdownSubTrigger = forwardRef<HTMLDivElement, DropdownSubTriggerProps>(
     const parent = useDropdown();
     const { open } = useDropdownMenuContext();
     useReportSubmenu(parent.onSubmenuOpenChange, index, open);
-    const lit = parent.activeIndex === index;
+    const lit = useFluidHoverSelect(parent.activeStore, (i) => i === index);
 
     // The row renders through the parent's MenuItem, wrapped in the submenu
     // trigger primitive instead of a plain item.

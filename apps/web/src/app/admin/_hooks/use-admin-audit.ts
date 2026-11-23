@@ -14,6 +14,13 @@ function validDate(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`)) && new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) === value ? value : '';
 }
 
+export type AuditFilterChip = {
+  column: 'When' | 'Person' | 'Action' | 'Record';
+  field: string;
+  label: string;
+  clear: () => void;
+};
+
 export function useAdminAudit() {
   const user = useCurrentUser();
   const searchParams = useSearchParams();
@@ -90,21 +97,20 @@ export function useAdminAudit() {
   );
   const auditCounts = useQuery(api.audit.events.counts, auditQueryParams);
   const auditFilterOptions = useQuery(api.audit.events.listFilterOptions, {});
-  const auditEventDetail = useQuery(api.audit.events.get, selectedAuditEventId ? { auditEventId: selectedAuditEventId as Id<'auditEvents'> } : 'skip');
   const clearAuditFilters = () => {
     setDraft('');
     update(Object.fromEntries(['q', 'person', 'actor', 'actor_name', 'record', 'action', 'type', 'source', 'from', 'to', 'category'].map((key) => [key, ''])));
   };
   const chips = [
-    auditActorId ? { label: `Person: ${param('actor_name', 'Selected person')}`, clear: () => update({ actor: '', actor_name: '' }) } : null,
-    auditActor ? { label: `Person: ${auditActor}`, clear: () => update({ person: '' }) } : null,
-    ...auditCategoryFilters.map((category) => ({ label: AUDIT_CATEGORIES[category], clear: () => update({ category: auditCategoryFilters.filter((value) => value !== category).join(',') }) })),
-    ...auditActionFilters.map((action) => ({ label: auditActionLabel(action), clear: () => update({ action: auditActionFilters.filter((value) => value !== action).join(',') }) })),
-    auditEntityTypeFilter !== 'ALL' ? { label: auditRecordLabel(auditEntityTypeFilter), clear: () => update({ type: '' }) } : null,
-    auditEntityId ? { label: 'Selected record', clear: () => update({ record: '' }) } : null,
-    auditActorScope !== 'ALL' ? { label: auditActorScope === 'SYSTEM' ? 'System' : 'People', clear: () => update({ source: '' }) } : null,
-    auditStartDate || auditEndDate ? { label: `${auditStartDate || 'Any date'} – ${auditEndDate || 'Now'}`, clear: () => update({ from: '', to: '' }) } : null,
-  ].filter((chip): chip is { label: string; clear: () => void } => !!chip);
+    auditActorId ? { column: "Person", field: "Person", label: param('actor_name', 'Selected person'), clear: () => update({ actor: '', actor_name: '' }) } : null,
+    auditActor ? { column: "Person", field: "Person", label: auditActor, clear: () => update({ person: '' }) } : null,
+    ...auditCategoryFilters.map((category) => ({ column: "Action", field: "Category", label: AUDIT_CATEGORIES[category], clear: () => update({ category: auditCategoryFilters.filter((value) => value !== category).join(',') }) })),
+    ...auditActionFilters.map((action) => ({ column: "Action", field: "Action", label: auditActionLabel(action), clear: () => update({ action: auditActionFilters.filter((value) => value !== action).join(',') }) })),
+    auditEntityTypeFilter !== 'ALL' ? { column: "Record", field: "Record type", label: auditRecordLabel(auditEntityTypeFilter), clear: () => update({ type: '' }) } : null,
+    auditEntityId ? { column: 'Record', field: 'Record', label: 'Selected record', clear: () => update({ record: '' }) } : null,
+    auditActorScope !== 'ALL' ? { column: 'Person', field: 'Source', label: auditActorScope === 'SYSTEM' ? 'System' : 'People', clear: () => update({ source: '' }) } : null,
+    auditStartDate || auditEndDate ? { column: "When", field: "When", label: `${auditStartDate || 'Any date'} – ${auditEndDate || 'Now'}`, clear: () => update({ from: '', to: '' }) } : null,
+  ].filter((chip): chip is AuditFilterChip => !!chip);
   return {
     auditSearch, setAuditSearch, advancedError: parsed.error,
     auditActor, setAuditActor: (value: string) => update({ person: value, actor: '', actor_name: '' }),
@@ -125,6 +131,5 @@ export function useAdminAudit() {
     auditStatus, loadMoreAuditEvents, auditCounts,
     auditActionOptions: auditFilterOptions?.actions ?? [], auditEntityTypeOptions: auditFilterOptions?.entityTypes ?? [],
     hasActiveAuditFilters: chips.length > 0 || !!query, clearAuditFilters, auditFilterChips: chips,
-    auditEventDetail: auditEventDetail ?? undefined, isAuditDetailLoading: !!selectedAuditEventId && auditEventDetail === undefined,
   };
 }

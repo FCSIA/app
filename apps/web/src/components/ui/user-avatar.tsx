@@ -109,7 +109,15 @@ export function UserAvatar({
     <Avatar
       // The container query lets initials follow the rendered size, so a
       // className size override still gets the right treatment.
-      className={cn('@container', SIZE_CLASS[size], className)}
+      className={cn(
+        '@container',
+        // Inside a link or button the avatar is the target: it lifts a little
+        // under the pointer and shows the hand, wherever it is used.
+        'transition-[scale,filter] duration-150 ease-out motion-reduce:transition-none',
+        '[:is(a,button):hover_&]:scale-110 [:is(a,button):hover_&]:brightness-110 [:is(a,button)_&]:cursor-pointer',
+        SIZE_CLASS[size],
+        className,
+      )}
       style={{ '--avatar-from': from, '--avatar-to': to } as CSSProperties}
     >
       {merged.avatarUrl ? <AvatarImage src={merged.avatarUrl} alt={label} className="object-cover" /> : null}

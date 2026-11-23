@@ -42,7 +42,7 @@ const Elevated = forwardRef<HTMLDivElement, ElevatedProps>(
       <SurfaceProvider value={level}>
         <div
           ref={ref}
-          className={cn(surfaceClasses(level, shadowLevel ?? level), className)}
+          className={cn("surface-top-edge", surfaceClasses(level, shadowLevel ?? level), className)}
           {...props}
         >
           {children}

@@ -13,18 +13,26 @@ import {
   type ReactNode,
   type HTMLAttributes,
 } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 
 // SSR-safe layout effect (client components still server-render in Next).
 const useIsoLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
 import { cn } from "@/lib/utils";
-import { useIcon } from "@/lib/icon-context";
+import { useIcons } from "@/lib/icon-context";
 import { spring } from "@/lib/springs";
+import { omit } from "@/lib/omit";
 import { fontWeights } from "@/lib/font-weight";
-import { useProximityHover } from "@/hooks/use-proximity-hover";
+import {
+  useFluidHover,
+  useFluidHoverSelect,
+  useRegisterFluidHoverItem,
+  type FluidHoverActiveStore,
+} from "@/hooks/use-fluid-hover";
 import { useShape } from "@/lib/shape-context";
+import { SizeProvider, useSize, type SizeVariant } from "@/lib/size-context";
+import { FluidHoverHighlight } from "@/components/ui/fluid-hover-highlight";
 
 // ─── Contexts ────────────────────────────────────────────────────────────────
 
@@ -38,11 +46,11 @@ interface ItemRect {
 interface AccordionGroupContextValue {
   registerItem: (index: number, element: HTMLElement | null) => void;
   registerFullItem: (index: number, element: HTMLElement | null) => void;
-  activeIndex: number | null;
+  /** Read per trigger with `useFluidHoverSelect`. */
+  activeStore: FluidHoverActiveStore;
   grouped: true;
   remeasure: () => void;
   openValues: Set<string>;
-  openItemRects: Map<number, ItemRect>;
 }
 
 const AccordionGroupContext =
@@ -57,6 +65,8 @@ interface AccordionItemContextValue {
   value: string;
   isOpen: boolean;
   triggerRef: React.MutableRefObject<HTMLDivElement | null>;
+  /** Standalone items carry the group's choice themselves. */
+  highlight: "trigger" | "item";
 }
 
 const AccordionItemContext =
@@ -90,13 +100,25 @@ type AccordionGroupMultipleProps = {
 
 type AccordionGroupProps = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode;
+  /** Pins the group's rows to one step of the size ladder (default 36px,
+   *  compact 28px — see /docs/sizes). Omitted, they follow the surrounding
+   *  SizeProvider. */
+  size?: SizeVariant;
+  /** What an open item tints. "item" paints the row and its panel as one
+   *  block, and holds while it stays open. "trigger" scopes the fill to the
+   *  row and shows it on hover only, leaving the panel on the page's own
+   *  surface — the way a sidebar row highlights without colouring its
+   *  sub-tree. @default "item" */
+  highlight?: "trigger" | "item";
 } & (AccordionGroupSingleProps | AccordionGroupMultipleProps);
 
 const AccordionGroup = forwardRef<HTMLDivElement, AccordionGroupProps>(
   (props, ref) => {
     const {
       children,
+      highlight = "item",
       type = "single",
+      size,
       className,
       ...rest
     } = props;
@@ -108,15 +130,16 @@ const AccordionGroup = forwardRef<HTMLDivElement, AccordionGroupProps>(
     );
     const openItemRectsRef = useRef(openItemRects);
 
+    const hover = useFluidHover(containerRef);
     const {
       activeIndex,
+      activeStore,
       setActiveIndex,
       itemRects,
-      sessionRef,
       handlers,
       registerItem,
       measureItems,
-    } = useProximityHover(containerRef);
+    } = hover;
 
     const registerFullItem = useCallback(
       (index: number, element: HTMLElement | null) => {
@@ -132,7 +155,7 @@ const AccordionGroup = forwardRef<HTMLDivElement, AccordionGroupProps>(
     const measureFullItems = useCallback(() => {
       if (!containerRef.current) return;
       const next = new Map<number, ItemRect>();
-      // Use offset* (layout coords) to match the proximity hook's items.
+      // Use offset* (layout coords) to match the fluid hover hook's items.
       // getBoundingClientRect would return visual coords already scaled by
       // any ancestor transform; once applied as CSS inside the same scaled
       // container, the overlay would scale a second time.
@@ -144,10 +167,10 @@ const AccordionGroup = forwardRef<HTMLDivElement, AccordionGroupProps>(
           height: el.offsetHeight,
         });
       });
-      // Skip the state update when nothing moved (mirrors the proximity
+      // Skip the state update when nothing moved (mirrors the fluid hover
       // hook's measureItems guard) — this runs per animation frame via
-      // onUpdate, and an unconditional set would invalidate the group
-      // context and re-render every item even on no-op remeasures.
+      // onUpdate, and an unconditional set would re-render the group and
+      // its overlays even on no-op remeasures.
       const prev = openItemRectsRef.current;
       let changed = prev.size !== next.size;
       if (!changed) {
@@ -201,21 +224,19 @@ const AccordionGroup = forwardRef<HTMLDivElement, AccordionGroupProps>(
             return v ? [v] : [];
           })();
 
-    // Keyed on the joined values so the Set (and the group context value
-    // below) keeps a stable identity across re-renders where the open values
-    // haven't actually changed.
-    const openValuesKey = openValuesList.join(",");
+    // Keyed on the serialized values so the Set (and the group context
+    // value below) keeps a stable identity across re-renders where the open
+    // values haven't actually changed.
+    const openValuesKey = JSON.stringify(openValuesList);
 
     const openValues = useMemo(
-      () => new Set(openValuesList),
-      // Deliberately keyed on the joined string, not the (fresh) array.
+      () => new Set(JSON.parse(openValuesKey) as string[]),
       [openValuesKey]
     );
 
     const handleSingleValueChange = useCallback(
       (value: string) => {
-        const sp = props as AccordionGroupSingleProps;
-        if (sp.onValueChange) sp.onValueChange(value);
+        if (singleOnValueChange) singleOnValueChange(value);
         else setInternalSingleValue(value);
       },
       [singleOnValueChange]
@@ -223,8 +244,7 @@ const AccordionGroup = forwardRef<HTMLDivElement, AccordionGroupProps>(
 
     const handleMultipleValueChange = useCallback(
       (value: string[]) => {
-        const mp = props as AccordionGroupMultipleProps;
-        if (mp.onValueChange) mp.onValueChange(value);
+        if (multipleOnValueChange) multipleOnValueChange(value);
         else setInternalMultipleValue(value);
       },
       [multipleOnValueChange]
@@ -244,19 +264,35 @@ const AccordionGroup = forwardRef<HTMLDivElement, AccordionGroupProps>(
 
     const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
 
-    const activeRect = activeIndex !== null ? itemRects[activeIndex] : null;
     const focusRect = focusedIndex !== null ? itemRects[focusedIndex] : null;
     // Dimming: reduce expanded BG opacity when hovering a non-expanded trigger
-    const isHoveringNonOpen =
-      activeIndex !== null && !openItemRects.has(activeIndex);
+    // An open item tints its trigger by default; "item" restores the older
+    // block treatment that spans the panel too. The trigger rects are the
+    // ones fluid hover already tracks, so this is a choice of source.
+    // "trigger" tints the open row only while you're on it: the panel below
+    // already says the item is open, so the fill goes back to being a hover
+    // affordance rather than a persistent state.
+    const expandedRects =
+      highlight === "item"
+        ? openItemRects
+        : new Map(
+            [...openItemRects.keys()].flatMap((idx) => {
+              const rect = idx === activeIndex ? itemRects[idx] : null;
+              return rect ? ([[idx, rect]] as [number, ItemRect][]) : [];
+            })
+          );
+
     const shape = useShape();
     const shouldReduceMotion = useReducedMotion();
 
     // Strip non-HTML props before spreading
-    const htmlProps = { ...rest } as Record<string, unknown>;
-    for (const key of ["value", "defaultValue", "onValueChange", "collapsible", "type"]) {
-      delete htmlProps[key];
-    }
+    const htmlProps = omit(rest as Record<string, unknown>, [
+      "value",
+      "defaultValue",
+      "onValueChange",
+      "collapsible",
+      "type",
+    ]);
 
     // Build Radix root props
     const radixProps =
@@ -282,29 +318,25 @@ const AccordionGroup = forwardRef<HTMLDivElement, AccordionGroupProps>(
       measureFullItems();
     }, [measureItems, measureFullItems]);
 
-    // Memoized: the group re-renders on every proximity-hover mousemove; a
-    // fresh context object each time would re-render every item with it.
+    // Holds nothing that changes per frame or per mousemove: the group
+    // re-renders on every fluid-hover move and, while a panel's height
+    // springs, on every frame (it re-measures the rows to move its
+    // overlays). The hover index reaches triggers through `activeStore`, and
+    // the open rects stay here, so items re-render only when what they show
+    // changes.
     const groupContextValue = useMemo<AccordionGroupContextValue>(
       () => ({
         registerItem,
         registerFullItem,
-        activeIndex,
+        activeStore,
         grouped: true,
         remeasure,
         openValues,
-        openItemRects,
       }),
-      [
-        registerItem,
-        registerFullItem,
-        activeIndex,
-        remeasure,
-        openValues,
-        openItemRects,
-      ]
+      [registerItem, registerFullItem, activeStore, remeasure, openValues]
     );
 
-    return (
+    const group = (
       <AccordionGroupContext.Provider value={groupContextValue}>
         <AccordionPrimitive.Root {...radixProps} asChild>
           <div
@@ -320,7 +352,7 @@ const AccordionGroup = forwardRef<HTMLDivElement, AccordionGroupProps>(
             }}
             onMouseEnter={handlers.onMouseEnter}
             onMouseMove={(e) => {
-              // Suppress proximity hover when cursor is over an expanded
+              // Suppress fluid hover when cursor is over an expanded
               // content area (below the item's trigger). This keeps trigger
               // hover scoped to the trigger row only.
               const container = containerRef.current;
@@ -347,8 +379,8 @@ const AccordionGroup = forwardRef<HTMLDivElement, AccordionGroupProps>(
             onMouseLeave={handlers.onMouseLeave}
             onFocus={(e) => {
               const indexAttr = (e.target as HTMLElement)
-                .closest("[data-proximity-index]")
-                ?.getAttribute("data-proximity-index");
+                .closest("[data-fluid-hover-index]")
+                ?.getAttribute("data-fluid-hover-index");
               if (indexAttr != null) {
                 const idx = Number(indexAttr);
                 setActiveIndex(idx);
@@ -375,7 +407,7 @@ const AccordionGroup = forwardRef<HTMLDivElement, AccordionGroupProps>(
           >
             {/* Expanded item backgrounds */}
             <AnimatePresence>
-              {[...openItemRects.entries()].map(([idx, rect]) => (
+              {[...expandedRects.entries()].map(([idx, rect]) => (
                 <motion.div
                   key={`expanded-${idx}`}
                   className={`absolute ${shape.bg} bg-accent/20 dark:bg-accent/12 pointer-events-none`}
@@ -397,7 +429,7 @@ const AccordionGroup = forwardRef<HTMLDivElement, AccordionGroupProps>(
                     left: rect.left,
                     width: rect.width,
                     height: rect.height,
-                    opacity: isHoveringNonOpen ? 0.7 : 1,
+                    opacity: 1,
                   }}
                   exit={{ opacity: 0, transition: shouldReduceMotion ? { duration: 0 } : spring.moderate.exit }}
                   transition={shouldReduceMotion ? { duration: 0 } : {
@@ -412,33 +444,10 @@ const AccordionGroup = forwardRef<HTMLDivElement, AccordionGroupProps>(
             </AnimatePresence>
 
             {/* Hover background */}
-            <AnimatePresence>
-              {activeRect && (
-                <motion.div
-                  key={sessionRef.current}
-                  className={`absolute ${shape.bg} bg-hover pointer-events-none`}
-                  initial={{
-                    opacity: 0,
-                    top: activeRect.top,
-                    left: activeRect.left,
-                    width: activeRect.width,
-                    height: activeRect.height,
-                  }}
-                  animate={{
-                    opacity: 1,
-                    top: activeRect.top,
-                    left: activeRect.left,
-                    width: activeRect.width,
-                    height: activeRect.height,
-                  }}
-                  exit={{ opacity: 0, transition: shouldReduceMotion ? { duration: 0 } : spring.fast.exit }}
-                  transition={shouldReduceMotion ? { duration: 0 } : {
-                    ...spring.fast,
-                    opacity: { duration: 0.08 },
-                  }}
-                />
-              )}
-            </AnimatePresence>
+            <FluidHoverHighlight
+              hover={hover}
+              className={shape.bg}
+            />
 
             {/* Focus ring */}
             <AnimatePresence>
@@ -466,6 +475,9 @@ const AccordionGroup = forwardRef<HTMLDivElement, AccordionGroupProps>(
         </AccordionPrimitive.Root>
       </AccordionGroupContext.Provider>
     );
+
+    // A size prop pins every row in the group to one ladder step.
+    return size ? <SizeProvider size={size}>{group}</SizeProvider> : group;
   }
 );
 
@@ -480,6 +492,10 @@ interface AccordionProps extends HTMLAttributes<HTMLDivElement> {
   defaultValue?: string | string[];
   value?: string | string[];
   onValueChange?: ((value: string) => void) | ((value: string[]) => void);
+  /** Pins the accordion's rows to one step of the size ladder (default 36px,
+   *  compact 28px — see /docs/sizes). Omitted, they follow the surrounding
+   *  SizeProvider. */
+  size?: SizeVariant;
 }
 
 const Accordion = forwardRef<HTMLDivElement, AccordionProps>(
@@ -491,6 +507,7 @@ const Accordion = forwardRef<HTMLDivElement, AccordionProps>(
       defaultValue,
       value,
       onValueChange,
+      size,
       className,
       ...props
     },
@@ -556,7 +573,7 @@ const Accordion = forwardRef<HTMLDivElement, AccordionProps>(
             onValueChange: handleSingleChange,
           };
 
-    return (
+    const root = (
       <AccordionPrimitive.Root {...radixProps} asChild>
         <div
           ref={ref}
@@ -572,6 +589,9 @@ const Accordion = forwardRef<HTMLDivElement, AccordionProps>(
         </div>
       </AccordionPrimitive.Root>
     );
+
+    // A size prop pins every row to one ladder step.
+    return size ? <SizeProvider size={size}>{root}</SizeProvider> : root;
   }
 );
 
@@ -586,11 +606,15 @@ interface AccordionItemProps extends HTMLAttributes<HTMLDivElement> {
   value: string;
   index?: number;
   disabled?: boolean;
+  /** Standalone equivalent of AccordionGroup's prop: what an open item
+   *  tints. Ignored inside a group, which decides for all its rows.
+   *  @default "item" */
+  highlight?: "trigger" | "item";
   children: ReactNode;
 }
 
 const AccordionItem = forwardRef<HTMLDivElement, AccordionItemProps>(
-  ({ value, index, disabled, children, className, ...props }, ref) => {
+  ({ value, index, disabled, highlight = "item", children, className, ...props }, ref) => {
     const internalRef = useRef<HTMLDivElement>(null);
     const groupCtx = useAccordionGroup();
     const standaloneOpen = useContext(StandaloneOpenContext);
@@ -603,13 +627,12 @@ const AccordionItem = forwardRef<HTMLDivElement, AccordionItemProps>(
 
     const triggerRef = useRef<HTMLDivElement>(null);
 
-    // Register trigger element (not full item) for proximity hover
-    useEffect(() => {
-      if (groupCtx?.grouped && index !== undefined) {
-        groupCtx.registerItem(index, triggerRef.current);
-        return () => groupCtx.registerItem(index, null);
-      }
-    }, [index, groupCtx]);
+    // Register trigger element (not full item) for fluid hover
+    useRegisterFluidHoverItem(
+      groupCtx?.grouped ? groupCtx.registerItem : undefined,
+      index,
+      triggerRef
+    );
 
     // Register full item element for expanded background measurement
     useEffect(() => {
@@ -624,7 +647,7 @@ const AccordionItem = forwardRef<HTMLDivElement, AccordionItemProps>(
     }, [index, groupCtx, isOpen]);
 
     return (
-      <AccordionItemContext.Provider value={{ index, value, isOpen, triggerRef }}>
+      <AccordionItemContext.Provider value={{ index, value, isOpen, triggerRef, highlight }}>
         <AccordionPrimitive.Item
           ref={(node) => {
             (
@@ -638,20 +661,22 @@ const AccordionItem = forwardRef<HTMLDivElement, AccordionItemProps>(
           }}
           value={value}
           disabled={disabled}
-          data-proximity-index={index}
+          data-fluid-hover-index={index}
           className={cn(!groupCtx?.grouped && "relative", className)}
           {...props}
         >
-          {/* Standalone expanded background */}
-          {!groupCtx?.grouped && (
+          {/* Standalone expanded background. Under the default "trigger"
+              choice the tint lives inside AccordionTrigger, where it covers
+              the row and not the panel below it. */}
+          {!groupCtx?.grouped && highlight === "item" && (
             <AnimatePresence>
               {isOpen && (
                 <motion.div
                   className={`absolute inset-0 ${shape.bg} bg-accent/20 dark:bg-accent/12 pointer-events-none`}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  exit={{ opacity: 0, transition: shouldReduceMotion ? { duration: 0 } : spring.fast.exit }}
-                  transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.08 }}
+                  exit={{ opacity: 0, transition: shouldReduceMotion ? { duration: 0 } : spring.moderate.exit }}
+                  transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.12 }}
                 />
               )}
             </AnimatePresence>
@@ -674,16 +699,20 @@ interface AccordionTriggerProps
 
 const AccordionTrigger = forwardRef<HTMLButtonElement, AccordionTriggerProps>(
   ({ children, className, ...props }, ref) => {
-    const ChevronRight = useIcon("chevron-right");
+    const icons = useIcons();
+    const ChevronRight = icons["chevron-right"];
     const groupCtx = useAccordionGroup();
-    const { index, isOpen, triggerRef } = useAccordionItemContext();
+    const { index, isOpen, triggerRef, highlight } = useAccordionItemContext();
     const shape = useShape();
     const shouldReduceMotion = useReducedMotion();
+    const sizeClasses = useSize();
     const [isHovered, setIsHovered] = useState(false);
 
-    const isActive = groupCtx?.grouped
-      ? groupCtx.activeIndex === index
-      : isHovered;
+    const groupHover = useFluidHoverSelect(
+      groupCtx?.activeStore,
+      (active) => active !== null && active === index
+    );
+    const isActive = groupCtx?.grouped ? groupHover : isHovered;
 
     const triggerContent = (
       <AccordionPrimitive.Header asChild>
@@ -691,7 +720,7 @@ const AccordionTrigger = forwardRef<HTMLButtonElement, AccordionTriggerProps>(
           <AccordionPrimitive.Trigger
             ref={ref}
             className={cn(
-              `relative z-10 flex items-center gap-2.5 ${shape.item} px-3 py-2 w-full cursor-pointer outline-none select-none`,
+              `relative z-10 flex items-center ${sizeClasses.gap} ${shape.item} ${sizeClasses.px} ${sizeClasses.variant === "compact" ? "py-1" : "py-2"} w-full cursor-pointer outline-none select-none`,
               !groupCtx?.grouped &&
                 "focus-visible:ring-1 focus-visible:ring-[color:var(--focus-ring,#6B97FF)] focus-visible:ring-offset-0",
               className
@@ -699,7 +728,7 @@ const AccordionTrigger = forwardRef<HTMLButtonElement, AccordionTriggerProps>(
             {...(props as React.ComponentProps<typeof AccordionPrimitive.Trigger>)}
           >
             {/* Label with dual-layer text */}
-            <span className="inline-grid text-[13px] flex-1 text-left">
+            <span className={cn("inline-grid flex-1 text-left", sizeClasses.text)}>
               <span
                 className="col-start-1 row-start-1 invisible"
                 style={{ fontVariationSettings: fontWeights.semibold }}
@@ -730,7 +759,7 @@ const AccordionTrigger = forwardRef<HTMLButtonElement, AccordionTriggerProps>(
               transition={shouldReduceMotion ? { duration: 0 } : spring.fast}
             >
               <ChevronRight
-                size={16}
+                size={sizeClasses.icon}
                 strokeWidth={isOpen || isActive ? 2 : 1.5}
                 className={cn(
                   "transition-[color,stroke-width] duration-80",
@@ -745,7 +774,7 @@ const AccordionTrigger = forwardRef<HTMLButtonElement, AccordionTriggerProps>(
       </AccordionPrimitive.Header>
     );
 
-    // In grouped mode, wrap in a div for proximity hover registration
+    // In grouped mode, wrap in a div for fluid hover registration
     if (groupCtx?.grouped) {
       return <div ref={triggerRef}>{triggerContent}</div>;
     }
@@ -757,6 +786,23 @@ const AccordionTrigger = forwardRef<HTMLButtonElement, AccordionTriggerProps>(
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
+        {/* Open tint, scoped to this row: the panel below keeps the page's
+            own surface, the way a sidebar row highlights without colouring
+            its sub-tree. */}
+        <AnimatePresence>
+          {isOpen && highlight === "trigger" && isHovered && (
+            <motion.div
+              className={`absolute inset-0 ${shape.bg} bg-accent/20 dark:bg-accent/12 pointer-events-none`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              // The expanded tint rides the moderate tier, like the grouped
+              // one — it marks a state, where the hover fill below tracks the
+              // pointer and stays fast.
+              exit={{ opacity: 0, transition: spring.moderate.exit }}
+              transition={{ duration: 0.12 }}
+            />
+          )}
+        </AnimatePresence>
         <AnimatePresence>
           {isHovered && (
             <motion.div
@@ -786,7 +832,11 @@ const AccordionContent = forwardRef<HTMLDivElement, AccordionContentProps>(
   ({ children, className, ...props }, ref) => {
     const groupCtx = useAccordionGroup();
     const { isOpen } = useAccordionItemContext();
-    const shouldReduceMotion = useReducedMotion();
+    const sizeClasses = useSize();
+    // Read here rather than relying on a MotionConfig the consumer may not
+    // have: height is a positional value, so framer would otherwise animate
+    // it for a reduced-motion user in any app that installs this component.
+    const reduceMotion = useReducedMotion() ?? false;
 
     // The open height is animated to a self-measured LAYOUT pixel value, not
     // `height: "auto"`: framer resolves an "auto" target by measuring the
@@ -798,11 +848,22 @@ const AccordionContent = forwardRef<HTMLDivElement, AccordionContentProps>(
     const innerRef = useRef<HTMLDivElement | null>(null);
     const roRef = useRef<ResizeObserver | null>(null);
     const [contentHeight, setContentHeight] = useState<number | null>(null);
+    // Height springs only when THIS panel toggles. When contentHeight
+    // changes underneath it instead — anything collapsible nested inside
+    // the panel, another accordion included — it must snap: a spring
+    // re-targeted every frame chases the child's own animation, lands
+    // after it, and drags everything below the item along late. Same rule
+    // as SidebarGroup / SidebarMenuSub; see motion-guidelines.md.
     // Items open at mount render `initial: "auto"` and receive their first
-    // pixel target a commit later; that hand-off must SNAP (duration 0), not
-    // spring — framer would measure the spring's numeric start visually
-    // (scaled) and play a shrink. Items that open later spring normally.
-    const needsSnap = useRef(isOpen);
+    // pixel target a commit later. That hand-off is not a toggle, so it
+    // snaps too — it must: framer would measure a spring's numeric start
+    // visually (scaled) and play a shrink. Items that open later spring.
+    const [prevOpen, setPrevOpen] = useState(isOpen);
+    const [toggling, setToggling] = useState(false);
+    if (prevOpen !== isOpen) {
+      setPrevOpen(isOpen);
+      setToggling(true);
+    }
 
     const measureRef = useCallback((el: HTMLDivElement | null) => {
       roRef.current?.disconnect();
@@ -826,10 +887,6 @@ const AccordionContent = forwardRef<HTMLDivElement, AccordionContentProps>(
       }
     }, [isOpen]);
 
-    useEffect(() => {
-      if (contentHeight !== null) needsSnap.current = false;
-    }, [contentHeight]);
-
     // Content stays mounted so it can be measured; fully-closed panels are
     // display:none (hidden) once the exit finishes, keeping them out of the
     // accessibility tree without cutting the animation short.
@@ -847,26 +904,38 @@ const AccordionContent = forwardRef<HTMLDivElement, AccordionContentProps>(
           hidden={!isOpen && exitComplete}
           className={cn("overflow-hidden", className)}
           initial={{ height: isOpen ? "auto" : 0 }}
-          animate={{ height: isOpen ? contentHeight ?? 0 : 0 }}
-          // bounce: 0 — a critically damped spring on body height; pure
-          // height has no aesthetic value in bouncing, so a smooth approach
-          // reads better.
+          animate={{ height: isOpen ? contentHeight ?? 0 : 0, opacity: isOpen ? 1 : 0 }}
+          // spring.fast lands with the trigger's chevron, and its bounce: 0
+          // keeps pure height from overshooting its content. A close is a
+          // decision already made, so it takes the quicker exit tier — the
+          // target flip has no `exit` prop to carry it. Opacity runs ahead of
+          // the height on its own timing: the body dissolves rather than being
+          // sliced by the clip edge, which is what stops the rows below
+          // reading as shoved.
           transition={
-            needsSnap.current || shouldReduceMotion
+            reduceMotion || !toggling
               ? { duration: 0 }
-              : { ...spring.moderate, bounce: 0 }
+              : isOpen
+                ? { ...spring.fast, opacity: { duration: 0.06 } }
+                : { ...spring.fast.exit, opacity: { duration: 0.04 } }
           }
           onUpdate={() => {
             groupCtx?.remeasure();
           }}
           onAnimationComplete={() => {
+            setToggling(false);
             groupCtx?.remeasure();
             if (!isOpen) setExitComplete(true);
           }}
         >
           <div
             ref={measureRef}
-            className="px-3 pb-3 pt-1 text-[13px] text-muted-foreground"
+            className={cn(
+              "pt-1 text-muted-foreground",
+              sizeClasses.px,
+              sizeClasses.text,
+              sizeClasses.variant === "compact" ? "pb-2.5" : "pb-3"
+            )}
           >
             {children}
           </div>

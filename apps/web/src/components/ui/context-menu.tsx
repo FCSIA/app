@@ -38,11 +38,17 @@ const startedInTrigger = (event: React.SyntheticEvent<HTMLElement>) =>
 
 const ContextMenuTrigger = React.forwardRef<
   React.ElementRef<typeof ContextMenuPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Trigger>
+  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Trigger> & {
+    /** Which right-clicked elements open the menu; the rest keep the
+     *  browser's (Fluid's ContextMenu contract, used by DataTable rows). */
+    filter?: (target: Element) => boolean
+  }
 >(
   (
     {
       disabled,
+      filter,
+      onMouseDown,
       onContextMenu,
       onTouchStart,
       onTouchMove,
@@ -55,6 +61,9 @@ const ContextMenuTrigger = React.forwardRef<
     const isTouchPrimary = useTouchPrimary()
     const managesTouch = isTouchPrimary && !disabled
     const [opening, setOpening] = React.useState(false)
+    // Decided on the right button's press, before its contextmenu: a target
+    // the filter refuses disables the trigger so the browser's menu shows.
+    const [refused, setRefused] = React.useState(false)
     const triggerRef = React.useRef<HTMLSpanElement | null>(null)
     const pressRef = React.useRef<LongPress | null>(null)
     const touchActiveRef = React.useRef(false)
@@ -103,7 +112,14 @@ const ContextMenuTrigger = React.forwardRef<
     return (
       <ContextMenuPrimitive.Trigger
         ref={setRefs}
-        disabled={disabled || (managesTouch && !opening)}
+        disabled={disabled || refused || (managesTouch && !opening)}
+        onMouseDown={(event) => {
+          onMouseDown?.(event)
+          if (!filter || event.button !== 2) return
+          const target = event.target
+          const next = !(target instanceof Element && filter(target))
+          if (next !== refused) flushSync(() => setRefused(next))
+        }}
         onContextMenu={(event) => {
           onContextMenu?.(event)
           if (!startedInTrigger(event)) {

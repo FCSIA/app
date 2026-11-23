@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  useCallback,
+  useRef,
   useState,
   useContext,
   createContext,
@@ -8,17 +10,18 @@ import {
   type ReactNode,
   type HTMLAttributes,
 } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
 import * as Collapsible from "@radix-ui/react-collapsible";
 
 import { cn } from "@/lib/utils";
 import { CollapsePanel } from "@/components/ui/collapsible";
-import { useIcon } from "@/lib/icon-context";
+import { useIcons } from "@/lib/icon-context";
 import type { IconName } from "@/lib/icon-context";
 import { spring } from "@/lib/springs";
 import { fontWeights } from "@/lib/font-weight";
 import { useShape } from "@/lib/shape-context";
+import { SizeProvider, useSize, typeClass, type SizeVariant } from "@/lib/size-context";
 import { Badge } from "@/components/ui/badge";
 import type { BadgeColor } from "@/components/ui/badge";
 
@@ -26,13 +29,19 @@ import type { BadgeColor } from "@/components/ui/badge";
 //
 // ThinkingSteps and ThinkingStepDetails are both single collapsible sections,
 // built directly on Radix's Collapsible (Root/Trigger/Content) with the
-// library's framer-motion springs layered on top.
+// library's Motion springs layered on top.
 
 /** Open state of the nearest ThinkingSteps root, for the header trigger/panel. */
 const ThinkingStepsOpenContext = createContext(false);
+/** Whether the nearest ThinkingSteps root is still running: its header shimmers. */
+const ThinkingStepsRunningContext = createContext(false);
 
 interface TriggerRowProps extends HTMLAttributes<HTMLButtonElement> {
   open: boolean;
+  /** Shimmer the label: the work behind this row is still going. */
+  running?: boolean;
+  /** Muted text after the label: a duration, a count. */
+  meta?: ReactNode;
   children: ReactNode;
 }
 
@@ -42,9 +51,11 @@ interface TriggerRowProps extends HTMLAttributes<HTMLButtonElement> {
  * library's accordion trigger styling.
  */
 const TriggerRow = forwardRef<HTMLButtonElement, TriggerRowProps>(
-  ({ open, children, className, ...props }, ref) => {
-    const ChevronRight = useIcon("chevron-right");
+  ({ open, running = false, meta, children, className, ...props }, ref) => {
+    const icons = useIcons();
+    const ChevronRight = icons["chevron-right"];
     const shape = useShape();
+    const sizeClasses = useSize();
     const [isHovered, setIsHovered] = useState(false);
     const highlighted = open || isHovered;
 
@@ -70,14 +81,16 @@ const TriggerRow = forwardRef<HTMLButtonElement, TriggerRowProps>(
         <Collapsible.Trigger
           ref={ref}
           className={cn(
-            `relative z-10 flex items-center gap-2.5 ${shape.item} px-3 py-2 cursor-pointer outline-none select-none`,
+            `relative z-10 flex items-center gap-2.5 ${shape.item} ${sizeClasses.px} ${
+              sizeClasses.variant === "compact" ? "py-1.5" : "py-2"
+            } cursor-pointer outline-none select-none`,
             "focus-visible:ring-1 focus-visible:ring-[color:var(--focus-ring,#6B97FF)] focus-visible:ring-offset-0",
             className
           )}
           {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
         >
           {/* Label with dual-layer text (invisible bold layer reserves width) */}
-          <span className="inline-grid text-[13px] text-left">
+          <span className={cn("inline-grid text-left", sizeClasses.text)}>
             <span
               className="col-start-1 row-start-1 invisible"
               style={{ fontVariationSettings: fontWeights.semibold }}
@@ -88,7 +101,8 @@ const TriggerRow = forwardRef<HTMLButtonElement, TriggerRowProps>(
             <span
               className={cn(
                 "col-start-1 row-start-1 transition-[color,font-variation-settings] duration-80",
-                highlighted ? "text-foreground" : "text-muted-foreground"
+                highlighted ? "text-foreground" : "text-muted-foreground",
+                running && "shimmer-text"
               )}
               style={{
                 fontVariationSettings: open
@@ -100,6 +114,17 @@ const TriggerRow = forwardRef<HTMLButtonElement, TriggerRowProps>(
             </span>
           </span>
 
+          {meta != null && (
+            <span
+              className={cn(
+                "shrink-0 tabular-nums text-muted-foreground",
+                sizeClasses.text
+              )}
+            >
+              {meta}
+            </span>
+          )}
+
           {/* Chevron — right when collapsed, rotates 90° down when expanded */}
           <motion.span
             className="shrink-0 inline-flex items-center justify-center"
@@ -107,7 +132,7 @@ const TriggerRow = forwardRef<HTMLButtonElement, TriggerRowProps>(
             transition={spring.fast}
           >
             <ChevronRight
-              size={16}
+              size={sizeClasses.icon}
               strokeWidth={highlighted ? 2 : 1.5}
               className={cn(
                 "transition-[color,stroke-width] duration-80",
@@ -125,20 +150,31 @@ TriggerRow.displayName = "ThinkingStepsTriggerRow";
 // ─── ThinkingSteps (root) ───────────────────────────────────────────────────
 
 interface ThinkingStepsProps extends HTMLAttributes<HTMLDivElement> {
+  /** Step on the size ladder. Wins over the surrounding SizeProvider and
+   *  propagates to every row inside. */
+  size?: SizeVariant;
   defaultOpen?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** The work is still going. The header shimmers, and the list is open
+   *  while it runs and closes when it ends, until the reader opens or closes
+   *  it by hand: their choice then holds. Leave undefined for a list that
+   *  only follows `defaultOpen`. */
+  running?: boolean;
   children: ReactNode;
 }
 
 const ThinkingSteps = forwardRef<HTMLDivElement, ThinkingStepsProps>(
-  ({ defaultOpen = true, open, onOpenChange, children, className, ...props }, ref) => {
+  ({ size, defaultOpen = true, open, onOpenChange, running, children, className, ...props }, ref) => {
     // Always drive Radix as controlled so the header/panel can read the
     // open state (chevron rotation, framer enter/exit) from context.
-    const [internalOpen, setInternalOpen] = useState(defaultOpen);
-    const isOpen = open ?? internalOpen;
+    // The reader's own toggle, null until they make one. It wins over
+    // `running`, which wins over `defaultOpen`: decided on every render, so
+    // a `running` that only becomes defined later is still followed.
+    const [internalOpen, setInternalOpen] = useState<boolean | null>(null);
+    const isOpen = open ?? internalOpen ?? running ?? defaultOpen;
 
-    return (
+    const root = (
       <Collapsible.Root
         ref={ref}
         open={isOpen}
@@ -150,10 +186,15 @@ const ThinkingSteps = forwardRef<HTMLDivElement, ThinkingStepsProps>(
         {...props}
       >
         <ThinkingStepsOpenContext.Provider value={isOpen}>
-          {children}
+          <ThinkingStepsRunningContext.Provider value={running ?? false}>
+            {children}
+          </ThinkingStepsRunningContext.Provider>
         </ThinkingStepsOpenContext.Provider>
       </Collapsible.Root>
     );
+
+    // A size prop pins every row inside to one ladder step.
+    return size ? <SizeProvider size={size}>{root}</SizeProvider> : root;
   }
 );
 ThinkingSteps.displayName = "ThinkingSteps";
@@ -162,15 +203,25 @@ ThinkingSteps.displayName = "ThinkingSteps";
 
 interface ThinkingStepsHeaderProps extends HTMLAttributes<HTMLButtonElement> {
   children?: ReactNode;
+  /** Muted text after the label: how long it took, how many steps. */
+  meta?: ReactNode;
 }
 
 const ThinkingStepsHeader = forwardRef<
   HTMLButtonElement,
   ThinkingStepsHeaderProps
->(({ children = "Thinking", className, ...props }, ref) => {
+>(({ children = "Thinking", meta, className, ...props }, ref) => {
   const isOpen = useContext(ThinkingStepsOpenContext);
+  const running = useContext(ThinkingStepsRunningContext);
   return (
-    <TriggerRow ref={ref} open={isOpen} className={className} {...props}>
+    <TriggerRow
+      ref={ref}
+      open={isOpen}
+      running={running}
+      meta={meta}
+      className={className}
+      {...props}
+    >
       {children}
     </TriggerRow>
   );
@@ -204,13 +255,19 @@ ThinkingStepsContent.displayName = "ThinkingStepsContent";
 
 // ─── ThinkingStep ───────────────────────────────────────────────────────────
 
-type StepStatus = "complete" | "active" | "pending";
+type StepStatus = "complete" | "active" | "pending" | "upcoming" | "error";
 
 interface ThinkingStepProps {
   icon?: IconName;
   showIcon?: boolean;
   label: string;
   description?: string;
+  /** Muted text after the label: a duration, a count, a diff stat. */
+  meta?: ReactNode;
+  /** Turns the label into a link that opens in a new tab. Only `http(s)://`
+   *  addresses and paths starting with `/` are linked; any other value
+   *  renders the plain label. */
+  href?: string;
   status?: StepStatus;
   delay?: number;
   isLast?: boolean;
@@ -218,48 +275,107 @@ interface ThinkingStepProps {
   className?: string;
 }
 
+/** Measured layout height for a step's opening animation. `height: "auto"`
+ *  is resolved by framer from the element's *visual* (transformed) size, so
+ *  under a scaled ancestor (the /demo card) every step springs out to scale x
+ *  its real height and snaps back when "auto" lands — the whole list visibly
+ *  overshoots as it builds. offsetHeight and ResizeObserver are
+ *  transform-immune. Same setup as CollapsePanel above. */
+function useStepHeight() {
+  const roRef = useRef<ResizeObserver | null>(null);
+  const [height, setHeight] = useState<number | null>(null);
+  const ref = useCallback((el: HTMLDivElement | null) => {
+    roRef.current?.disconnect();
+    roRef.current = null;
+    if (!el) return;
+    const sync = () => {
+      if (el.offsetHeight > 0) setHeight(el.offsetHeight);
+    };
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    roRef.current = ro;
+  }, []);
+  return [ref, height] as const;
+}
+
 function ThinkingStep({
   icon = "dot",
   showIcon = true,
   label,
   description,
+  meta,
+  href,
   status = "complete",
   delay = 0.08,
   isLast = false,
   children,
   className,
 }: ThinkingStepProps) {
-    const Icon = useIcon(icon);
+    const icons = useIcons();
+    const Icon = icons[icon];
     const shape = useShape();
+    const sizeClasses = useSize();
+    const [stepRef, stepHeight] = useStepHeight();
 
     if (status === "pending") return null;
 
     const isActive = status === "active";
+    // A link target often comes from a model or a tool. Only web addresses
+    // and site paths become links; anything else (`javascript:`, `data:`)
+    // renders as the plain label.
+    const safeHref =
+      href && /^(https?:\/\/|\/(?!\/))/i.test(href) ? href : undefined;
+    const isError = status === "error";
+    // Planned, not started: shown, but quiet.
+    const isUpcoming = status === "upcoming";
+    const labelClass = cn(
+      sizeClasses.type.body,
+      isError
+        ? "text-destructive"
+        : isUpcoming
+          ? "text-muted-foreground"
+          : "text-foreground",
+      isActive && "shimmer-text"
+    );
+    const labelStyle = {
+      fontVariationSettings: isUpcoming
+        ? fontWeights.normal
+        : fontWeights.semibold,
+    };
 
     return (
       /* Outer: animates height to create space smoothly */
       <motion.div
         className={cn("relative z-10 overflow-hidden", className)}
         initial={{ height: 0 }}
-        animate={{ height: "auto" }}
+        animate={{ height: stepHeight ?? 0 }}
         transition={spring.slow}
       >
-        {/* Inner: fades content in after space starts opening */}
+        {/* Inner: fades content in after space starts opening — and is the
+            element measured for the height above. */}
         <motion.div
+          ref={stepRef}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.24, delay, ease: "easeOut" }}
         >
-          {/* Content row — this is the proximity hover target */}
+          {/* Content row — this is the fluid hover target */}
           <div className={cn("flex gap-2.5 px-2 py-1.5", shape.item)}>
             {/* Icon column with continuous connector line */}
             <div className="flex flex-col items-center shrink-0 w-[14px]">
               <div className="pt-0.5">
                 {showIcon ? (
                   <Icon
-                    size={14}
+                    size={sizeClasses.variant === "compact" ? 12 : 14}
                     strokeWidth={1.5}
-                    className="text-muted-foreground"
+                    className={cn(
+                      isError
+                        ? "text-destructive"
+                        : isUpcoming
+                          ? "text-muted-foreground opacity-60"
+                          : "text-muted-foreground"
+                    )}
                   />
                 ) : (
                   <div className="w-[14px] h-[14px] flex items-center justify-center">
@@ -275,18 +391,42 @@ function ThinkingStep({
 
             {/* Text content */}
             <div className="flex-1 flex flex-col gap-1 min-w-0">
-              <span
-                className={cn(
-                  "text-[13px] leading-tight text-foreground",
-                  isActive && "shimmer-text"
+              <span className="flex items-baseline gap-2">
+                {safeHref ? (
+                  <a
+                    href={safeHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={cn(
+                      labelClass,
+                      "min-w-0 rounded-sm underline-offset-2 outline-none hover:underline",
+                      "focus-visible:ring-1 focus-visible:ring-[color:var(--focus-ring,#6B97FF)]"
+                    )}
+                    style={labelStyle}
+                  >
+                    {label}
+                    {isActive && "…"}
+                    <span className="sr-only"> (opens in a new tab)</span>
+                  </a>
+                ) : (
+                  <span className={cn(labelClass, "min-w-0")} style={labelStyle}>
+                    {label}
+                    {isActive && "…"}
+                  </span>
                 )}
-                style={{ fontVariationSettings: fontWeights.medium }}
-              >
-                {label}
-                {isActive && "…"}
+                {meta != null && (
+                  <span
+                    className={cn(
+                      sizeClasses.type.body,
+                      "shrink-0 tabular-nums text-muted-foreground"
+                    )}
+                  >
+                    {meta}
+                  </span>
+                )}
               </span>
               {description && (
-                <span className="text-[13px] text-muted-foreground leading-snug">
+                <span className={cn(sizeClasses.type.body, "text-muted-foreground")}>
                   {description}
                 </span>
               )}
@@ -315,6 +455,7 @@ function ThinkingStepDetails({
   children,
   className,
 }: ThinkingStepDetailsProps) {
+  const compactStep = useSize().variant === "compact";
   const [open, setOpen] = useState(defaultOpen);
 
   return (
@@ -331,7 +472,10 @@ function ThinkingStepDetails({
           {details?.map((item, i) => (
             <span
               key={i}
-              className="text-[12px] text-muted-foreground leading-snug"
+              className={cn(
+                "text-muted-foreground",
+                typeClass("caption", compactStep ? "compact" : "default")
+              )}
             >
               {item}
             </span>
@@ -404,6 +548,8 @@ interface ThinkingStepImageProps {
 
 function ThinkingStepImage({ src, alt = "", caption, delay = 0, className }: ThinkingStepImageProps) {
   const shape = useShape();
+  // The caption role of the type scale — see /docs/sizes.
+  const compact = useSize().variant === "compact";
   return (
     <motion.div
       className={cn("mt-1.5", className)}
@@ -422,12 +568,17 @@ function ThinkingStepImage({ src, alt = "", caption, delay = 0, className }: Thi
         unoptimized
         style={{ height: "auto" }}
         className={cn(
-          "w-full max-w-[200px] object-cover",
+          "w-full max-w-[200px] object-cover outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10",
           shape.container
         )}
       />
       {caption && (
-        <span className="text-[11px] text-muted-foreground mt-1 block">
+        <span
+          className={cn(
+            typeClass("caption", compact ? "compact" : "default"),
+            "text-muted-foreground mt-1 block"
+          )}
+        >
           {caption}
         </span>
       )}

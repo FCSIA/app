@@ -1,13 +1,23 @@
 "use client";
 
 import { forwardRef, useState, useCallback, useRef, useEffect, useId, type HTMLAttributes } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
-import { useIcon } from "@/lib/icon-context";
+import { useIcons } from "@/lib/icon-context";
 import { fontWeights } from "@/lib/font-weight";
 import { useShape } from "@/lib/shape-context";
+import { useSize, type SizeVariant } from "@/lib/size-context";
 import { spring } from "@/lib/springs";
 import { Tooltip } from "@/components/ui/tooltip";
+
+// ---------------------------------------------------------------------------
+// InputCopy shows a value and copies it on click. The whole row is one
+// <button>: hovering it tints the value and thickens the icon, so the full
+// value reads as the click target, not just the icon. 2 variants: "icon"
+// (copy icon with a tooltip) and "button" (icon plus a Copy label). Either
+// way the result shows in place for 2000ms: a check that draws itself, or a
+// red × when the copy fails.
+// ---------------------------------------------------------------------------
 
 type InputCopyVariant = "icon" | "button";
 type InputCopyAlign = "right" | "left";
@@ -25,13 +35,19 @@ interface InputCopyProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"
   variant?: InputCopyVariant;
   /** Position of the copy action relative to the value. */
   align?: InputCopyAlign;
+  /** Pins the field to one step of the size ladder (default 36px, compact
+   *  28px). Omitted, it follows the surrounding SizeProvider. */
+  size?: SizeVariant;
 }
 
 const InputCopy = forwardRef<HTMLDivElement, InputCopyProps>(
-  ({ value, label, onCopy, disabled, variant = "icon", align = "right", className, ...props }, ref) => {
-    const CopyIcon = useIcon("copy");
+  ({ value, label, onCopy, disabled, variant = "icon", align = "right", size, className, ...props }, ref) => {
+    const icons = useIcons();
+    const CopyIcon = icons.copy;
     // "copied" and "error" both occupy the same animation slot on the button
     const [status, setStatus] = useState<"idle" | "copied" | "error">("idle");
+    // Keys the check and × glyphs. Copying again while "Copied" still shows
+    // mounts a fresh glyph, so the draw replays instead of nothing happening.
     const [copyCount, setCopyCount] = useState(0);
     // "idle" = normal tooltip behavior, "copied" = force open, "suppressed" = force closed
     const [tooltipState, setTooltipState] = useState<"idle" | "copied" | "suppressed">("idle");
@@ -39,6 +55,10 @@ const InputCopy = forwardRef<HTMLDivElement, InputCopyProps>(
     const tooltipVisibleRef = useRef(false);
     const tooltipWasVisibleRef = useRef(false);
     const shape = useShape();
+    const sizeClasses = useSize(size);
+    // The row's height comes from the padded children, so the paddings step
+    // down with the ladder (py-2 → 36px total, py-1 → 28px).
+    const rowPy = sizeClasses.variant === "compact" ? "py-1" : "py-2";
 
     // Associate the visible label with the button: the button's accessible
     // name reads "Copy <label>" (its own state label + the field label).
@@ -60,8 +80,14 @@ const InputCopy = forwardRef<HTMLDivElement, InputCopyProps>(
       textarea.setAttribute("readonly", "");
       textarea.style.position = "fixed";
       textarea.style.opacity = "0";
+      // 16px: iOS Safari zooms the page into a focused field set smaller,
+      // and select() can focus this one.
+      textarea.style.fontSize = "16px";
       document.body.appendChild(textarea);
       textarea.select();
+      // iOS Safari's select() only moves the caret to the end; the explicit
+      // range is what selects the text there, so the copy isn't empty.
+      textarea.setSelectionRange(0, textarea.value.length);
       let ok = false;
       try {
         ok = document.execCommand("copy");
@@ -82,8 +108,14 @@ const InputCopy = forwardRef<HTMLDivElement, InputCopyProps>(
       }
       setStatus(ok ? "copied" : "error");
       setCopyCount((c) => c + 1);
+      // The tooltip says "Copied" only if it was already showing when the
+      // press began. Otherwise it stays shut: a click never summons a tooltip
+      // the user wasn't reading.
       setTooltipState(tooltipWasVisibleRef.current ? "copied" : "suppressed");
       if (ok) onCopy?.();
+      // A new copy restarts the 2000ms window. When it ends, the tooltip
+      // stays suppressed until the pointer leaves and comes back, so it
+      // doesn't reopen as "Copy to clipboard" right under a resting cursor.
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => {
         setStatus("idle");
@@ -101,6 +133,8 @@ const InputCopy = forwardRef<HTMLDivElement, InputCopyProps>(
       };
     }, []);
 
+    // Re-entering the row re-arms the normal 500ms hover tooltip; leaving it
+    // closes a "Copied" tooltip with the pointer.
     const handleMouseEnter = useCallback(() => {
       setTooltipState((prev) => prev === "suppressed" ? "idle" : prev);
     }, []);
@@ -109,6 +143,10 @@ const InputCopy = forwardRef<HTMLDivElement, InputCopyProps>(
       setTooltipState((prev) => prev === "copied" ? "suppressed" : prev);
     }, []);
 
+    // A wait-mode swap on spring.fast: the copy icon shrinks out to 0.8
+    // before the result grows in from 0.6, then the check or × strokes draw
+    // themselves (pathLength 0 → 1 in 0.08s). Strokes go 1.5 → 2 on hover
+    // over 80ms, with the rest of the row.
     const iconSwitch = (
       <AnimatePresence mode="wait" initial={false}>
         {status === "error" ? (
@@ -185,7 +223,9 @@ const InputCopy = forwardRef<HTMLDivElement, InputCopyProps>(
     const actionElement = variant === "button" ? (
       <span
         className={cn(
-          "shrink-0 flex items-center gap-1.5 px-1.5 py-2 text-[13px] transition-colors duration-80",
+          "shrink-0 flex items-center gap-1.5 px-1.5 transition-colors duration-80",
+          rowPy,
+          sizeClasses.text,
           "text-muted-foreground group-hover:text-foreground",
         )}
         style={{ fontVariationSettings: fontWeights.normal }}
@@ -221,6 +261,9 @@ const InputCopy = forwardRef<HTMLDivElement, InputCopyProps>(
                   />
                 </svg>
               </span>
+              {/* The invisible "Copied" shares the grid cell with every label
+                  (Copy, Copied, Failed), so the swap never changes the row's
+                  width. */}
               <span className="select-none inline-grid text-left">
                 <span className="col-start-1 row-start-1 invisible" aria-hidden="true">Copied</span>
                 <span className="col-start-1 row-start-1">Failed</span>
@@ -284,7 +327,8 @@ const InputCopy = forwardRef<HTMLDivElement, InputCopyProps>(
     ) : (
       <span
         className={cn(
-          "shrink-0 px-1.5 py-2 transition-colors duration-80",
+          "shrink-0 px-1.5 transition-colors duration-80",
+          rowPy,
           "text-muted-foreground group-hover:text-foreground",
         )}
       >
@@ -292,15 +336,19 @@ const InputCopy = forwardRef<HTMLDivElement, InputCopyProps>(
       </span>
     );
 
+    // select-none: a press copies instead of starting a text selection. On
+    // hover a <mark> tints the whole value, so it reads as what gets copied.
     const valueElement = (
       <span
         className={cn(
-          "flex-1 min-w-0 text-left text-[13px] text-foreground font-mono py-2 select-none truncate",
+          "flex-1 min-w-0 text-left text-foreground font-mono select-none truncate",
+          sizeClasses.text,
+          rowPy,
           align === "left" ? "pl-1" : "pl-0"
         )}
         style={{ fontVariationSettings: fontWeights.normal }}
       >
-        <mark className="bg-transparent text-foreground transition-colors duration-80 group-hover:bg-[#6B97FF]/20 group-hover:text-foreground">
+        <mark className="bg-transparent text-foreground transition-colors duration-80 group-hover:bg-[color-mix(in_oklab,var(--fluid-accent,#6B97FF)_20%,transparent)] group-hover:text-foreground">
           {value}
         </mark>
       </span>
@@ -319,6 +367,7 @@ const InputCopy = forwardRef<HTMLDivElement, InputCopyProps>(
         onPointerDown={handlePointerDown}
         onClick={handleCopy}
         disabled={disabled}
+        // The name follows the state, so a screen reader hears the result.
         aria-label={
           status === "copied"
             ? "Copied"
@@ -330,7 +379,7 @@ const InputCopy = forwardRef<HTMLDivElement, InputCopyProps>(
         }
         aria-labelledby={label ? `${buttonId} ${labelId}` : undefined}
         className={cn(
-          "group flex items-center w-full cursor-pointer outline-none transition-[color,background-color,box-shadow] duration-80",
+          "group flex items-center w-full cursor-pointer outline-none transition-[color,background-color,border-radius,box-shadow] duration-80",
           "focus-visible:ring-1 focus-visible:ring-[color:var(--focus-ring,#6B97FF)]",
           shape.input
         )}
@@ -354,7 +403,11 @@ const InputCopy = forwardRef<HTMLDivElement, InputCopyProps>(
         {label && (
           <span
             id={labelId}
-            className={cn("text-[13px] text-muted-foreground", align === "left" ? "pl-1" : "pl-0")}
+            className={cn(
+              "text-muted-foreground",
+              sizeClasses.text,
+              align === "left" ? "pl-1" : "pl-0"
+            )}
             style={{ fontVariationSettings: fontWeights.normal }}
           >
             {label}

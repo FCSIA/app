@@ -1,3 +1,4 @@
+import { CLI_CLIENT_ID } from "../../../shared/cli-client";
 import type { GenericCtx } from "@convex-dev/better-auth";
 import { isRunMutationCtx } from "@convex-dev/better-auth/utils";
 import type { BetterAuthPlugin } from "better-auth";
@@ -9,7 +10,7 @@ import { trustedClientIp } from "./loginRateLimitPlugin";
 
 // The only client allowed to start a device sign-in. The command-line client
 // sends it as `client_id` when it requests a code.
-export const CLI_CLIENT_ID = "fcsia-cli";
+export { CLI_CLIENT_ID } from "../../../shared/cli-client";
 
 export function isCliClient(clientId: string) {
   return clientId === CLI_CLIENT_ID;

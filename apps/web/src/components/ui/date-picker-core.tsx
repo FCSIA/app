@@ -19,7 +19,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { spring } from "@/lib/springs";
 import { fontWeights } from "@/lib/font-weight";
-import { useShape } from "@/lib/shape-context";
+import { useShape, usePopupShape } from "@/lib/shape-context";
 import { SizeProvider, useSize, type SizeVariant } from "@/lib/size-context";
 import { useIcons } from "@/lib/icon-context";
 import { Elevated } from "@/lib/elevated";
@@ -116,17 +116,31 @@ export function formatDuration(minutes: number): string {
   return `${h}h ${m}min`;
 }
 
+// Formatters are costly to build (each reads the locale's data) and a table
+// of date cells built several per cell on every render: one per locale and
+// option set, kept.
+const DATE_FORMATS = new Map<string, Intl.DateTimeFormat>();
+function dateFormat(locale?: string, options?: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const key = `${locale ?? ""}|${options ? JSON.stringify(options) : ""}`;
+  let format = DATE_FORMATS.get(key);
+  if (!format) {
+    format = new Intl.DateTimeFormat(locale, options);
+    DATE_FORMATS.set(key, format);
+  }
+  return format;
+}
+
 /** 12 or 24 hours: the override, else the locale's own clock. */
 export function resolveHourCycle(locale?: string, override?: 12 | 24): 12 | 24 {
   if (override) return override;
-  const cycle = new Intl.DateTimeFormat(locale, { hour: "numeric" }).resolvedOptions().hourCycle;
+  const cycle = dateFormat(locale, { hour: "numeric" }).resolvedOptions().hourCycle;
   return cycle === "h11" || cycle === "h12" ? 12 : 24;
 }
 
 /** Minutes after midnight as the locale shows a time: `11:00` or `11:00 AM`. */
 export function formatTime(minutes: number, hourCycle: 12 | 24, locale?: string): string {
   const date = new Date(2000, 0, 1, Math.floor(minutes / 60), minutes % 60);
-  return new Intl.DateTimeFormat(locale, {
+  return dateFormat(locale, {
     hour: hourCycle === 12 ? "numeric" : "2-digit",
     minute: "2-digit",
     hourCycle: hourCycle === 12 ? "h12" : "h23",
@@ -202,7 +216,7 @@ function rangeLabelOptions(withYear: boolean): Intl.DateTimeFormatOptions {
 
 /** A date's label as parts, in the locale's order. */
 function labelParts(date: Date, locale: string | undefined, options: Intl.DateTimeFormatOptions) {
-  const parts = new Intl.DateTimeFormat(locale, options).formatToParts(date);
+  const parts = dateFormat(locale, options).formatToParts(date);
   return parts.map(
     (part, i): LabelPart =>
       // Drop the comma English puts after the weekday: "Wed Oct 21".
@@ -224,9 +238,100 @@ export function formatDateLabel(date: Date, locale?: string, now = new Date()): 
 export function formatRangeLabel(range: DateRange, locale?: string, now = new Date()): string {
   if (!range.from) return "";
   const withYear = rangeWithYear(range, now);
-  const fmt = new Intl.DateTimeFormat(locale, rangeLabelOptions(withYear));
+  const fmt = dateFormat(locale, rangeLabelOptions(withYear));
   if (!range.to) return `${fmt.format(range.from)} →`;
   return `${fmt.format(range.from)} → ${fmt.format(range.to)}`;
+}
+
+/** Month names to month index, long and short, in the locale and in
+ *  English (a typed "nov" works whatever the locale). */
+function monthNames(locale?: string): Map<string, number> {
+  const names = new Map<string, number>();
+  for (const loc of [locale, "en"]) {
+    for (const month of ["long", "short"] as const) {
+      const fmt = dateFormat(loc, { month });
+      for (let m = 0; m < 12; m++) {
+        const name = fmt.format(new Date(2000, m, 1)).toLowerCase().replace(/\.$/, "");
+        if (!names.has(name)) names.set(name, m);
+      }
+    }
+  }
+  return names;
+}
+
+/** Whether the locale writes the month before the day in numeric dates. */
+function monthFirst(locale?: string) {
+  const parts = dateFormat(locale).formatToParts(new Date(2000, 10, 22));
+  return parts.findIndex((p) => p.type === "month") < parts.findIndex((p) => p.type === "day");
+}
+
+function validDate(year: number, month: number, day: number): Date | null {
+  const date = new Date(year, month, day);
+  return date.getFullYear() === year && date.getMonth() === month && date.getDate() === day ? date : null;
+}
+
+/** One typed day: "today", "yesterday", "tomorrow", "2026-11-04", "11/4",
+ *  "4/11/26" (the locale's order), "Nov 4", "4 November 2026", the label's
+ *  own "Wed Nov 4". No year means this year. Null when it isn't a day. */
+function parseDay(text: string, locale: string | undefined, now: Date): Date | null {
+  const t = text.trim().toLowerCase().replace(/,/g, " ").replace(/\s+/g, " ");
+  if (!t) return null;
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (t === "today") return today;
+  if (t === "yesterday") return new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+  if (t === "tomorrow") return new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return validDate(+m[1], +m[2] - 1, +m[3]);
+  m = t.match(/^(\d{1,2})[/.](\d{1,2})(?:[/.](\d{2}|\d{4}))?$/);
+  if (m) {
+    const [a, b] = [+m[1], +m[2]];
+    const year = m[3] ? (m[3].length === 2 ? 2000 + +m[3] : +m[3]) : now.getFullYear();
+    return monthFirst(locale) ? validDate(year, a - 1, b) : validDate(year, b - 1, a);
+  }
+  // Words: a month name (or its first 3+ letters), a day, maybe a year; a
+  // weekday name is skipped.
+  const names = monthNames(locale);
+  let month = -1;
+  let day = -1;
+  let year = now.getFullYear();
+  for (const raw of t.split(" ")) {
+    const word = raw.replace(/\.$/, "").replace(/^(\d+)(st|nd|rd|th)$/, "$1");
+    if (/^\d{4}$/.test(word)) year = +word;
+    else if (/^\d{1,2}$/.test(word)) day = +word;
+    else if (month < 0 && word.length >= 3) {
+      for (const [name, index] of names) {
+        if (name.startsWith(word)) {
+          month = index;
+          break;
+        }
+      }
+    }
+  }
+  return month >= 0 && day > 0 ? validDate(year, month, day) : null;
+}
+
+/**
+ * A typed date or range, for a DatePicker with `typeable`. Range mode reads
+ * two days joined by "→", "to", or a spaced dash ("Nov 4 - Nov 11"), in
+ * either order, and one day as a one-day range. Null when it doesn't parse.
+ */
+export function parseDateInput(
+  text: string,
+  mode: "single" | "range",
+  locale?: string,
+  now = new Date()
+): Date | DateRange | null {
+  if (mode === "single") return parseDay(text, locale, now);
+  const sides = text.split(/\s*(?:→|->|–|—|\bto\b|\s-\s)\s*/i).filter((side) => side.trim() !== "");
+  if (sides.length === 1) {
+    const day = parseDay(sides[0], locale, now);
+    return day ? { from: day, to: day } : null;
+  }
+  if (sides.length !== 2) return null;
+  const a = parseDay(sides[0], locale, now);
+  const b = parseDay(sides[1], locale, now);
+  if (!a || !b) return null;
+  return a <= b ? { from: a, to: b } : { from: b, to: a };
 }
 
 /** `2026-10-21`, from the date's local parts (not UTC). */
@@ -269,7 +374,7 @@ export function widestLabelParts(
   locale: string | undefined,
   options: Intl.DateTimeFormatOptions
 ): string[][] {
-  const fmt = new Intl.DateTimeFormat(locale, options);
+  const fmt = dateFormat(locale, options);
   const pick = (date: Date, type: Intl.DateTimeFormatPartTypes) =>
     fmt.formatToParts(date).find((part) => part.type === type)?.value ?? "";
   const weekdays = Array.from({ length: 7 }, (_, i) => pick(new Date(2026, 0, 4 + i), "weekday"));
@@ -302,6 +407,9 @@ export interface DatePickerPopoverProps {
   anchor: ReactElement;
   /** The field, for kind "anchor": presses on it are not outside presses. */
   anchorRef?: RefObject<HTMLElement | null>;
+  /** What stays live while the popover shields the page: the picker's row
+   *  of segments, so a press on a sibling segment still lands. */
+  liveRef?: RefObject<HTMLElement | null>;
   /** True while Escape belongs to the content (a range pick to undo). */
   escapeBlocked?: () => boolean;
   align?: "start" | "center" | "end";
@@ -325,6 +433,7 @@ export const DatePickerPopupFrame = forwardRef<
 >(({ open, onExitComplete, className, children }, ref) => {
   // Reduced motion keeps the fade and drops the slide/scale.
   const reduceMotion = useReducedMotion() ?? false;
+  const shape = usePopupShape();
   return (
   <motion.div
     className={cn("outline-none", popupMotionClass)}
@@ -346,7 +455,7 @@ export const DatePickerPopupFrame = forwardRef<
       offset={2}
       shadowLevel={3}
       data-slot="date-picker-popup"
-      className={cn("rounded-xl outline-none select-none", className)}
+      className={cn(shape.container, "outline-none select-none", className)}
     >
       {children}
     </Elevated>
@@ -361,6 +470,8 @@ DatePickerPopupFrame.displayName = "DatePickerPopupFrame";
 
 interface SegmentScope {
   registerItem: UseFluidHoverReturn["registerItem"];
+  /** The row of segments, kept live while one of their popovers is open. */
+  groupRef: RefObject<HTMLElement | null>;
 }
 
 function useSegment(scope: SegmentScope, index: number) {
@@ -412,6 +523,7 @@ function TimeField({
   prefix,
   suffix,
 }: TimeFieldProps) {
+  const popupShape = usePopupShape();
   const sizeClasses = useSize();
   const compact = sizeClasses.variant === "compact";
   const listId = useId();
@@ -650,6 +762,7 @@ function TimeField({
       kind="anchor"
       anchor={field}
       anchorRef={segmentRef}
+      liveRef={scope.groupRef}
       align="start"
     >
       <ScrollArea
@@ -661,7 +774,7 @@ function TimeField({
           id={listId}
           role="listbox"
           aria-label={label}
-          className={cn("relative flex flex-col p-1", slots.some((s) => s.duration !== undefined) ? "min-w-[180px]" : "min-w-[112px]")}
+          className={cn("relative flex flex-col gap-0.5 p-1", slots.some((s) => s.duration !== undefined) ? "min-w-[180px]" : "min-w-[112px]")}
           // Rows never take focus: the field keeps it while the list moves.
           onMouseDown={(e) => e.preventDefault()}
           onMouseEnter={onMouseEnter}
@@ -669,7 +782,7 @@ function TimeField({
           onMouseLeave={onMouseLeave}
           onClick={onClick}
         >
-          <FluidHoverHighlight hover={hover} hidden={!open} className="rounded-lg" />
+          <FluidHoverHighlight hover={hover} hidden={!open} className={popupShape.bg} />
           {slots.map((slot, i) => (
             <TimeRow
               key={slot.minutes}
@@ -721,6 +834,7 @@ function TimeRow({
   const ref = useRef<HTMLDivElement>(null);
   useRegisterFluidHoverItem(registerItem, index, ref);
   const sizeClasses = useSize();
+  const shape = usePopupShape();
   return (
     <div
       ref={ref}
@@ -730,7 +844,8 @@ function TimeRow({
       data-fluid-hover-index={index}
       className={cn(
         // The duration hugs the time: start-aligned, a small gap.
-        "relative z-10 flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg tabular-nums",
+        "relative z-10 flex shrink-0 cursor-pointer items-center gap-1.5 tabular-nums",
+        shape.bg,
         sizeClasses.control,
         sizeClasses.itemPx,
         compact ? "text-[12px]" : "text-[13px]",
@@ -798,6 +913,7 @@ function PresetList({
   value: DateRange | undefined;
   onPick: (preset: DatePickerPreset) => void;
 }) {
+  const shape = usePopupShape();
   const ref = useRef<HTMLDivElement>(null);
   const hover = useFluidHover(ref, { axis: "xy" });
   const { setActiveIndex } = hover;
@@ -807,7 +923,7 @@ function PresetList({
       role="group"
       aria-label="Presets"
       data-slot="date-picker-presets"
-      className="relative flex flex-col p-1"
+      className="relative flex flex-col gap-0.5 p-1"
       {...hover.handlers}
       onFocus={(e) => {
         const i = Number((e.target as HTMLElement).getAttribute("data-preset-index"));
@@ -817,7 +933,7 @@ function PresetList({
         if (!e.currentTarget.contains(e.relatedTarget as Node)) setActiveIndex(null);
       }}
     >
-      <FluidHoverHighlight hover={hover} className="rounded-lg" />
+      <FluidHoverHighlight hover={hover} className={shape.bg} />
       {presets.map((preset, i) => (
         <PresetRow
           key={preset.label}
@@ -851,6 +967,7 @@ function PresetRow({
   const ref = useRef<HTMLButtonElement>(null);
   useRegisterFluidHoverItem(registerItem, index, ref);
   const sizeClasses = useSize();
+  const shape = usePopupShape();
   return (
     <button
       ref={ref}
@@ -859,7 +976,8 @@ function PresetRow({
       aria-pressed={selected}
       onClick={onPick}
       className={cn(
-        "relative z-10 flex shrink-0 cursor-pointer items-center rounded-lg text-left whitespace-nowrap outline-none",
+        "relative z-10 flex shrink-0 cursor-pointer items-center text-left whitespace-nowrap outline-none",
+        shape.bg,
         "focus-visible:ring-1 focus-visible:ring-[color:var(--focus-ring,#6B97FF)]",
         sizeClasses.control,
         sizeClasses.itemPx,
@@ -915,6 +1033,16 @@ interface DatePickerBaseProps {
   disabled?: boolean;
   /** Shows a clear button once a value is set (field only). Default true. */
   clearable?: boolean;
+  /** Sizes the date to the label it shows rather than the widest one it
+   *  could show. Off by default, so picking a date never moves what follows;
+   *  on for a trigger inside something that already springs to its content
+   *  (a filter chip), where the reserved room reads as a gap. */
+  fitLabel?: boolean;
+  /** Lets the date be typed as well as picked: the date becomes a field
+   *  ("Nov 4", "11/4", "2026-11-04", "today", a range as "Nov 4 → Nov 11"),
+   *  previewed in the calendar as it parses and set on Enter or when focus
+   *  leaves; anything that doesn't parse goes back to the date it had. */
+  typeable?: boolean;
   /** Months in the date popover. Default 1 for single, 2 for range. */
   numberOfMonths?: 1 | 2;
   orientation?: CalendarOrientation;
@@ -988,7 +1116,10 @@ function useControllable<T>(value: T | undefined, defaultValue: T | undefined, o
     },
     [isControlled, onChange]
   );
-  return [current, set] as const;
+  const reset = useCallback(() => {
+    if (!isControlled) setInternal(defaultValue);
+  }, [defaultValue, isControlled]);
+  return [current, set, reset] as const;
 }
 
 function DatePickerCore(props: DatePickerProps & { Popover: ComponentType<DatePickerPopoverProps> }) {
@@ -1000,6 +1131,8 @@ function DatePickerCore(props: DatePickerProps & { Popover: ComponentType<DatePi
     placeholder,
     disabled,
     clearable = true,
+    fitLabel = false,
+    typeable = false,
     numberOfMonths: numberOfMonthsProp,
     orientation = "auto",
     calendarProps,
@@ -1014,7 +1147,7 @@ function DatePickerCore(props: DatePickerProps & { Popover: ComponentType<DatePi
   const presets = mode === "range" ? (props as DatePickerRangeProps).presets : undefined;
   const numberOfMonths = numberOfMonthsProp ?? (mode === "range" ? 2 : 1);
 
-  const [value, setValue] = useControllable<Date | DateRange | undefined>(
+  const [value, setValue, resetValue] = useControllable<Date | DateRange | undefined>(
     props.value,
     props.defaultValue,
     props.onValueChange as ((v: Date | DateRange | undefined) => void) | undefined,
@@ -1022,13 +1155,13 @@ function DatePickerCore(props: DatePickerProps & { Popover: ComponentType<DatePi
   );
   const hasTime = "time" in props || "defaultTime" in props;
   const hasTimeRange = "timeRange" in props || "defaultTimeRange" in props;
-  const [time, setTime] = useControllable<string | null>(
+  const [time, setTime, resetTime] = useControllable<string | null>(
     props.time,
     props.defaultTime ?? null,
     props.onTimeChange,
     "time" in props
   );
-  const [timeRange, setTimeRange] = useControllable<TimeRange | null>(
+  const [timeRange, setTimeRange, resetTimeRange] = useControllable<TimeRange | null>(
     props.timeRange,
     props.defaultTimeRange ?? null,
     props.onTimeRangeChange,
@@ -1040,8 +1173,26 @@ function DatePickerCore(props: DatePickerProps & { Popover: ComponentType<DatePi
     props.onOpenChange,
     "open" in props
   );
+  const formInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const form = formInputRef.current?.form;
+    if (!form) return;
+    const onReset = (event: Event) => {
+      // A later form listener may cancel reset. Uncontrolled fields follow
+      // native defaults; controlled fields remain owned by their caller.
+      queueMicrotask(() => {
+        if (event.defaultPrevented) return;
+        resetValue();
+        resetTime();
+        resetTimeRange();
+      });
+    };
+    form.addEventListener("reset", onReset);
+    return () => form.removeEventListener("reset", onReset);
+  }, [name, resetValue, resetTime, resetTimeRange]);
 
   const shape = useShape();
+  const popupShape = usePopupShape();
   const sizeClasses = useSize(size);
   const compact = sizeClasses.variant === "compact";
   const icons = useIcons();
@@ -1098,6 +1249,22 @@ function DatePickerCore(props: DatePickerProps & { Popover: ComponentType<DatePi
   const range = mode === "range" ? (value as DateRange | undefined) : undefined;
   const single = mode === "single" ? (value as Date | undefined) : undefined;
   const hasValue = mode === "range" ? !!range?.from : !!single;
+
+  // Typing a date (typeable): the field's text while it's edited, and what
+  // it parses to, previewed in the calendar until it's set.
+  const [typed, setTyped] = useState<string | null>(null);
+  const typedValue = typed !== null && typed.trim() !== "" ? parseDateInput(typed, mode, locale, now) : null;
+  const typedInputRef = useRef<HTMLInputElement>(null);
+  const typedFieldRef = useRef<HTMLElement | null>(null);
+  const popupContentRef = useRef<HTMLDivElement>(null);
+  const [typing, setTyping] = useState(false);
+  const pointerFocusRef = useRef(false);
+  const commitTyped = () => {
+    if (typed === null) return;
+    if (typed.trim() === "") setValue(undefined);
+    else if (typedValue) setValue(typedValue as never);
+    setTyped(null);
+  };
   const dateLabel =
     mode === "range"
       ? range?.from
@@ -1171,7 +1338,10 @@ function DatePickerCore(props: DatePickerProps & { Popover: ComponentType<DatePi
     return () => ro.disconnect();
   }, [timed]);
   const segmentHover = useFluidHover(segmentsRef, { axis: twoRows ? "xy" : "x", gapClick: false });
-  const scope = useMemo(() => ({ registerItem: segmentHover.registerItem }), [segmentHover.registerItem]);
+  const scope = useMemo(
+    () => ({ registerItem: segmentHover.registerItem, groupRef: segmentsRef }),
+    [segmentHover.registerItem]
+  );
   const dateRef = useSegment(scope, 0);
   // The clear button mounts only once there is a value, after the scope's
   // first registration pass, so it registers through a callback ref: the
@@ -1184,11 +1354,11 @@ function DatePickerCore(props: DatePickerProps & { Popover: ComponentType<DatePi
 
   const field = variant === "outline";
   // Segments sit 2px inside the field (plus its 1px border); their corners
-  // nest inside its radius: 8 - 3 = 5px rounded, 20 - 3 = 17px pill.
+  // nest inside its radius: 8 - 3 = 5px rounded, 20 - 3 = 17px pill, 0 sharp.
   const innerRadius = field
-    ? Math.max(0, shape.bgRadius - 3) === 5
-      ? "rounded-[5px]"
-      : "rounded-[17px]"
+    ? { rounded: "rounded-[5px]", pill: "rounded-[17px]", sharp: "rounded-none" }[
+        shape.variant
+      ]
     : shape.bg;
   const segmentClass = cn(
     "relative z-[1] inline-flex h-full items-center outline-none",
@@ -1216,7 +1386,9 @@ function DatePickerCore(props: DatePickerProps & { Popover: ComponentType<DatePi
         "cursor-pointer whitespace-nowrap",
         field && !hasTime && !hasTimeRange && "flex-1",
         hasValue ? "text-foreground" : "text-muted-foreground",
-        open && "text-foreground"
+        // Held while the calendar is open: the pointer has left for it, so
+        // the shared hover highlight has moved on.
+        open && "bg-active text-foreground"
       )}
     >
       {field && (
@@ -1232,6 +1404,7 @@ function DatePickerCore(props: DatePickerProps & { Popover: ComponentType<DatePi
         <span className="col-start-1 row-start-1 [text-box:trim-both_cap_alphabetic]">
           {dateLabel}
         </span>
+        {!fitLabel && (
         <span
           aria-hidden
           className="invisible col-start-1 row-start-1 inline-flex whitespace-pre"
@@ -1250,18 +1423,132 @@ function DatePickerCore(props: DatePickerProps & { Popover: ComponentType<DatePi
             </span>
           ))}
         </span>
+        )}
+        {!fitLabel && (
         <span
           aria-hidden
           className="invisible col-start-1 row-start-1 whitespace-pre [text-box:trim-both_cap_alphabetic]"
         >
           {labelPlaceholder}
         </span>
+        )}
       </span>
     </button>
   );
 
-  const calendarSelected = mode === "range" ? (draft ?? range) : single;
+  // The date as a field (typeable): the same segment, its text editable.
+  // It sizes to what's shown (or, without fitLabel, also to the widest
+  // label), and keeps focus while the calendar is open.
+  const typedText = typed ?? (hasValue ? dateLabel : "");
+  const dateField = (
+    <span
+      ref={(el: HTMLSpanElement | null) => {
+        typedFieldRef.current = el;
+        (dateRef as { current: HTMLElement | null }).current = el;
+      }}
+      data-slot="date-picker-trigger"
+      data-placeholder={hasValue || typed ? undefined : ""}
+      data-typing={typing || undefined}
+      onClick={() => typedInputRef.current?.focus()}
+      onPointerDown={() => {
+        pointerFocusRef.current = true;
+      }}
+      className={cn(
+        segmentClass,
+        compact ? "gap-1" : "gap-1.5",
+        "cursor-text whitespace-nowrap",
+        "data-[typing]:ring-1 data-[typing]:ring-[color:var(--focus-ring,#6B97FF)]",
+        field && !hasTime && !hasTimeRange && "flex-1",
+        hasValue || typed ? "text-foreground" : "text-muted-foreground",
+        open && "text-foreground"
+      )}
+    >
+      {field && (
+        <CalendarIcon size={sizeClasses.icon} strokeWidth={1.5} className="shrink-0 text-muted-foreground" />
+      )}
+      <span className="inline-grid text-left tabular-nums">
+        <span aria-hidden className="invisible col-start-1 row-start-1 whitespace-pre">
+          {typedText || labelPlaceholder}
+        </span>
+        {!fitLabel && (
+          <span aria-hidden className="invisible col-start-1 row-start-1 inline-flex whitespace-pre">
+            {labelSizer.map((options, i) => (
+              <span key={i} className="inline-grid">
+                {options.map((option) => (
+                  <span key={option} className="col-start-1 row-start-1">
+                    {option}
+                  </span>
+                ))}
+              </span>
+            ))}
+          </span>
+        )}
+        <input
+          ref={typedInputRef}
+          id={id}
+          type="text"
+          // A text input's intrinsic width would size the cell; size 1 lets
+          // the invisible copy decide it.
+          size={1}
+          role="combobox"
+          aria-label={ariaLabel ?? labelPlaceholder}
+          aria-expanded={!!open}
+          aria-haspopup="dialog"
+          autoComplete="off"
+          spellCheck={false}
+          disabled={disabled}
+          placeholder={labelPlaceholder}
+          value={typedText}
+          className={cn(
+            "col-start-1 row-start-1 w-full min-w-0 rounded-none bg-transparent p-0 text-left tabular-nums text-inherit outline-none placeholder:text-muted-foreground",
+            sizeClasses.field
+          )}
+          onFocus={(e) => {
+            // The ring for a keyboard arrival only: a text field matches
+            // :focus-visible on a click too, and a click needs no ring.
+            setTyping(!pointerFocusRef.current);
+            pointerFocusRef.current = false;
+            e.currentTarget.select();
+            if (!open) setOpen(true);
+          }}
+          onClick={() => {
+            if (!open) setOpen(true);
+          }}
+          onChange={(e) => {
+            const next = e.target.value;
+            setTyped(next);
+            if (!open) setOpen(true);
+            const parsed = next.trim() ? parseDateInput(next, mode, locale, now) : null;
+            const at = parsed instanceof Date ? parsed : parsed?.from;
+            if (at) setMonth(at);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commitTyped();
+              setOpen(false);
+            } else if (e.key === "Escape" && (open || typed !== null)) {
+              e.preventDefault();
+              e.stopPropagation();
+              setTyped(null);
+              setOpen(false);
+            }
+          }}
+          onBlur={(e) => {
+            setTyping(false);
+            // Into the calendar or its presets: still editing.
+            if (popupContentRef.current?.contains(e.relatedTarget as Node)) return;
+            commitTyped();
+            setOpen(false);
+          }}
+        />
+      </span>
+    </span>
+  );
+
+  const calendarSelected = typedValue ?? (mode === "range" ? (draft ?? range) : single);
   const onCalendarSelect = (next: Date | DateRange | undefined) => {
+    setTyped(null);
     if (mode === "single") {
       setValue(next as Date | undefined);
       if (next) {
@@ -1311,7 +1598,8 @@ function DatePickerCore(props: DatePickerProps & { Popover: ComponentType<DatePi
       orientation={numberOfMonths > 1 ? resolvedOrientation : undefined}
       month={month}
       onMonthChange={setMonth}
-      autoFocus
+      // A typed date keeps focus in its field; a trigger hands it to the day.
+      autoFocus={!typeable}
     />
   );
 
@@ -1337,13 +1625,19 @@ function DatePickerCore(props: DatePickerProps & { Popover: ComponentType<DatePi
   const datePopover = (
     <Popover
       open={!!open}
-      onOpenChange={setOpen}
-      kind="trigger"
-      anchor={dateTrigger}
+      onOpenChange={(next) => {
+        if (!next) commitTyped();
+        setOpen(next);
+      }}
+      kind={typeable ? "anchor" : "trigger"}
+      anchor={typeable ? dateField : dateTrigger}
+      anchorRef={typeable ? typedFieldRef : undefined}
+      liveRef={segmentsRef}
       escapeBlocked={() => !!draft}
       align="start"
     >
       <div
+        ref={popupContentRef}
         className={cn(
           // Same box as the popup: its corners follow the popup's 12px.
           "flex rounded-[inherit] bg-inherit p-1",
@@ -1355,8 +1649,9 @@ function DatePickerCore(props: DatePickerProps & { Popover: ComponentType<DatePi
         {/* Presets sit beside the calendar, or below it when the months
             stack (the calendar stays first in reading and tab order). */}
         {showPresets && !stacked && presetList}
-        {/* 4px in from the popup's 12px corners: 8px keeps them concentric. */}
-        <div className="rounded-lg bg-inherit">{calendar}</div>
+        {/* 4px in from the popup's corners: the popup's bg radius keeps them
+            concentric (8px in 12px, 1px when sharp). */}
+        <div className={cn(popupShape.bg, "bg-inherit")}>{calendar}</div>
         {showPresets && stacked && presetList}
       </div>
     </Popover>
@@ -1482,7 +1777,9 @@ function DatePickerCore(props: DatePickerProps & { Popover: ComponentType<DatePi
       <FluidHoverHighlight hover={segmentHover} className={cn("z-0", innerRadius)} />
       {name && (
         <input
+          ref={formInputRef}
           type="hidden"
+          disabled={disabled}
           name={name}
           value={formValue(
             mode === "range" ? range : single,

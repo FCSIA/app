@@ -163,6 +163,7 @@ export const schema = defineSchema({
     }),
 
   auditEvents: defineTable({
+    client: v.optional(v.literal("cli")),
     actorId: v.optional(v.id("users")),
     category: v.optional(v.string()),
     action: v.string(),

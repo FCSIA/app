@@ -8,13 +8,16 @@ import {
   useState,
   type ComponentPropsWithoutRef,
   type HTMLAttributes,
+  type ReactElement,
 } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { motion, useReducedMotion } from "framer-motion";
+import { fontWeights } from "@/lib/font-weight";
+import { motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { useIcon } from "@/lib/icon-context";
 import { spring, exitFallbackMs } from "@/lib/springs";
 import { useShape } from "@/lib/shape-context";
+import { useSizeVariant, typeClass } from "@/lib/size-context";
 import { SurfaceProvider, useSurface } from "@/lib/surface-context";
 import { surfaceClasses } from "@/lib/surface-classes";
 import { Button } from "@/components/ui/button";
@@ -52,12 +55,49 @@ function Dialog({
   );
 }
 
-const DialogTrigger = DialogPrimitive.Trigger;
-const DialogClose = DialogPrimitive.Close;
+// Trigger and Close compose either way — `render={<Button/>}` (the
+// library's composition API, shared with DropdownTrigger) or Radix-style
+// `asChild` with a single child element — so one snippet works everywhere.
+interface DialogSlotProps
+  extends Omit<ComponentPropsWithoutRef<typeof DialogPrimitive.Trigger>, "asChild"> {
+  /** Element to render as the control, e.g. a Button. */
+  render?: ReactElement;
+  /** Compose onto the single child element instead. */
+  asChild?: boolean;
+}
+
+const DialogTrigger = forwardRef<HTMLButtonElement, DialogSlotProps>(
+  ({ render, asChild, children, ...props }, ref) =>
+    render ? (
+      <DialogPrimitive.Trigger ref={ref} asChild {...props}>
+        {render}
+      </DialogPrimitive.Trigger>
+    ) : (
+      <DialogPrimitive.Trigger ref={ref} asChild={asChild} {...props}>
+        {children}
+      </DialogPrimitive.Trigger>
+    )
+);
+DialogTrigger.displayName = "DialogTrigger";
+
+const DialogClose = forwardRef<HTMLButtonElement, DialogSlotProps>(
+  ({ render, asChild, children, ...props }, ref) =>
+    render ? (
+      <DialogPrimitive.Close ref={ref} asChild {...props}>
+        {render}
+      </DialogPrimitive.Close>
+    ) : (
+      <DialogPrimitive.Close ref={ref} asChild={asChild} {...props}>
+        {children}
+      </DialogPrimitive.Close>
+    )
+);
+DialogClose.displayName = "DialogClose";
 
 interface DialogContentProps
   extends ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
-  size?: "sm" | "lg";
+  /** Fluid widths: short confirmation, form, or composed two-panel layout. */
+  size?: "sm" | "lg" | "xl";
   /** Controls the dialog-owned content inset. Use `none` when a composed
    * primitive owns its internal layout and must meet the dialog edge. */
   padding?: "default" | "none";
@@ -116,9 +156,9 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
       !container && !isMobileTop && !isTop,
     );
 
-    useEffect(() => {
-      if (open) setMounted(true);
-    }, [open]);
+    // Set during the render that opens it, so the portal mounts in the same
+    // commit as `open` rather than one after.
+    if (open && !mounted) setMounted(true);
 
     // Fallback release for the deferred unmount: onAnimationComplete on the
     // panel is the primary signal, but rAF-driven animation callbacks can
@@ -143,7 +183,7 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
           <motion.div
             className={cn(
               container ? "absolute" : "fixed",
-              "inset-0 z-50 bg-black/40 dark:bg-black/80"
+              "inset-0 z-[var(--z-overlay,40)] bg-black/40 dark:bg-black/80"
             )}
             initial={{ opacity: 0 }}
             animate={{ opacity: open ? 1 : 0 }}
@@ -154,7 +194,7 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
           <motion.div
             className={cn(
               container ? "absolute" : "fixed",
-              "z-50",
+              "z-[var(--z-modal,50)]",
               // Mobile keeps the visual-viewport keyboard offset via the
               // individual `translate` property so it composes with
               // framer-motion's `transform: scale()`. Desktop centers with a
@@ -173,6 +213,7 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
               padding === "none" && "p-0",
               size === "sm" && (isTop ? "max-w-[400px]" : "sm:max-w-[400px]"),
               size === "lg" && (isTop ? "max-w-[540px]" : "sm:max-w-[540px]"),
+              size === "xl" && (isTop ? "max-w-[880px]" : "sm:max-w-[880px]"),
               shape.container,
               className
             )}
@@ -234,26 +275,41 @@ function DialogFooter({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
 const DialogTitle = forwardRef<
   HTMLHeadingElement,
   ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
->(({ className, ...props }, ref) => (
-  <DialogPrimitive.Title
-    ref={ref}
-    className={cn("text-[16px] text-foreground leading-tight", className)}
-    style={{ fontVariationSettings: "'wght' 700" }}
-    {...props}
-  />
-));
+>(({ className, ...props }, ref) => {
+  // The title role of the type scale — see /docs/sizes.
+  const compact = useSizeVariant() === "compact";
+  return (
+    <DialogPrimitive.Title
+      ref={ref}
+      className={cn(
+        typeClass("title", compact ? "compact" : "default"),
+        "text-foreground",
+        className
+      )}
+      style={{ fontVariationSettings: fontWeights.semibold }}
+      {...props}
+    />
+  );
+});
 DialogTitle.displayName = "DialogTitle";
 
 const DialogDescription = forwardRef<
   HTMLParagraphElement,
   ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
->(({ className, ...props }, ref) => (
-  <DialogPrimitive.Description
-    ref={ref}
-    className={cn("text-[13px] text-muted-foreground", className)}
-    {...props}
-  />
-));
+>(({ className, ...props }, ref) => {
+  const compact = useSizeVariant() === "compact";
+  return (
+    <DialogPrimitive.Description
+      ref={ref}
+      className={cn(
+        typeClass("body", compact ? "compact" : "default"),
+        "text-muted-foreground",
+        className
+      )}
+      {...props}
+    />
+  );
+});
 DialogDescription.displayName = "DialogDescription";
 
 export {
@@ -266,3 +322,4 @@ export {
   DialogDescription,
   DialogClose,
 };
+export type { DialogSlotProps as DialogTriggerProps, DialogSlotProps as DialogCloseProps };

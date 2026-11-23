@@ -12,16 +12,17 @@ import {
   type ReactNode,
 } from "react";
 import type { IconComponent } from "@/lib/icon-context";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
+import { KeyCaps } from "@/lib/key-cap";
 import { cn } from "@/lib/utils";
 import { fontWeights } from "@/lib/font-weight";
-import { popupShape } from "@/components/ui/popup-shape";
+import { usePopupShape } from "@/lib/shape-context";
 import { useSize } from "@/lib/size-context";
-import { useRegisterFluidHoverItem } from "@/hooks/use-fluid-hover";
-
-// MenuItem is only used inside Dropdown, which opts out of the global pill
-// shape — see dropdown.tsx for the rationale.
-const shape = popupShape;
+import {
+  useFluidHoverSelect,
+  useRegisterFluidHoverItem,
+  type FluidHoverActiveStore,
+} from "@/hooks/use-fluid-hover";
 
 // ---------------------------------------------------------------------------
 // Dropdown context — the single shared context for every Dropdown build.
@@ -62,7 +63,9 @@ export interface MenuItemRenderOptions {
 
 export interface DropdownContextValue {
   registerItem: (index: number, element: HTMLElement | null) => void;
-  activeIndex: number | null;
+  /** The highlighted row, read per row with `useFluidHoverSelect` so a
+   *  highlight change re-renders two rows instead of the whole menu. */
+  activeStore: FluidHoverActiveStore;
   checkedIndex?: number;
   /** Multiple selection (`checkedIndices` on the dropdown): rows are
    *  checkbox items and activating one keeps the menu open by default. */
@@ -133,9 +136,16 @@ export interface MenuItemProps extends HTMLAttributes<HTMLDivElement> {
   /** Popup-only (inside DropdownContent): whether activating the item closes
    *  the menu. Ignored in the inline Dropdown panel. @default true */
   closeOnClick?: boolean;
-  /** Destructive action (remove, delete): label and icon in the destructive
-   *  colour instead of the muted/foreground pair. */
+  /** Content before the icon, e.g. a drag handle. Its clicks are its own:
+   *  they don't activate the item. */
+  leading?: ReactNode;
+  /** An action that destroys something (Delete): the label and icon read
+   *  in the destructive color. */
   destructive?: boolean;
+  /** The row's keyboard shortcut, shown as key caps at its end: a combo
+   *  ("⌥←", "Ctrl+K") or the keys as an array. Display only: the menu
+   *  binds nothing. */
+  shortcut?: string | readonly string[];
 }
 
 const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
@@ -148,17 +158,20 @@ const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
       onSelect,
       disabled,
       closeOnClick,
+      leading,
       destructive = false,
+      shortcut,
       className,
       onClick,
       ...props
     },
     ref
   ) => {
+    const shape = usePopupShape();
     const internalRef = useRef<HTMLDivElement>(null);
     const {
       registerItem,
-      activeIndex,
+      activeStore,
       checkedIndex,
       multiple,
       checkedIndices,
@@ -168,7 +181,7 @@ const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
 
     useRegisterFluidHoverItem(registerItem, index, internalRef);
 
-    const isActive = activeIndex === index;
+    const isActive = useFluidHoverSelect(activeStore, (i) => i === index);
     const sizeClasses = useSize();
 
     const mergeRef = (node: HTMLDivElement | null) => {
@@ -196,8 +209,16 @@ const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
 
     const content = (
       <>
+        {leading && (
+          <span
+            className="flex shrink-0 items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {leading}
+          </span>
+        )}
         {Icon && (
-          <span className="inline-grid">
+          <span className="inline-grid shrink-0">
             <span className="col-start-1 row-start-1 invisible">
               <Icon size={sizeClasses.icon} strokeWidth={2} />
             </span>
@@ -207,7 +228,9 @@ const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
               className={cn(
                 "col-start-1 row-start-1 transition-[color,stroke-width] duration-80",
                 destructive
-                  ? "text-destructive"
+                  ? isActive
+                    ? "text-destructive"
+                    : "text-destructive/80"
                   : isActive || checked
                     ? "text-foreground"
                     : "text-muted-foreground"
@@ -215,11 +238,12 @@ const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
             />
           </span>
         )}
-        {/* Both stacked spans carry the text-box trim so the invisible bold
-            sizer and the visible label keep identical boxes. */}
-        <span className={cn("inline-grid flex-1", sizeClasses.text)}>
+        {/* Stacked regular/bold labels reserve weight changes without shifting
+            layout. Keep the normal line box inside truncation: cap/alphabetic
+            trim can clip font-dependent descenders at the overflow edge. */}
+        <span className={cn("inline-grid min-w-0 flex-1", sizeClasses.text)}>
           <span
-            className="col-start-1 row-start-1 invisible [text-box:trim-both_cap_alphabetic]"
+            className="col-start-1 row-start-1 invisible truncate"
             style={{ fontVariationSettings: fontWeights.semibold }}
             aria-hidden="true"
           >
@@ -227,9 +251,11 @@ const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
           </span>
           <span
             className={cn(
-              "col-start-1 row-start-1 transition-[color,font-variation-settings] duration-80 [text-box:trim-both_cap_alphabetic]",
+              "col-start-1 row-start-1 truncate transition-[color,font-variation-settings] duration-80",
               destructive
-                ? "text-destructive"
+                ? isActive
+                  ? "text-destructive"
+                  : "text-destructive/80"
                 : isActive || checked
                   ? "text-foreground"
                   : "text-muted-foreground"
@@ -278,6 +304,9 @@ const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
             </motion.svg>
           )}
         </AnimatePresence>
+        {shortcut && shortcut.length > 0 && (
+          <KeyCaps keys={shortcut} aria-hidden className="ml-auto" />
+        )}
       </>
     );
 

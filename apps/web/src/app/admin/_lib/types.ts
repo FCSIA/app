@@ -25,6 +25,7 @@ export type AuditActorScope = 'ALL' | 'USER' | 'SYSTEM';
 
 export type AuditEventRecord = {
   client?: "cli";
+  workshopId?: Id<"flexWorkshops">;
   actorId?: string | null;
   context?: { title: string; subtitle: string | null; references: Array<{ id: string; label: string; name: string }>; links?: Array<{ id: string; label: string; name: string; href: string | null }>; deleted?: boolean } | null;
   id: Id<"auditEvents">;

@@ -5,6 +5,7 @@ import {
   FLEX_ATTENDANCE_ROLES,
   FLEX_MANAGER_ROLES,
   hasAnyRole,
+  isStaff,
   STUDENT_ROLES,
 } from '~/apps/shared/roles';
 import { useState, type ReactNode } from 'react';
@@ -13,6 +14,7 @@ import { format } from 'date-fns';
 import { ConvexError } from 'convex/values';
 import { ArrowLeft, ClipboardList, Ticket } from 'lucide-react';
 import { api } from '~/apps/convex/src/_generated/api';
+import { adminWorkshopActivityHref } from '~/apps/shared/routes';
 import { displayName } from '~/apps/shared/user-name';
 import { useConvexAuth, useMutation, useQuery } from '@/lib/convex-react';
 import { useCurrentUser } from '@/lib/auth';
@@ -180,6 +182,7 @@ export function WorkshopDetail({
   rosterParams.set('attendance', workshop._id);
   const isStudent = hasAnyRole(user, STUDENT_ROLES);
   const canManage = hasAnyRole(user, FLEX_MANAGER_ROLES);
+  const canViewActivity = isStaff(user);
   const canTakeAttendance = hasAnyRole(user, FLEX_ATTENDANCE_ROLES);
   const requiresAssignment = sessions.some(
     (session) => session.sessionType === 'TEACHER_ASSIGNED',
@@ -330,6 +333,7 @@ export function WorkshopDetail({
           {viewer.registered ||
           canRegister ||
           canManage ||
+          canViewActivity ||
           canTakeAttendance ? (
             <CardFooter className="flex-wrap gap-2">
               {viewer.registered || canRegister ? (
@@ -349,6 +353,11 @@ export function WorkshopDetail({
               {canManage ? (
                 <Button asChild variant="tertiary">
                   <Link href={scheduleHref}>Manage in Friday schedule</Link>
+                </Button>
+              ) : null}
+              {canViewActivity ? (
+                <Button asChild variant="ghost">
+                  <Link href={adminWorkshopActivityHref(workshop._id, workshop.title)}>View workshop activity</Link>
                 </Button>
               ) : null}
             </CardFooter>

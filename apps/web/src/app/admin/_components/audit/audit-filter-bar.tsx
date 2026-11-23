@@ -40,14 +40,26 @@ function whenSummary(audit: AuditState) {
 }
 
 /**
- * One labelled control per column, so a reader sees every filter's current
- * value without opening anything: the column name stays muted and the value
- * reads in full contrast. Opening a control shows the same menu as that
- * column's header filter.
+ * Labelled controls show their current values without opening a menu. When
+ * opened from a workshop, its scope has its own removable chip.
  */
 export function AuditFilterBar({ audit }: { audit: AuditState }) {
+  const workshop = audit.auditFilterChips.find((chip) => chip.column === 'Workshop');
   return (
     <div className="flex flex-wrap items-center gap-1.5" aria-label="Filters">
+      {workshop ? (
+        <Button
+          type="button"
+          size="compact"
+          variant="secondary"
+          trailingIcon={X}
+          onClick={workshop.clear}
+          aria-label={`Remove workshop filter: ${workshop.label}`}
+        >
+          <span className="mr-1 text-muted-foreground">Workshop</span>
+          <span className="max-w-48 truncate text-foreground">{workshop.label}</span>
+        </Button>
+      ) : null}
       {COLUMNS.map((column) => (
         <AuditFilterControl key={column} column={column} audit={audit} />
       ))}

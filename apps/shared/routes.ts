@@ -29,6 +29,10 @@ export function adminFeedbackHref(reportId: string) {
   return `/admin/feedback/${reportId}`;
 }
 
+export function adminWorkshopActivityHref(workshopId: string, workshopName: string) {
+  return `/admin/audit?${new URLSearchParams({ audit_workshop: workshopId, audit_workshop_name: workshopName })}`;
+}
+
 export function adminUserHref(userId: string) {
   return `/admin/users?user=${userId}`;
 }

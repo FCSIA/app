@@ -17,8 +17,10 @@ sections use a grouped sidebar on desktop, an icon rail at intermediate widths,
 and a section picker on smaller screens. Audit filters remain in the URL when
 switching sections.
 
-The desktop table separates When, Person, Action, Record, and Where. Events use a
-single line, minute-level times, and full timestamps in Details.
+The table separates When, Person, and Activity. Activity combines the action
+with the specific target and location when available, with message excerpts on
+a second line. Day headings group events and each row shows the time to the
+minute. The expanded row shows seconds, the time-zone offset, and stored JSON.
 Neutral category icons identify six domains: People & access, Clubs & chat,
 Announcements, Moderation, Schedules, and Flex & events. Destructive action text
 uses the destructive token. Selecting a row or its keyboard-accessible Details
@@ -34,13 +36,20 @@ and other allowlisted metadata are shown outside that section. Whiteboard
 snapshots remain available.
 
 On phones, the same native DataTable keeps its column semantics and horizontal
-scrolling. Filters open in a phone-only Drawer; desktop controls stay beside
-their headers. Native pagination covers explicitly labeled loaded records; Load
-older activity retrieves another server batch. Material visuals await owner review.
+scrolling. Filters are in the desktop toolbar and the phone drawer. The Next
+arrow also fetches older activity when it reaches the end of loaded results.
+
+Staff can open **View workshop activity** from a Flex Friday workshop. The link
+scopes the log to that workshop’s changes, registrations, cancellations, and
+assignments. Each event remains a separate row. New enrollment events save
+the workshop ID and title at the time of the event, so a cancellation or rename
+doesn’t erase that context. Older enrollment events can be included where the
+original registration or assignment still resolves to that workshop, or a
+later cancellation saved the workshop ID.
 
 ## Filters and search
 
-When, Person, Action, and Record header controls open their own popovers.
+When, Person, Action, and Record toolbar controls open their own menus.
 Category and action checklists support multiple choices: choices within one
 checklist combine with OR, and separate filters combine with AND. Category
 changes remove selected actions outside the selected domains. Exact person and
@@ -69,8 +78,8 @@ dates include both UTC calendar days; date-picker fields use local time.
 Original action codes remain searchable even if a future code has no registry entry.
 
 `audit_` search parameters store the query, exact actor/record, selected actions
-and categories, source, record type, and dates. Reloading or sharing a valid URL
-restores those filters. Previous results remain visible while filters refresh,
+and categories, source, record type, workshop scope, and dates. Reloading or
+sharing a valid URL restores those filters. Previous results remain visible while filters refresh,
 scoped to the signed-in identity, with an Updating status. Initial loading uses
 skeleton rows while retaining the table header.
 
@@ -83,13 +92,13 @@ Unknown (not recorded), not automatically System; a missing current actor is a
 Former user. System classification requires explicit provenance or a known
 automatic action. A source scan test rejects direct domain audit inserts.
 
-`listPage` chooses indexed actor, record/type, category, action, or date ranges.
-Multiple actions/categories and historical type aliases merge ordered index
+`listFilteredPage` chooses indexed workshop, actor, record/type, category,
+action, or date ranges. Multiple actions/categories and historical type aliases merge ordered index
 streams before pagination. Remaining predicates run before pagination through
-`convex-helpers` streams with a 1,000-document / 4MB page read budget. Context and
-actor resolution are memoized per request. Selective text searches can still
-return a partial or empty page at that budget; Load older activity continues the
-cursor. The legacy bounded `list` API still hydrates and filters its bounded feed.
+`convex-helpers` streams with a 100-audit-row / 2 MiB page read budget. Context
+and actor resolution are memoized per request. Selective text searches can
+return a partial or empty page at that budget. Next continues the cursor. The
+legacy `list` API still hydrates and filters its bounded feed.
 
 The `@convex-dev/aggregate` category and actor indexes provide exact totals for
 category, actor, and date filters. Other combinations, including actions, record

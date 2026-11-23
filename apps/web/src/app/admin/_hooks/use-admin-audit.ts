@@ -15,7 +15,7 @@ function validDate(value: string) {
 }
 
 export type AuditFilterChip = {
-  column: 'When' | 'Person' | 'Action' | 'Record';
+  column: 'When' | 'Person' | 'Action' | 'Record' | 'Workshop';
   field: string;
   label: string;
   clear: () => void;
@@ -33,6 +33,7 @@ export function useAdminAudit() {
   const auditActor = param('person');
   const auditActorId = param('actor');
   const auditEntityId = param('record');
+  const workshopId = param('workshop');
   const actionParam = param('action');
   const auditActionFilters = useMemo(() => [...new Set(actionParam.split(',').filter((value) => !!value && value !== 'ALL'))], [actionParam]);
   const auditEntityTypeFilter = param('type', 'ALL');
@@ -84,13 +85,14 @@ export function useAdminAudit() {
     actor: auditActor.trim() || undefined,
     actorId: auditActorId ? auditActorId as Id<'users'> : undefined,
     recordId: auditEntityId.trim() || undefined,
+    workshopId: workshopId || undefined,
     actions: auditActionFilters.length ? auditActionFilters : undefined,
     entityType: auditEntityTypeFilter !== 'ALL' ? auditEntityTypeFilter : undefined,
     actorScope: auditActorScope !== 'ALL' ? auditActorScope : undefined,
     startAt: auditStartDate ? new Date(`${auditStartDate}T00:00:00`).getTime() : undefined,
     endAt: auditEndDate ? new Date(`${auditEndDate}T23:59:59.999`).getTime() : undefined,
     categories: auditCategoryFilters.length ? auditCategoryFilters : undefined,
-  }), [deferredQuery, auditActor, auditActorId, auditEntityId, auditActionFilters, auditEntityTypeFilter, auditActorScope, auditStartDate, auditEndDate, auditCategoryFilters]);
+  }), [deferredQuery, auditActor, auditActorId, auditEntityId, workshopId, auditActionFilters, auditEntityTypeFilter, auditActorScope, auditStartDate, auditEndDate, auditCategoryFilters]);
   const filterKey = JSON.stringify([user?._id, { ...auditQueryParams, advancedQuery: query.trim() || undefined }]);
   const { results: auditEvents, status: auditStatus, loadMore: loadMoreAuditEvents, isStale } = useStreamPaginatedQuery(
     api.audit.events.listFilteredPage, auditQueryParams,
@@ -100,7 +102,7 @@ export function useAdminAudit() {
   const auditFilterOptions = useQuery(api.audit.events.listFilterOptions, {});
   const clearAuditFilters = () => {
     setDraft('');
-    update(Object.fromEntries(['q', 'person', 'actor', 'actor_name', 'record', 'action', 'type', 'source', 'from', 'to', 'category'].map((key) => [key, ''])));
+    update(Object.fromEntries(['q', 'person', 'actor', 'actor_name', 'record', 'workshop', 'workshop_name', 'action', 'type', 'source', 'from', 'to', 'category'].map((key) => [key, ''])));
   };
   const chips = [
     auditActorId ? { column: "Person", field: "Person", label: param('actor_name', 'Selected person'), clear: () => update({ actor: '', actor_name: '' }) } : null,
@@ -108,6 +110,7 @@ export function useAdminAudit() {
     ...auditCategoryFilters.map((category) => ({ column: "Action", field: "Category", label: AUDIT_CATEGORIES[category], clear: () => update({ category: auditCategoryFilters.filter((value) => value !== category).join(',') }) })),
     ...auditActionFilters.map((action) => ({ column: "Action", field: "Action", label: auditActionLabel(action), clear: () => update({ action: auditActionFilters.filter((value) => value !== action).join(',') }) })),
     auditEntityTypeFilter !== 'ALL' ? { column: "Record", field: "Record type", label: auditRecordLabel(auditEntityTypeFilter), clear: () => update({ type: '' }) } : null,
+    workshopId ? { column: 'Workshop', field: 'Workshop', label: param('workshop_name') || 'Selected workshop', clear: () => update({ workshop: '', workshop_name: '' }) } : null,
     auditEntityId ? { column: 'Record', field: 'Record', label: 'Selected record', clear: () => update({ record: '' }) } : null,
     auditActorScope !== 'ALL' ? { column: 'Person', field: 'Source', label: auditActorScope === 'SYSTEM' ? 'System' : 'People', clear: () => update({ source: '' }) } : null,
     auditStartDate || auditEndDate ? { column: "When", field: "When", label: `${auditStartDate || 'Any date'} – ${auditEndDate || 'Now'}`, clear: () => update({ from: '', to: '' }) } : null,

@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useConvexAuth, useMutation } from '@/lib/convex-react';
+import { useMutation } from '@/lib/convex-react';
+import { useCurrentUser } from '@/lib/auth';
 import { getOrCreateStoredId } from '@/lib/browser-storage';
 import { convex } from '@/lib/convex';
 import { devicePlatform } from '@/lib/pwa';
@@ -25,12 +26,13 @@ function tabSessionId() {
  * while the page unloads.
  */
 export function PresenceHeartbeat() {
-  const { isAuthenticated } = useConvexAuth();
+  const user = useCurrentUser();
+  const presenceUserId = user && !user.mustResetPassword ? user._id : null;
   const heartbeat = useMutation(api.presence.status.heartbeat);
   const sessionToken = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!presenceUserId) return;
     const sessionId = tabSessionId();
     const platform = devicePlatform();
     let timer: ReturnType<typeof setInterval> | undefined;
@@ -73,7 +75,7 @@ export function PresenceHeartbeat() {
       window.removeEventListener('pagehide', stop);
       stop();
     };
-  }, [heartbeat, isAuthenticated]);
+  }, [heartbeat, presenceUserId]);
 
   return null;
 }

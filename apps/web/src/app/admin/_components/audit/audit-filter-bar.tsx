@@ -46,7 +46,7 @@ function whenSummary(audit: AuditState) {
  */
 export function AuditFilterBar({ audit }: { audit: AuditState }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2" aria-label="Filters">
+    <div className="flex flex-wrap items-center gap-1.5" aria-label="Filters">
       {COLUMNS.map((column) => (
         <AuditFilterControl key={column} column={column} audit={audit} />
       ))}

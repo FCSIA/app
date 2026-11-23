@@ -32,9 +32,9 @@ export function AuditSearch({ audit, table }: { audit: ReturnType<typeof useAdmi
   suggestions = suggestions.slice(0, 10);
   const open = active && !!match && suggestions.length > 0;
   return <Popover open={open} onOpenChange={setActive}>
-    <Command surface="inherit" shouldFilter={false} loop className="h-auto min-w-0 max-w-[34rem] flex-1 overflow-visible">
+    <Command surface="inherit" shouldFilter={false} loop className="h-auto min-w-0 flex-1 overflow-visible">
       <PopoverAnchor asChild>
-        <DataTableSearch table={table} className="max-w-full" placeholder="Search people, actions, or records…">
+        <DataTableSearch table={table} placeholder="Search people, actions, or records…">
           <CommandInputSlot asChild value={audit.auditSearch}>
             <DataTableSearchInput outlined aria-label="Search audit activity" aria-expanded={open} aria-invalid={!!audit.advancedError} aria-describedby={audit.advancedError ? 'audit-query-error' : undefined} onFocus={() => setActive(true)} onChange={() => setActive(true)} />
           </CommandInputSlot>

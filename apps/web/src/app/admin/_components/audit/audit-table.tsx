@@ -147,10 +147,10 @@ function RecordCell({ event }: { event: AuditEventRecord }) {
 function WhereCell({ event }: { event: AuditEventRecord }) {
   const places = auditPlaces(event);
   if (!places.length)
-    return event.context?.subtitle ? (
-      <span className="block truncate">{event.context.subtitle}</span>
-    ) : (
-      <span className="sr-only">No location recorded</span>
+    return (
+      <span className="block truncate" title={event.context?.subtitle ?? undefined}>
+        {event.context?.subtitle || '—'}
+      </span>
     );
   // The innermost place (the channel) is the most specific, so the club truncates first.
   return (
@@ -302,6 +302,8 @@ function AuditColumnHeader({
 }
 
 export function useAuditDataTable(audit: AuditState) {
+  // Wide tables give Person and Action a share of the pane. At smaller
+  // widths, Fluid sizes the columns from their contents.
   const columns = useMemo<ColumnDef<AuditEventRecord>[]>(
     () => [
       {
@@ -315,7 +317,7 @@ export function useAuditDataTable(audit: AuditState) {
         id: 'person',
         accessorFn: auditPersonName,
         header: ({ column }) => <AuditColumnHeader column={column} title="Person" />,
-        meta: { label: 'Person', className: 'overflow-visible xl:pr-5' },
+        meta: { label: 'Person', className: 'overflow-visible @min-[52rem]/audit:w-[26cqw]!' },
         cell: ({ row }) => (
           <AuditPersonCell event={row.original} />
         ),
@@ -324,7 +326,7 @@ export function useAuditDataTable(audit: AuditState) {
         id: 'action',
         accessorFn: (event) => auditActionLabel(event.action),
         header: ({ column }) => <AuditColumnHeader column={column} title="Action" />,
-        meta: { label: 'Action', className: 'xl:pr-6' },
+        meta: { label: 'Action', className: '@min-[52rem]/audit:w-[35cqw]!' },
         cell: ({ row }) => <Action event={row.original} />,
       },
       {
@@ -343,6 +345,7 @@ export function useAuditDataTable(audit: AuditState) {
           event.context?.subtitle ||
           '',
         header: 'Where',
+        meta: { className: '@min-[52rem]/audit:w-[10.5cqw]!' },
         cell: ({ row }) => <WhereCell event={row.original} />,
       },
     ],
@@ -374,10 +377,9 @@ export function AuditTable({
 }) {
   const canLoad = audit.auditStatus === 'CanLoadMore' && !audit.isStale;
   return (
-    <div className="mt-1 flex min-w-0 flex-col gap-3 md:mt-2" aria-busy={audit.isStale}>
+    <div className="@container/audit flex min-w-0 flex-col gap-3" aria-busy={audit.isStale}>
       <AuditTableContext.Provider value={audit}>
       <DataTable
-        className="md:[--table-cell-py:--spacing(2.5)] md:[&_tbody>tr>th[colspan]]:pt-5 md:[&_tbody>tr>th[colspan]]:pb-1.5"
         table={table}
         loading={audit.isAuditLoading}
         empty={{ title: 'No activity matches these filters.' }}

@@ -302,8 +302,7 @@ function AuditColumnHeader({
 }
 
 export function useAuditDataTable(audit: AuditState) {
-  // Wide tables give Person and Action a share of the pane. At smaller
-  // widths, Fluid sizes the columns from their contents.
+  // Fluid sizes the surrounding columns from their content and gives Record the remaining width.
   const columns = useMemo<ColumnDef<AuditEventRecord>[]>(
     () => [
       {
@@ -317,7 +316,7 @@ export function useAuditDataTable(audit: AuditState) {
         id: 'person',
         accessorFn: auditPersonName,
         header: ({ column }) => <AuditColumnHeader column={column} title="Person" />,
-        meta: { label: 'Person', className: 'overflow-visible @min-[52rem]/audit:w-[26cqw]!' },
+        meta: { label: 'Person', className: 'overflow-visible' },
         cell: ({ row }) => (
           <AuditPersonCell event={row.original} />
         ),
@@ -326,7 +325,7 @@ export function useAuditDataTable(audit: AuditState) {
         id: 'action',
         accessorFn: (event) => auditActionLabel(event.action),
         header: ({ column }) => <AuditColumnHeader column={column} title="Action" />,
-        meta: { label: 'Action', className: '@min-[52rem]/audit:w-[35cqw]!' },
+        meta: { label: 'Action' },
         cell: ({ row }) => <Action event={row.original} />,
       },
       {
@@ -345,7 +344,6 @@ export function useAuditDataTable(audit: AuditState) {
           event.context?.subtitle ||
           '',
         header: 'Where',
-        meta: { className: '@min-[52rem]/audit:w-[10.5cqw]!' },
         cell: ({ row }) => <WhereCell event={row.original} />,
       },
     ],
@@ -451,7 +449,7 @@ export function AuditTable({
     if (viewport) viewport.scrollTop = 0;
   }, [pageIndex, pageSize, audit.filterKey]);
   return (
-    <div ref={contentRef} className="@container/audit flex min-h-0 min-w-0 flex-1 flex-col" aria-busy={audit.isStale}>
+    <div ref={contentRef} className="flex min-h-0 min-w-0 flex-1 flex-col" aria-busy={audit.isStale}>
       <AuditTableContext.Provider value={audit}>
       <DataTable
         table={table}

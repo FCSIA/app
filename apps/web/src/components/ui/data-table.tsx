@@ -1318,7 +1318,7 @@ function DataTable<TData>({
                   shapeVariant={shape.variant}
                 />
                 {detail != null && (
-                  <tr className="border-b border-accent/40 bg-muted/40"><td colSpan={columnCount} className="px-3 pb-3 pt-2">{detail}</td></tr>
+                  <tr className="border-b border-border"><td colSpan={columnCount} className="px-3 pb-4 pt-1">{detail}</td></tr>
                 )}
               </Fragment>
             );
@@ -1910,7 +1910,7 @@ const DataTableBodyRow = memo(
           : undefined
       }
       className={cn(
-        detailOpen && "border-transparent bg-muted/40",
+        detailOpen && "border-transparent",
         onRowClick && "cursor-pointer",
         rowsFocusable && "outline-none",
         // Rows each stack on their own (z-10); the one holding a raised

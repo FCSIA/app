@@ -30,6 +30,9 @@ export type AuditFilterColumn = 'When' | 'Person' | 'Action' | 'Record';
 /** `menu` is a header popup; `panel` is the same rows inline in the phone drawer. */
 export type AuditFilterSurface = 'menu' | 'panel';
 
+/** Typed matches stay short enough that a menu never scrolls. */
+const MATCH_LIMIT = 8;
+
 const matches = (text: string, query: string) =>
   text.toLowerCase().includes(query.trim().toLowerCase());
 
@@ -125,10 +128,12 @@ function PersonFilter({
 }) {
   const [search, setSearch] = useState('');
   const deferredSearch = useDeferredValue(search.trim());
-  const people = useQuery(api.users.admin.list, {
-    paginationOpts: { numItems: 20, cursor: null },
-    search: deferredSearch || undefined,
-  });
+  const people = useQuery(
+    api.users.admin.list,
+    deferredSearch
+      ? { paginationOpts: { numItems: MATCH_LIMIT, cursor: null }, search: deferredSearch }
+      : 'skip',
+  );
   const noPerson = !audit.auditActorId && !audit.auditActor;
   const scopes: Row[] = search.trim()
     ? []
@@ -152,14 +157,18 @@ function PersonFilter({
           onSelect: () => audit.setAuditActorSource('SYSTEM'),
         },
       ];
-  const personRows: Row[] = (people?.page ?? []).map((person, index) => ({
+  // The chosen person stays listed, checked, so it can be cleared in place.
+  const chosen = audit.auditFilterChips.find((chip) => chip.column === 'Person' && chip.field === 'Person');
+  const chosenRow: Row[] = !search.trim() && chosen
+    ? [{ key: 'chosen', label: chosen.label, checked: true, onSelect: () => audit.setAuditActorSource('ALL') }]
+    : [];
+  const personRows: Row[] = (search.trim() ? people?.page ?? [] : []).map((person) => ({
     key: person._id,
     label: displayName(person),
-    heading: index === 0 && scopes.length ? 'People' : undefined,
     checked: audit.auditActorId === person._id,
     onSelect: () => audit.setAuditActorId(person._id, displayName(person)),
   }));
-  const rows = [...scopes, ...personRows];
+  const rows = [...chosenRow, ...scopes, ...personRows];
   const checkedIndex = rows.findIndex((row) => row.checked);
   return (
     <FilterSurface
@@ -170,14 +179,14 @@ function PersonFilter({
       <DropdownSearch
         value={search}
         onValueChange={setSearch}
-        placeholder="Find a person…"
+        placeholder="Search people…"
         aria-label="Find a person"
         autoFocus={surface === 'menu'}
       />
       <Rows rows={rows} />
       {!rows.length ? (
         <DropdownEmpty>
-          {people === undefined ? 'Loading people…' : 'No people found'}
+          {people === undefined ? 'Searching…' : 'No people found'}
         </DropdownEmpty>
       ) : null}
     </FilterSurface>
@@ -196,20 +205,20 @@ function ActionFilter({
     values.includes(value)
       ? values.filter((item) => item !== value)
       : [...values, value];
+  const query = search.trim();
   const categories = (
     Object.entries(AUDIT_CATEGORIES) as [AuditCategory, string][]
-  ).filter(([, label]) => matches(label, search));
-  const actions = audit.auditActionOptions.filter(
-    (action) =>
-      (!audit.auditCategoryFilters.length ||
-        audit.auditCategoryFilters.some((category) => category === auditActionInfo(action)?.category)) &&
-      matches(`${auditActionLabel(action)} ${action}`, search),
-  );
+  ).filter(([, label]) => matches(label, query));
+  // Chosen actions stay listed so they can be unchecked without retyping.
+  const actions = query
+    ? audit.auditActionOptions
+        .filter((action) => matches(`${auditActionLabel(action)} ${action}`, query))
+        .slice(0, MATCH_LIMIT)
+    : audit.auditActionFilters;
   const rows: Row[] = [
-    ...categories.map(([category, label], index) => ({
+    ...categories.map(([category, label]) => ({
       key: `category:${category}`,
       label,
-      heading: index === 0 ? 'Categories' : undefined,
       checked: audit.auditCategoryFilters.includes(category),
       onSelect: () =>
         audit.setAuditCategoryFilters(
@@ -219,7 +228,7 @@ function ActionFilter({
     ...actions.map((action, index) => ({
       key: `action:${action}`,
       label: auditActionLabel(action),
-      heading: index === 0 ? 'Actions' : undefined,
+      heading: index === 0 && categories.length ? 'Actions' : undefined,
       checked: audit.auditActionFilters.includes(action),
       onSelect: () =>
         audit.setAuditActionFilters(toggle(audit.auditActionFilters, action)),
@@ -236,7 +245,7 @@ function ActionFilter({
       <DropdownSearch
         value={search}
         onValueChange={setSearch}
-        placeholder="Find an action…"
+        placeholder="Search actions…"
         aria-label="Find an action"
         autoFocus={surface === 'menu'}
       />

@@ -444,6 +444,7 @@ function UserTableSection({
       id: 'actions',
       header: () => <span className="sr-only">Actions</span>,
       enableSorting: false,
+      enableResizing: false,
       enableHiding: false,
       cell: ({ row }) => (
         <DataTableControls className="justify-end">{userActions(row.original)}</DataTableControls>

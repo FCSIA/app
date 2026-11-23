@@ -113,6 +113,7 @@ function MenuItemWithHeading({
       <MenuItem
         index={index}
         label={row.label}
+        title={row.label}
         checked={row.checked}
         onSelect={row.onSelect}
       />

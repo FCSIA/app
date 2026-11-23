@@ -307,6 +307,7 @@ export function ModerationTab() {
         id: 'actions',
         header: () => <span className="sr-only">Actions</span>,
         enableSorting: false,
+        enableResizing: false,
         enableHiding: false,
         cell: ({ row }) => (
           <div className="flex justify-end">{actionsFor(row.original)}</div>

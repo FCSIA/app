@@ -221,6 +221,7 @@ export function FeedbackTab({ canUpdateFeedback = true }: { canUpdateFeedback?: 
             id: 'actions',
             header: () => <span className="sr-only">Status actions</span>,
             enableSorting: false,
+            enableResizing: false,
             enableHiding: false,
             cell: ({ row }) => (
               <div className="flex justify-end">
@@ -238,6 +239,7 @@ export function FeedbackTab({ canUpdateFeedback = true }: { canUpdateFeedback?: 
       id: 'details',
       header: () => <span className="sr-only">Details</span>,
       enableSorting: false,
+      enableResizing: false,
       enableHiding: false,
       cell: ({ row }) => (
         <Button

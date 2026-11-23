@@ -23,8 +23,8 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer';
 import { useAdminAudit } from '../../_hooks/use-admin-audit';
-import { AuditDetailSheet } from './audit-detail-sheet';
 import { AuditColumnFilter, type AuditFilterColumn } from './audit-filters';
+import { AuditFilterBar } from './audit-filter-bar';
 import { AuditSearch } from './audit-search';
 import { AuditTable, useAuditDataTable } from './audit-table';
 
@@ -158,22 +158,26 @@ export function AuditTab() {
               {audit.advancedError} Showing the last valid search.
             </p>
           ) : null}
+          <div className="hidden md:block">
+            <AuditFilterBar audit={audit} />
+          </div>
           {audit.auditFilterChips.length ? (
             <div
-              className="flex flex-wrap items-center gap-1"
+              className="flex flex-wrap items-center gap-1 md:hidden"
               aria-label="Active filters"
             >
               {audit.auditFilterChips.map((chip) => (
                 <Button
-                  key={chip.label}
+                  key={`${chip.field}:${chip.label}`}
                   type="button"
                   size="sm"
                   variant="secondary"
                   trailingIcon={X}
                   onClick={chip.clear}
-                  aria-label={`Remove ${chip.label}`}
+                  aria-label={`Remove ${chip.field} filter: ${chip.label}`}
                 >
-                  {chip.label}
+                  <span className="mr-1 text-muted-foreground">{chip.field}</span>
+                  <span>{chip.label}</span>
                 </Button>
               ))}
               <Button
@@ -191,16 +195,6 @@ export function AuditTab() {
       >
         <AuditTable audit={audit} table={table} />
       </DataTableSection>
-      <AuditDetailSheet
-        selectedEventId={audit.selectedAuditEventId}
-        onSelectedEventIdChange={audit.setSelectedAuditEventId}
-        eventDetail={audit.auditEventDetail}
-        isDetailLoading={audit.isAuditDetailLoading}
-        onFilterPerson={(id, name) => {
-          audit.setSelectedAuditEventId(null);
-          audit.setAuditActorId(id, name);
-        }}
-      />
     </>
   );
 }

@@ -12,9 +12,41 @@ import {
   DataTablePagination,
   type ColumnDef,
 } from '@/components/ui/data-table';
-import { format } from 'date-fns';
+import { AuditEventContent } from './audit-event-content';
+import { format, isSameDay } from 'date-fns';
 import {
+  Archive,
+  ArchiveRestore,
+  Ban,
   CalendarDays,
+  ChevronRight,
+  CircleAlert,
+  CircleCheck,
+  CircleX,
+  ClipboardCheck,
+  Flag,
+  Handshake,
+  KeyRound,
+  ListFilterPlus,
+  Lock,
+  LockOpen,
+  MessageSquarePlus,
+  Pencil,
+  Pin,
+  Plus,
+  RefreshCw,
+  Reply,
+  RotateCcw,
+  Send,
+  Smile,
+  Terminal,
+  ToggleRight,
+  Trash2,
+  Upload,
+  UserCheck,
+  UserPlus,
+  VenetianMask,
+  type LucideIcon,
   ListFilter,
   FileText,
   Megaphone,
@@ -39,9 +71,10 @@ import { AUDIT_FETCH_LIMIT } from '../../_lib/admin-utils';
 import type { AuditEventRecord } from '../../_lib/types';
 import type { useAdminAudit } from '../../_hooks/use-admin-audit';
 import {
-  AUDIT_CATEGORIES,
   auditActionInfo,
+  auditActionKind,
   auditActionLabel,
+  type AuditActionKind,
   auditCategory,
   auditPersonName,
   auditRecordTitle,
@@ -147,23 +180,66 @@ function WhereCell({ event }: { event: AuditEventRecord }) {
     </span>
   );
 }
+// Four quiet tones, each tied to meaning: most rows stay neutral so the few
+// approvals, removals, security changes and conversations stand out.
+const tone = {
+  neutral: 'text-muted-foreground',
+  positive: 'text-emerald-700 dark:text-emerald-400',
+  negative: 'text-destructive',
+  caution: 'text-amber-700 dark:text-amber-400',
+  social: 'text-sky-700 dark:text-sky-400',
+};
+const actionKinds: Record<AuditActionKind, [LucideIcon, string]> = {
+  create: [Plus, tone.neutral], edit: [Pencil, tone.neutral],
+  delete: [Trash2, tone.negative], approve: [CircleCheck, tone.positive],
+  reject: [CircleX, tone.negative], archive: [Archive, tone.neutral],
+  restore: [ArchiveRestore, tone.neutral], deactivate: [Ban, tone.negative],
+  import: [Upload, tone.neutral], join: [UserPlus, tone.social],
+  assign: [UserCheck, tone.neutral], request: [Handshake, tone.social],
+  access: [KeyRound, tone.caution], publish: [Send, tone.social],
+  message: [MessageSquarePlus, tone.social], reply: [Reply, tone.social],
+  pin: [Pin, tone.neutral], toggle: [ToggleRight, tone.neutral],
+  attendance: [ClipboardCheck, tone.neutral], report: [Flag, tone.caution],
+  rule: [ListFilterPlus, tone.neutral], reaction: [Smile, tone.neutral],
+  lock: [Lock, tone.caution], unlock: [LockOpen, tone.neutral],
+  impersonate: [VenetianMask, tone.caution], cli: [Terminal, tone.neutral],
+  sync: [RefreshCw, tone.neutral], retry: [RotateCcw, tone.neutral],
+  failure: [CircleAlert, tone.negative],
+};
+
 function Action({ event }: { event: AuditEventRecord }) {
   const category = auditCategory(event.entityType, event.action);
-  const Icon = icons[category];
+  const kind = auditActionKind(event.action);
+  const [Icon, color] = kind ? actionKinds[kind] : [icons[category], tone.neutral];
   return (
     <span className="flex min-w-0 items-center gap-2">
       <Icon
         size={14}
-        className="shrink-0 text-muted-foreground"
-        aria-label={AUDIT_CATEGORIES[category]}
+        className={`shrink-0 ${color}`}
+        aria-hidden
       />
       <span
-        className={`truncate ${auditActionInfo(event.action)?.destructive ? 'text-destructive' : 'text-foreground'}`}
+        title={auditActionLabel(event.action)}
+        className={`line-clamp-2 whitespace-normal ${auditActionInfo(event.action)?.destructive ? 'text-destructive' : 'text-foreground'}`}
       >
         {auditActionLabel(event.action)}
       </span>
     </span>
   );
+}
+function AuditTime({ event }: { event: AuditEventRecord }) {
+  const audit = useContext(AuditTableContext);
+  if (!audit) throw new Error('AuditTime requires AuditTableContext');
+  const open = audit.selectedAuditEventId === event.id;
+  const date = new Date(event.createdAt);
+  return <button type="button" aria-expanded={open}
+    aria-label={`${open ? 'Collapse' : 'Expand'} ${auditActionLabel(event.action)}, ${format(date, 'PPP p')}`}
+    title={format(date, 'PPP pp')}
+    onClick={() => audit.setSelectedAuditEventId(open ? null : event.id)}
+    className="flex items-center gap-2 whitespace-nowrap rounded-sm text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring">
+    <ChevronRight size={14} aria-hidden className={open ? 'rotate-90' : undefined} />
+    <time dateTime={event.createdAt}>{format(date, 'h:mm a')}</time>
+  </button>;
 }
 function AuditPersonCell({ event }: { event: AuditEventRecord }) {
   const audit = useContext(AuditTableContext);
@@ -190,7 +266,7 @@ function AuditColumnHeader({
           <DataTableColumnHeader column={column} title={title}>
           <DataTableColumnHeaderLabel />
           <DataTableControls>
-          <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+          <DropdownMenu size="compact" open={menuOpen} onOpenChange={setMenuOpen}>
             <DropdownTrigger
               render={
                 <Button
@@ -233,15 +309,8 @@ export function useAuditDataTable(audit: AuditState) {
         accessorKey: 'createdAt',
         header: ({ column }) => <AuditColumnHeader column={column} title="When" />,
         meta: { label: 'When' },
-        cell: ({ row }) => (
-          <time
-            className="whitespace-nowrap"
-            dateTime={row.original.createdAt}
-            title={format(new Date(row.original.createdAt), 'PPpp')}
-          >
-            {format(new Date(row.original.createdAt), 'MMM d, h:mm a')}
-          </time>
-        ),
+        enableHiding: false,
+        cell: ({ row }) => <AuditTime event={row.original} />,
       },
       {
         id: 'person',
@@ -310,7 +379,14 @@ export function AuditTable({
         table={table}
         loading={audit.isAuditLoading}
         empty={{ title: 'No activity matches these filters.' }}
-        onRowClick={(row) => audit.setSelectedAuditEventId(row.original.id)}
+        groupLabel={(row, previous) => {
+          const day = new Date(row.original.createdAt);
+          return previous && isSameDay(day, new Date(previous.original.createdAt)) ? null : format(day, 'EEEE, MMM d, yyyy');
+        }}
+        onRowClick={(row) => audit.setSelectedAuditEventId(row.id === audit.selectedAuditEventId ? null : row.id)}
+        rowDetail={(row) => row.id === audit.selectedAuditEventId
+          ? <AuditEventContent eventId={row.original.id} />
+          : null}
       />
       </AuditTableContext.Provider>
       <DataTablePagination table={table} />

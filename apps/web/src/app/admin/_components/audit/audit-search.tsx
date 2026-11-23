@@ -34,7 +34,7 @@ export function AuditSearch({ audit, table }: { audit: ReturnType<typeof useAdmi
   return <Popover open={open} onOpenChange={setActive}>
     <Command surface="inherit" shouldFilter={false} loop className="h-auto min-w-0 flex-1 overflow-visible">
       <PopoverAnchor asChild>
-        <DataTableSearch table={table} placeholder={'Search… or person:"Alex" action:deleted'}>
+        <DataTableSearch table={table} placeholder="Search people, actions, or records…">
           <CommandInputSlot asChild value={audit.auditSearch}>
             <DataTableSearchInput aria-label="Search audit activity" aria-expanded={open} aria-invalid={!!audit.advancedError} aria-describedby={audit.advancedError ? 'audit-query-error' : undefined} onFocus={() => setActive(true)} onChange={() => setActive(true)} />
           </CommandInputSlot>

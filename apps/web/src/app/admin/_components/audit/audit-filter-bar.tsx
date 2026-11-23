@@ -6,6 +6,7 @@ import { ChevronDown, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownTrigger } from '@/components/ui/dropdown';
 import { Popover, PopoverAnchor } from '@/components/ui/popover';
+import { useShape } from '@/lib/shape-context';
 import type { useAdminAudit } from '../../_hooks/use-admin-audit';
 import {
   AuditColumnFilter,
@@ -73,6 +74,7 @@ function AuditFilterControl({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [rangeOpen, setRangeOpen] = useState(false);
+  const shape = useShape();
   const chips = audit.auditFilterChips.filter((chip) => chip.column === column);
   const applied = chips.length > 0;
   const value = !applied
@@ -114,7 +116,7 @@ function AuditFilterControl({
     </DropdownMenu>
   );
   const control = applied ? (
-    <span className="surface-top-edge inline-flex rounded-md bg-[var(--tint)]">
+    <span className={`surface-top-edge inline-flex bg-[var(--tint)] ${shape.button}`}>
       {trigger}
       <Button
         type="button"

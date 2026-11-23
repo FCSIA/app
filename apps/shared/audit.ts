@@ -404,6 +404,7 @@ export function auditRecordTitle(event: SearchableAuditEvent): string {
 }
 
 const ACTION_META_FIELDS: Record<string, readonly [string, string][]> = {
+  USER_DEVELOPER_STATUS_UPDATED: [['enabled', 'Developer access']],
   CLUB_CHANNEL_MESSAGE_UPDATED: [['previousBodyPreview', 'Before'], ['bodyPreview', 'After']],
   USER_CSV_IMPORT: [['created', 'People added'], ['skipped', 'Rows skipped']],
   ADMINISTRATOR_CSV_IMPORT: [['created', 'Administrators added'], ['skipped', 'Rows skipped']],
@@ -424,7 +425,7 @@ const CATEGORY_META_FIELDS: Record<AuditCategory, readonly string[]> = {
 /** Human details use known fields; complete unrecognized metadata stays technical. */
 export function auditMetaFields(event: SearchableAuditEvent): { key: string; label: string; value: unknown }[] {
   const meta = auditMeta(event);
-  const fields = ACTION_META_FIELDS[event.action] ?? CATEGORY_META_FIELDS[auditCategory(event.entityType, event.action)].map((key) => [key, auditLabel(key)] as const);
+  const fields = ACTION_META_FIELDS[event.action] ?? CATEGORY_META_FIELDS[auditCategory(event.entityType, event.action)].map((key) => [key, key === 'enabled' ? 'State' : auditLabel(key)] as const);
   return fields.flatMap(([key, label]) => {
     const value = key === 'enabled' && typeof meta[key] === 'boolean' ? meta[key] ? 'Enabled' : 'Disabled' : meta[key];
     if (value == null || value === false || value === 0 || value === '' || Array.isArray(value) && !value.length) return [];

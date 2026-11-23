@@ -13,6 +13,7 @@ import {
 } from "react";
 import type { IconComponent } from "@/lib/icon-context";
 import { motion, AnimatePresence } from "motion/react";
+import { KeyCaps } from "@/lib/key-cap";
 import { cn } from "@/lib/utils";
 import { fontWeights } from "@/lib/font-weight";
 import { usePopupShape } from "@/lib/shape-context";
@@ -138,6 +139,13 @@ export interface MenuItemProps extends HTMLAttributes<HTMLDivElement> {
   /** Content before the icon, e.g. a drag handle. Its clicks are its own:
    *  they don't activate the item. */
   leading?: ReactNode;
+  /** An action that destroys something (Delete): the label and icon read
+   *  in the destructive color. */
+  destructive?: boolean;
+  /** The row's keyboard shortcut, shown as key caps at its end: a combo
+   *  ("⌥←", "Ctrl+K") or the keys as an array. Display only: the menu
+   *  binds nothing. */
+  shortcut?: string | readonly string[];
 }
 
 const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
@@ -151,6 +159,8 @@ const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
       disabled,
       closeOnClick,
       leading,
+      destructive = false,
+      shortcut,
       className,
       onClick,
       ...props
@@ -217,9 +227,13 @@ const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
               strokeWidth={isActive || checked ? 2 : 1.5}
               className={cn(
                 "col-start-1 row-start-1 transition-[color,stroke-width] duration-80",
-                isActive || checked
-                  ? "text-foreground"
-                  : "text-muted-foreground"
+                destructive
+                  ? isActive
+                    ? "text-destructive"
+                    : "text-destructive/80"
+                  : isActive || checked
+                    ? "text-foreground"
+                    : "text-muted-foreground"
               )}
             />
           </span>
@@ -238,9 +252,13 @@ const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
           <span
             className={cn(
               "col-start-1 row-start-1 truncate transition-[color,font-variation-settings] duration-80",
-              isActive || checked
-                ? "text-foreground"
-                : "text-muted-foreground"
+              destructive
+                ? isActive
+                  ? "text-destructive"
+                  : "text-destructive/80"
+                : isActive || checked
+                  ? "text-foreground"
+                  : "text-muted-foreground"
             )}
             style={{
               fontVariationSettings: checked
@@ -286,6 +304,9 @@ const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
             </motion.svg>
           )}
         </AnimatePresence>
+        {shortcut && shortcut.length > 0 && (
+          <KeyCaps keys={shortcut} aria-hidden className="ml-auto" />
+        )}
       </>
     );
 

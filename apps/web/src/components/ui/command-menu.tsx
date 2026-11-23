@@ -22,12 +22,12 @@ import {
   type SetStateAction,
 } from "react";
 import { animate, motion, useReducedMotion } from "framer-motion";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { KeyCaps } from "@/lib/key-cap";
 import { spring } from "@/lib/springs";
 import { useIcons, type IconComponent } from "@/lib/icon-context";
-import { shapeMap } from "@/lib/shape-context";
-import { SizeProvider, useSize, type SizeVariant } from "@/lib/size-context";
+import { usePopupShape } from "@/lib/shape-context";
+import { SizeProvider, useSize, typeClass, fieldTouchClass, type SizeVariant } from "@/lib/size-context";
 import { isDisabledRow } from "@/lib/popup";
 import {
   useFluidHover,
@@ -89,6 +89,9 @@ export interface CommandMenuItemData {
    *  item appears in; ungrouped items form an unlabelled section. */
   group?: string;
   disabled?: boolean;
+  /** An action that destroys something (Delete): the row reads in the
+   *  destructive color. */
+  destructive?: boolean;
   /** Runs when the row is picked, before the root's `onSelect`. */
   onSelect?: () => void;
 }
@@ -100,20 +103,6 @@ interface CommandMenuSection {
   items: CommandMenuItemData[];
   /** Flat index of the section's first row. */
   start: number;
-}
-
-// The list keeps the smaller "rounded" radii whatever the rest of the UI is
-// shaped, like every popup list: pill rows inside a square panel distort the
-// concentric fit of the hover fill. The dialog shell follows the global
-// shape through DialogContent.
-const listShape = shapeMap.rounded;
-
-// Registry compatibility: retain the app's existing type ladder. These are
-// the official caption/micro roles and coarse-pointer editable-field size.
-const fieldTouchClass = "pointer-coarse:text-[16px]";
-function typeClass(role: "caption" | "micro", variant: SizeVariant): string {
-  if (role === "caption") return variant === "compact" ? "text-[11px] leading-[14px]" : "text-[12px] leading-4";
-  return variant === "compact" ? "text-[10px] leading-3" : "text-[11px] leading-[14px]";
 }
 
 // ---------------------------------------------------------------------------
@@ -286,16 +275,27 @@ export function isMacPlatform(): boolean {
 }
 
 // The platform never changes, so it is read once and served as a store
-// snapshot: the server (and hydration) draw ⌘, other platforms swap to
-// words in the render that follows, with no state or effect per cap.
+// snapshot. The server can't see navigator: it (and hydration) draws what
+// CommandMenuPlatform says, ⌘ when nothing does, and a wrong guess swaps in
+// the render that follows, with no state or effect per cap.
 let macPlatform: boolean | null = null;
 const readMac = () => (macPlatform ??= isMacPlatform());
-const serverMac = () => true;
 const subscribeNever = () => () => {};
+
+const PlatformContext = createContext<boolean | null>(null);
+
+/** Tells the server render which glyphs to draw, so caps paint as ⌘ or Ctrl
+ *  from the first frame instead of swapping (and changing width) after
+ *  hydration. Derive `mac` from the request's `Sec-CH-UA-Platform` or
+ *  User-Agent header. */
+export function CommandMenuPlatform({ mac, children }: { mac: boolean; children: ReactNode }) {
+  return <PlatformContext.Provider value={mac}>{children}</PlatformContext.Provider>;
+}
 
 /** Whether to draw ⌘ and ⌥ rather than Ctrl and Alt. */
 export function useIsMac(): boolean {
-  return useSyncExternalStore(subscribeNever, readMac, serverMac);
+  const serverMac = useContext(PlatformContext) ?? true;
+  return useSyncExternalStore(subscribeNever, readMac, () => serverMac);
 }
 
 // Layout effects have no server counterpart; on the server they are no-ops.
@@ -901,7 +901,7 @@ const CommandMenuInput = forwardRef<HTMLInputElement, CommandMenuInputProps>(
 CommandMenuInput.displayName = "CommandMenuInput";
 
 // ---------------------------------------------------------------------------
-// CommandMenuTabs — subtle tabs under the field. The tabs are state you own:
+// CommandMenuTabs — tabs under the field. The tabs are state you own:
 // derive `items` from the value so the list follows.
 // ---------------------------------------------------------------------------
 
@@ -1049,6 +1049,7 @@ export interface CommandMenuListProps extends HTMLAttributes<HTMLDivElement> {
 
 const CommandMenuList = forwardRef<HTMLDivElement, CommandMenuListProps>(
   ({ className, children, renderItem, ...props }, ref) => {
+    const listShape = usePopupShape();
     const { sections, rows, listId, listRef, setActiveIndex, listHandlers } = useCommandMenu();
     const fill = useContext(CommandMenuFillContext);
     const sizeClasses = useSize();
@@ -1065,6 +1066,23 @@ const CommandMenuList = forwardRef<HTMLDivElement, CommandMenuListProps>(
       listHandlers.onMouseLeave();
       setActiveIndex(lastActiveRef.current);
     };
+
+    // No results keeps the height the last results showed (what was on
+    // screen of it, not what scrolled), so the message sits where the rows
+    // were and the palette doesn't jump on each keystroke into and out of
+    // an empty query. The rows' own height takes over again once they return.
+    const shownHeightRef = useRef(0);
+    useIsoLayoutEffect(() => {
+      const node = listRef.current;
+      if (!node) return;
+      if (empty) {
+        node.style.minHeight = shownHeightRef.current ? `${shownHeightRef.current}px` : "";
+        return;
+      }
+      node.style.minHeight = "";
+      const viewport = node.closest<HTMLElement>('[data-slot="scroll-area-viewport"]');
+      shownHeightRef.current = Math.min(node.offsetHeight, viewport?.clientHeight ?? Infinity);
+    }, [empty, rows.length, listRef]);
 
     return (
       // Not the popup viewport class: a palette is sized by its rows up to
@@ -1103,8 +1121,9 @@ const CommandMenuList = forwardRef<HTMLDivElement, CommandMenuListProps>(
           onMouseDown={(e) => e.preventDefault()}
           className={cn(
             // The list is the fill's offsetParent, so rows and fill scroll
-            // together inside the viewport. Padding collapses when empty.
-            "relative flex flex-col gap-1 p-1 outline-none data-[empty]:p-0",
+            // together inside the viewport. Padding collapses when empty, and
+            // the message centers in the height the rows left.
+            "relative flex flex-col gap-1 p-1 outline-none data-[empty]:justify-center data-[empty]:p-0",
             className
           )}
           {...props}
@@ -1121,7 +1140,7 @@ const CommandMenuList = forwardRef<HTMLDivElement, CommandMenuListProps>(
                 key={section.id}
                 role="group"
                 aria-labelledby={headingId}
-                className="flex flex-col"
+                className="flex flex-col gap-0.5"
               >
                 {section.heading && (
                   <div
@@ -1195,48 +1214,20 @@ export interface CommandMenuShortcutProps extends HTMLAttributes<HTMLElement> {
   keys: string | readonly string[];
 }
 
-const shortcutArrows = {
-  "↑": { Icon: ArrowUp, label: "Up arrow" },
-  "↓": { Icon: ArrowDown, label: "Down arrow" },
-  "←": { Icon: ArrowLeft, label: "Left arrow" },
-  "→": { Icon: ArrowRight, label: "Right arrow" },
-} as const;
-
 const CommandMenuShortcut = forwardRef<HTMLElement, CommandMenuShortcutProps>(
   ({ keys, className, ...props }, ref) => {
     const mac = useIsMac();
-    const compact = useSize().variant === "compact";
     const caps = (typeof keys === "string" ? [keys] : keys).flatMap((k) =>
       formatShortcut(k, mac)
     );
     return (
-      <kbd
+      <KeyCaps
         ref={ref}
+        keys={caps}
         data-slot="command-menu-shortcut"
-        className={cn("ml-auto inline-flex shrink-0 items-center gap-0.5 align-middle font-sans", className)}
+        className={cn("ml-auto align-middle", className)}
         {...props}
-      >
-        {caps.map((cap, i) => {
-          const arrow = shortcutArrows[cap as keyof typeof shortcutArrows];
-          return (
-            <span
-              key={`${cap}-${i}`}
-              className={cn(
-                "flex items-center justify-center rounded-[5px] bg-hover text-muted-foreground",
-                compact ? "h-4 min-w-4 px-1" : "h-5 min-w-5 px-1",
-                typeClass("micro", compact ? "compact" : "default")
-              )}
-            >
-              {arrow ? (
-                <>
-                  <arrow.Icon aria-hidden="true" size={compact ? 12 : 14} strokeWidth={1.5} />
-                  <span className="sr-only">{arrow.label}</span>
-                </>
-              ) : cap}
-            </span>
-          );
-        })}
-      </kbd>
+      />
     );
   }
 );
@@ -1278,6 +1269,7 @@ const CommandMenuItem = memo(forwardRef<HTMLDivElement, CommandMenuItemProps>(
     },
     ref
   ) => {
+    const listShape = usePopupShape();
     const { itemsByValue, listId, registerItem, highlight, select } = useCommandMenu();
     const index = useContext(CommandMenuIndexContext);
     const internalRef = useRef<HTMLDivElement | null>(null);
@@ -1332,7 +1324,13 @@ const CommandMenuItem = memo(forwardRef<HTMLDivElement, CommandMenuItemProps>(
           sizeClasses.text,
           listShape.item,
           "transition-[color] duration-80",
-          isActive ? "text-foreground" : "text-muted-foreground",
+          item.destructive
+            ? isActive
+              ? "text-destructive"
+              : "text-destructive/80"
+            : isActive
+              ? "text-foreground"
+              : "text-muted-foreground",
           item.disabled && "opacity-50 pointer-events-none",
           className
         )}
@@ -1522,6 +1520,9 @@ function CommandMenuDialogRoot({
   // which dialog answers a shared combo with each click.
   const openRef = useRef(open);
   const scopeRef = useRef(shortcutScope);
+  // Where the dialog sits in the page (its content is portalled), so an
+  // app-wide palette can tell a keyboard scope it's outside of.
+  const anchorRef = useRef<HTMLSpanElement>(null);
   const onOpenChangeRef = useRef(onOpenChange);
   const controlledRef = useRef(openProp !== undefined);
   useIsoLayoutEffect(() => {
@@ -1546,7 +1547,12 @@ function CommandMenuDialogRoot({
       isOpen: () => openRef.current,
       inScope: () => {
         const scope = scopeRef.current?.current;
-        return !scope || scope.contains(document.activeElement);
+        if (scope) return scope.contains(document.activeElement);
+        // Without a scope it answers everywhere, except inside a keyboard
+        // scope (an embedded preview marked data-keyboard-scope) it sits
+        // outside of: there the keys belong to what's in the scope.
+        const keyScope = document.activeElement?.closest("[data-keyboard-scope]");
+        return !keyScope || !!(anchorRef.current && keyScope.contains(anchorRef.current));
       },
     };
     mountedDialogs.push(entry);
@@ -1573,11 +1579,14 @@ function CommandMenuDialogRoot({
   const dialogCtx = useMemo(() => ({ close: () => setOpen(false) }), [setOpen]);
 
   return (
+    <>
+      <span ref={anchorRef} hidden />
     <Dialog open={open} onOpenChange={setOpen} modal={modal}>
       <CommandMenuDialogRootContext.Provider value={dialogCtx}>
         {children}
       </CommandMenuDialogRootContext.Provider>
     </Dialog>
+    </>
   );
 }
 

@@ -46,7 +46,7 @@ function CollapsePanel({ open, children, className }: CollapsePanelProps) {
   // Panels open at mount render `initial: "auto"` and receive their first
   // pixel target a commit later; that hand-off must SNAP (duration 0), not
   // spring. Panels that open later spring normally.
-  const needsSnap = useRef(open);
+  const [needsSnap, setNeedsSnap] = useState(open);
 
   const measureRef = useCallback((el: HTMLDivElement | null) => {
     roRef.current?.disconnect();
@@ -70,9 +70,14 @@ function CollapsePanel({ open, children, className }: CollapsePanelProps) {
     }
   }, [open]);
 
+  // Cleared a frame after the first measured height commits (Fluid's fix):
+  // the hand-off render keeps the snap, and height changes after it spring.
+  // A ref cleared in an effect could drop the snap before that render read it.
   useEffect(() => {
-    if (contentHeight !== null) needsSnap.current = false;
-  }, [contentHeight]);
+    if (!needsSnap || contentHeight === null) return;
+    const frame = requestAnimationFrame(() => setNeedsSnap(false));
+    return () => cancelAnimationFrame(frame);
+  }, [needsSnap, contentHeight]);
 
   const [exitComplete, setExitComplete] = useState(!open);
   if (open && exitComplete) {
@@ -93,7 +98,7 @@ function CollapsePanel({ open, children, className }: CollapsePanelProps) {
           animate={{ height: open ? contentHeight ?? 0 : 0 }}
           // bounce: 0 — pure height looks better without overshoot.
           transition={
-            needsSnap.current || shouldReduceMotion
+            needsSnap || shouldReduceMotion
               ? { duration: 0 }
               : { ...spring.moderate, bounce: 0 }
           }

@@ -5,6 +5,8 @@
 // Touch-primary devices use native overflow for platform momentum and physics.
 
 import {
+  memo,
+  useCallback,
   createContext,
   forwardRef,
   useContext,
@@ -14,6 +16,7 @@ import {
   type ComponentPropsWithoutRef,
   type ComponentRef,
   type PointerEventHandler,
+  type ReactNode,
   type Ref,
   type UIEventHandler,
 } from "react";
@@ -24,6 +27,31 @@ import { cn } from "@/lib/utils";
 import { useShape } from "@/lib/shape-context";
 
 const ScrollAreaContext = createContext(false);
+
+// Radix's Viewport renders a <style> (it hides the native scrollbar) with a
+// new `dangerouslySetInnerHTML` object each render, and React rewrites its
+// innerHTML every time: each re-render of the area (a hover, a scroll, new
+// children) replaced a stylesheet, and the next layout read restyled the
+// whole page. The Viewport renders once instead (Fluid's fix): memoized, its
+// only child one stable element that reads the real children from context,
+// so content still updates and the Viewport (and its <style>) never
+// re-renders.
+const ViewportChildrenContext = createContext<ReactNode>(null);
+function ViewportChildren() {
+  return useContext(ViewportChildrenContext);
+}
+const viewportChildren = <ViewportChildren />;
+const StableViewport = memo(
+  forwardRef<HTMLDivElement, { className: string; onScroll: UIEventHandler<HTMLDivElement> }>(
+    function StableViewport({ className, onScroll }, ref) {
+      return (
+        <ScrollAreaPrimitive.Viewport ref={ref} data-slot="scroll-area-viewport" onScroll={onScroll} className={className}>
+          {viewportChildren}
+        </ScrollAreaPrimitive.Viewport>
+      );
+    }
+  )
+);
 const ScrollbarVisibleContext = createContext(true);
 const SCROLL_LINGER_MS = 600;
 
@@ -112,18 +140,23 @@ const ScrollArea = forwardRef<
       };
     }, [children, isTouchPrimary]);
 
-    const setViewportRef = (node: HTMLDivElement | null) => {
+    // Stable, so the memoized viewport below doesn't re-render for them.
+    const viewportRefLatest = useRef(viewportRef);
+    useEffect(() => {
+      viewportRefLatest.current = viewportRef;
+    });
+    const setViewportRef = useCallback((node: HTMLDivElement | null) => {
       internalViewportRef.current = node;
-      setRef(viewportRef, node);
+      setRef(viewportRefLatest.current, node);
       if (node) requestAnimationFrame(() => updateViewportEdges(node));
-    };
+    }, []);
 
-    const handleScroll: UIEventHandler<HTMLDivElement> = (event) => {
+    const handleScroll: UIEventHandler<HTMLDivElement> = useCallback((event) => {
       updateViewportEdges(event.currentTarget);
       setScrolling(true);
       if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
       scrollTimerRef.current = setTimeout(() => setScrolling(false), SCROLL_LINGER_MS);
-    };
+    }, []);
 
     const handlePointerEnter: PointerEventHandler<HTMLDivElement> = (event) => {
       setHovering(true);
@@ -135,7 +168,9 @@ const ScrollArea = forwardRef<
       onPointerLeave?.(event);
     };
 
-    const viewportClasses = cn("size-full rounded-[inherit]", viewportClassName);
+    // The viewport takes keyboard focus (to scroll): its focus outline sits 1px
+    // inside its edge, since the area's root clips whatever reaches outside.
+    const viewportClasses = cn("size-full rounded-[inherit] focus-visible:outline-offset-[-1px]", viewportClassName);
 
     return (
       <ScrollAreaContext.Provider value={isTouchPrimary}>
@@ -174,20 +209,19 @@ const ScrollArea = forwardRef<
               onPointerLeave={handlePointerLeave}
               {...props}
             >
-              <ScrollAreaPrimitive.Viewport
-                ref={setViewportRef}
-                data-slot="scroll-area-viewport"
-                className={cn(
-                  viewportClasses,
-                  // Radix's intrinsic table sizer prevents a vertical-only
-                  // viewport from shrinking around a nested horizontal table.
-                  // Horizontal/both viewports retain intrinsic content width.
-                  orientation === "vertical" && "[&>div]:!block [&>div]:!min-w-0",
-                )}
-                onScroll={handleScroll}
-              >
-                {children}
-              </ScrollAreaPrimitive.Viewport>
+              <ViewportChildrenContext.Provider value={children}>
+                <StableViewport
+                  ref={setViewportRef}
+                  className={cn(
+                    viewportClasses,
+                    // Radix's intrinsic table sizer prevents a vertical-only
+                    // viewport from shrinking around a nested horizontal table.
+                    // Horizontal/both viewports retain intrinsic content width.
+                    orientation === "vertical" && "[&>div]:!block [&>div]:!min-w-0",
+                  )}
+                  onScroll={handleScroll}
+                />
+              </ViewportChildrenContext.Provider>
               {orientation !== "horizontal" ? <ScrollBar orientation="vertical" /> : null}
               {orientation !== "vertical" ? <ScrollBar orientation="horizontal" /> : null}
               {orientation === "both" ? <ScrollAreaPrimitive.Corner /> : null}

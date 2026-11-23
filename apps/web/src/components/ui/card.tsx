@@ -367,7 +367,7 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
           target={external ? "_blank" : undefined}
           rel={external ? "noopener noreferrer" : undefined}
           aria-label={label}
-          className={cn("absolute inset-0 z-20 cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-[color:var(--focus-ring,#6B97FF)]", containerShape)}
+          className={cn("absolute inset-0 z-20 cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[color:var(--focus-ring,#6B97FF)]", containerShape)}
         />
       ) : (
         <button
@@ -375,7 +375,7 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
           onClick={onClick}
           aria-label={label}
           aria-pressed={selected || undefined}
-          className={cn("absolute inset-0 z-20 cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-[color:var(--focus-ring,#6B97FF)]", containerShape)}
+          className={cn("absolute inset-0 z-20 cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[color:var(--focus-ring,#6B97FF)]", containerShape)}
         />
       )
     ) : null;
@@ -551,14 +551,14 @@ const CardTitle = forwardRef<HTMLSpanElement, HTMLAttributes<HTMLSpanElement>>(
         {...props}
       >
         <span
-          className="col-start-1 row-start-1 min-w-0 overflow-hidden text-ellipsis invisible"
+          className="col-start-1 row-start-1 min-w-0 overflow-x-clip text-ellipsis invisible"
           style={{ fontVariationSettings: fontWeights.semibold }}
           aria-hidden="true"
         >
           {children}
         </span>
         <span
-          className="col-start-1 row-start-1 min-w-0 overflow-hidden text-ellipsis text-foreground transition-[font-variation-settings] duration-80"
+          className="col-start-1 row-start-1 min-w-0 overflow-x-clip text-ellipsis text-foreground transition-[font-variation-settings] duration-80"
           style={{
             // normal → semibold on emphasis, matching nav-item / menu-item /
             // table (the opsz-paired tokens keep the advance width ~constant).

@@ -5,6 +5,7 @@ import {
   createContext,
   forwardRef,
   memo,
+  useCallback,
   useContext,
   useEffect,
   useLayoutEffect,
@@ -601,6 +602,36 @@ function DataTable<TData>({
   // on a new snapKey), and only the rows that appear fade in. A slide here
   // left the fills, keyed by position, springing apart from the rows.
   const [expandTick, setExpandTick] = useState(0);
+  // Row detail opens and closes outside TanStack's expansion, and opening one
+  // while closing another can leave the table's height unchanged, so no
+  // resize ever remeasures the rows that moved. Folding the open set into
+  // snapKey snaps the highlight and selection onto the rows' new places.
+  const details = rowDetail ? rows.map((row) => rowDetail(row)) : null;
+  const detailKey = details
+    ? rows.filter((_, i) => details[i] != null).map((row) => row.id).join(",")
+    : "";
+  // Opening one detail while another closes above it slides the clicked row
+  // up under a still pointer. Its highlight would trail behind the row, so the
+  // row highlight steps aside until the closing detail is gone; the pointer
+  // picks a row again when it next moves.
+  const [sliding, setSliding] = useState(false);
+  const detailKeyBefore = useRef(detailKey);
+  useLayoutEffect(() => {
+    const before = new Set(detailKeyBefore.current.split(",").filter(Boolean));
+    const now = new Set(detailKey.split(",").filter(Boolean));
+    detailKeyBefore.current = detailKey;
+    const opened = [...now].some((id) => !before.has(id));
+    const closed = [...before].some((id) => !now.has(id));
+    if (opened && closed && !reduceMotion) setSliding(true);
+  }, [detailKey, reduceMotion]);
+  const endSliding = useCallback(() => setSliding(false), []);
+  // A closing row that leaves another way (a page turn) never reports its
+  // exit, so the highlight comes back after the close would have finished.
+  useEffect(() => {
+    if (!sliding) return;
+    const id = setTimeout(endSliding, (detailClose.duration + 0.1) * 1000);
+    return () => clearTimeout(id);
+  }, [sliding, endSliding]);
   const fadeFrom = useRef<Set<string> | null>(null);
   const toggleExpanded = (row: Row<TData>, open?: boolean) => {
     fadeFrom.current = new Set(rows.map((r) => r.id));
@@ -1130,7 +1161,8 @@ function DataTable<TData>({
       size={size}
       // Selected rows on this page get CheckboxGroup's merged fill.
       selectedIndices={rows.flatMap((row, i) => (row.getIsSelected() ? [i] : []))}
-      snapKey={expandTick}
+      snapKey={`${expandTick}:${detailKey}`}
+      hideRowHighlight={sliding}
       hideHeadHighlight={!!drag}
       // The skeleton rows are aria-hidden; this tells assistive tech the
       // table is loading rather than empty.
@@ -1290,7 +1322,7 @@ function DataTable<TData>({
         ) : rows.length > 0 ? (
           rows.map((row, i) => {
             const label = groupLabel?.(row, rows[i - 1]);
-            const detail = rowDetail?.(row);
+            const detail = details?.[i];
             return (
               <Fragment key={row.id}>
                 {label != null && (
@@ -1317,9 +1349,15 @@ function DataTable<TData>({
                   compact={sizeClasses.variant === "compact"}
                   shapeVariant={shape.variant}
                 />
-                {detail != null && (
-                  <tr className="border-b border-border"><td colSpan={columnCount} className="px-3 pb-4 pt-1">{detail}</td></tr>
-                )}
+                <AnimatePresence initial={false} onExitComplete={endSliding}>
+                  {detail != null && (
+                    <tr key="detail" className="border-b border-border">
+                      <td colSpan={columnCount} className="p-0">
+                        <RowDetailReveal reduceMotion={!!reduceMotion}>{detail}</RowDetailReveal>
+                      </td>
+                    </tr>
+                  )}
+                </AnimatePresence>
               </Fragment>
             );
           })
@@ -1814,6 +1852,28 @@ function ExpandToggle({
       </motion.span>
     </button>
     </Tooltip>
+  );
+}
+
+// ── Row detail ───────────────────────────────────────────
+
+// Both directions use a strong ease-out: the motion answers the click at
+// once and settles gently. Closing is a little quicker. Height and opacity
+// share the curve, so the rows below move with the content.
+const detailEase = [0.23, 1, 0.32, 1] as const;
+const detailOpen = { duration: 0.26, ease: detailEase };
+const detailClose = { duration: 0.2, ease: detailEase };
+
+function RowDetailReveal({ children, reduceMotion }: { children: ReactNode; reduceMotion: boolean }) {
+  return (
+    <motion.div
+      className="overflow-hidden"
+      initial={reduceMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+      animate={{ height: "auto", opacity: 1, transition: detailOpen }}
+      exit={reduceMotion ? { opacity: 0, transition: detailClose } : { height: 0, opacity: 0, transition: detailClose }}
+    >
+      <div className="px-3 pb-4 pt-1">{children}</div>
+    </motion.div>
   );
 }
 

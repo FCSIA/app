@@ -75,12 +75,15 @@ interface TableProps extends HTMLAttributes<HTMLTableElement> {
   /** Hides the header cells' fluid hover highlight, e.g. while a header
    *  is dragged. */
   hideHeadHighlight?: boolean;
+  /** Hides the body rows' hover highlight, e.g. while the hovered row slides
+   *  to a new place and a highlight chasing it would trail behind. */
+  hideRowHighlight?: boolean;
 }
 
 const NO_SELECTION: readonly number[] = [];
 
 const Table = forwardRef<HTMLTableElement, TableProps>(
-  ({ children, size, selectedIndices = NO_SELECTION, snapKey, hideHeadHighlight = false, className, ...props }, ref) => {
+  ({ children, size, selectedIndices = NO_SELECTION, snapKey, hideHeadHighlight = false, hideRowHighlight = false, className, ...props }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const sizeClasses = useSize(size);
 
@@ -225,6 +228,7 @@ const Table = forwardRef<HTMLTableElement, TableProps>(
               selection under it. */}
           <FluidHoverHighlight
             hover={hover}
+            hidden={hideRowHighlight}
             className={shape.bg}
             transition={repeating || snap.on ? false : undefined}
             onFrame={hideCoveredRules}

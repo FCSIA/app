@@ -20,6 +20,7 @@ import {
 } from "./_lib";
 
 import { auditFilters, auditMatcher, auditRecordMatcher } from "./_filters";
+import { workshopFromCancellation } from "./_context";
 
 const auditFilterOptionsValidator = v.object({
   actions: v.array(v.string()),
@@ -156,14 +157,17 @@ function workshopActivityStream(
       return endAt === undefined ? lower : lower.lte('createdAt', endAt);
     }).order('desc');
 
-  // Older events can still be associated with their workshop while the
-  // registration or assignment record exists.
-  const legacy = workshopEnrollmentActions.map((action) =>
+  // Older signups and assignments can be scoped through their original record.
+  // A later cancellation can supply the scope for a signup after deletion.
+  const legacy = workshopEnrollmentActions.filter((action) => action !== 'FLEX_REGISTRATION_REMOVED').map((action) =>
     enrollment(undefined, action).filterWith(async (event) => {
       if (!event.entityId) return false;
       const table = action === 'FLEX_WORKSHOP_ASSIGNED' ? 'flexAssignments' : 'flexRegistrations';
       const id = ctx.db.normalizeId(table, event.entityId);
-      return !!id && (await ctx.db.get(id))?.workshopId === workshopId;
+      const record = id ? await ctx.db.get(id) : null;
+      if (record) return record.workshopId === workshopId;
+      return action === 'FLEX_WORKSHOP_REGISTERED' &&
+        (await workshopFromCancellation(ctx, event.entityId)) === workshopId;
     }),
   );
   const workshopChanges = AUDIT_ENTITY_TYPES.filter((type) => auditEntityKey(type) === 'flexworkshop').map((type) =>

@@ -86,6 +86,15 @@ function recordText(table: TableNames, value: Record<string, unknown>): string |
     ? value.body.trim().slice(0, TEXT_RECORD_PREVIEW_CHARACTERS)
     : null;
 }
+/** A cancellation can recover scope for a signup logged before workshop IDs were saved. */
+export async function workshopFromCancellation(ctx: QueryCtx, registrationId: string) {
+  const latest = await ctx.db.query('auditEvents')
+    .withIndex('by_entityType_and_entityId_and_createdAt', (q) =>
+      q.eq('entityType', 'FLEX_REGISTRATION').eq('entityId', registrationId),
+    ).order('desc').first();
+  return latest?.action === 'FLEX_REGISTRATION_REMOVED' ? latest.workshopId : undefined;
+}
+
 /** Per-page memoization keeps repeated people, clubs, and channels to one read. */
 export function auditContextResolver(ctx: QueryCtx) {
   const reads = new Map<string, Promise<Record<string, unknown> | null>>();
@@ -121,11 +130,15 @@ export function auditContextResolver(ctx: QueryCtx) {
       (live && table && entity ? recordText(table, entity) : null) ??
       (table === "moderationReports" && typeof entity?.githubIssueNumber === "number"
         ? `Feedback #${entity.githubIssueNumber}` : auditRecordLabel(event.entityType));
+    const recoveredWorkshopId = !event.workshopId && !entity &&
+      event.action === 'FLEX_WORKSHOP_REGISTERED' && event.entityId
+      ? await workshopFromCancellation(ctx, event.entityId)
+      : undefined;
     const references = (
       await Promise.all(
         Object.entries(REFERENCE_TABLES).map(async ([key, refTable]) => {
           const workshop = key === 'workshopId';
-          const id = (workshop ? event.workshopId : undefined) ?? meta[key] ?? entity?.[key];
+          const id = (workshop ? event.workshopId ?? recoveredWorkshopId : undefined) ?? meta[key] ?? entity?.[key];
           if (typeof id !== 'string') return null;
           const snapshot = workshop && typeof meta.workshopTitle === 'string' ? meta.workshopTitle : null;
           const doc = snapshot ? null : await read(refTable, id);

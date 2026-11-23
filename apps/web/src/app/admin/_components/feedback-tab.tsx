@@ -183,7 +183,7 @@ export function FeedbackTab({ canUpdateFeedback = true }: { canUpdateFeedback?: 
           <FeedbackRowMeta report={row.original} />
         </>
       ),
-      meta: { label: 'Feedback' },
+      meta: { label: 'Feedback', className: 'w-full' },
     },
     {
       id: 'submitted-by',
@@ -259,6 +259,12 @@ export function FeedbackTab({ canUpdateFeedback = true }: { canUpdateFeedback?: 
     pageSize: 20,
     getRowId: (report) => report._id,
     manualFiltering: true,
+    initialState: {
+      columnPinning: {
+        left: ['feedback'],
+        right: canUpdateFeedback ? ['actions', 'details'] : ['details'],
+      },
+    },
     state: { globalFilter: feedbackSearch },
     onGlobalFilterChange: (update) =>
       setFeedbackSearch(
@@ -276,7 +282,7 @@ export function FeedbackTab({ canUpdateFeedback = true }: { canUpdateFeedback?: 
           toolbar={
             <>
               <SearchToolbarRow className="flex-row flex-wrap items-center gap-2">
-                <DataTableSearch table={table} placeholder="Search feedback…" />
+                <DataTableSearch table={table} placeholder="Search feedback…" collapsible={false} />
                 <div className="ml-auto flex shrink-0 items-center gap-2">
                   <DataTableViewOptions table={table} className="hidden md:inline-flex" />
                   <DataTableCount>

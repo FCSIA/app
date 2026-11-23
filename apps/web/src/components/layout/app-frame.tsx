@@ -234,7 +234,7 @@ function PersistentAppFrame({ children, defaultSidebarOpen }: {
           className={cn(
             "app-root flex w-full bg-background",
             usesVisualViewport
-              ? "fixed inset-x-0 top-0 h-[var(--app-visual-viewport-height,100dvh)] min-h-0 overflow-hidden overscroll-none"
+              ? "fixed inset-x-0 top-0 h-[var(--app-visual-viewport-height,100dvh)] min-h-0 overflow-hidden overscroll-y-none"
               : "min-h-[100dvh]",
           )}
         >

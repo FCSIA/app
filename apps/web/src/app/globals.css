@@ -935,6 +935,7 @@
 }
 
 .high-contrast {
+  --badge-edge: hsl(var(--border));
   --surface-1: #000;
   --surface-2: #080808;
   --surface-3: #101010;

@@ -7431,7 +7431,7 @@ function BadgeDot({ color }: { color: BadgeColor }) {
     <span
       aria-hidden
       className="size-[7px] shrink-0 rounded-full"
-      style={{ backgroundColor: color === "gray" ? "var(--muted-foreground)" : badgeColors[color] }}
+      style={{ backgroundColor: color === "gray" ? "hsl(var(--muted-foreground))" : badgeColors[color] }}
     />
   );
 }

@@ -13,8 +13,8 @@ import { useSizeVariant } from "@/lib/size-context";
 //   ghost: the dot and its label alone, no outline and no side padding, in
 //          the surrounding text color. For rows and tables, where the label
 //          lines up with the column and lifts with the row.
-// Each color is a single hex. The solid tint is mixed against the page
-// background at render time, so the same hex works in light and dark themes.
+// Solid tints are translucent so they follow the surface and row state
+// beneath them. An inset edge keeps the label’s shape visible on both.
 // ---------------------------------------------------------------------------
 
 // Tailwind's 500 step for each hue (400 for gray). Text never takes the hue:
@@ -51,7 +51,7 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        solid: "",
+        solid: "text-foreground shadow-[inset_0_0_0_1px_var(--badge-edge,hsl(var(--foreground)/0.26))]",
         dot: "border border-border text-foreground",
         ghost: "",
       },
@@ -122,22 +122,15 @@ const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
     const isSolid = variant === "solid";
     const dotSize = size === "compact" ? 6 : 7;
 
-    // 15% of the hue mixed into the page background: a tint that sits at the
-    // right depth in either theme, under plain foreground text. Gray skips
-    // the mix and takes the theme's neutral fill (`--accent`), so a gray
-    // badge matches the other neutral fills around it.
     const colorStyle = isSolid
-      ? color === "gray"
-        ? { backgroundColor: "var(--color-accent)", color: "var(--color-foreground)" }
-        : {
-            color: "var(--color-foreground)",
-            backgroundColor: `color-mix(in srgb, ${colorValue} 15%, var(--color-background))`,
-          }
+      ? {
+          backgroundColor: color === "gray"
+            ? "hsl(var(--foreground) / 0.15)"
+            : `color-mix(in srgb, ${colorValue} 16%, transparent)`,
+        }
       : {};
 
-    // The dot carries the full-strength hex. Gray uses the theme's muted text
-    // color instead, so the neutral dot stays visible in both themes.
-    const dotColor = color === "gray" ? "var(--color-muted-foreground)" : colorValue;
+    const dotColor = color === "gray" ? "hsl(var(--muted-foreground))" : colorValue;
 
     return (
       <span

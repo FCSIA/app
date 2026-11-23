@@ -1050,9 +1050,14 @@
   --focus-ring: hsl(var(--ring));
 }
 
-/* A single reflected edge on raised controls, independent of press and focus shadows. */
+/* A single reflected edge on raised controls, independent of press and focus
+   shadows. The theme classes decide dark (the app sets no color-scheme, so
+   light-dark() always resolved to the light value). */
 @utility surface-top-edge {
-  background-image: linear-gradient(to bottom, light-dark(rgb(255 255 255 / 30%), rgb(255 255 255 / 8%)), transparent 1px);
+  background-image: linear-gradient(to bottom, rgb(255 255 255 / 30%), transparent 1px);
+  @variant dark {
+    background-image: linear-gradient(to bottom, rgb(255 255 255 / 8%), transparent 1px);
+  }
 }
 
 /* A block lifted off the surface it sits on: a lighter fill, a bright top

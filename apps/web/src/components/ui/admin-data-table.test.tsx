@@ -87,6 +87,10 @@ beforeAll(() => {
   });
   Object.assign(globalThis, { CSS: { escape: (value: string) => value } });
   Element.prototype.scrollIntoView = vi.fn();
+  // jsdom has no layout: Fluid's DataTable measures header text through a
+  // Range, which jsdom leaves without geometry.
+  Range.prototype.getBoundingClientRect = () => new DOMRect();
+  Range.prototype.getClientRects = () => ({ length: 0, item: () => null, [Symbol.iterator]: [][Symbol.iterator] }) as unknown as DOMRectList;
   globalThis.ResizeObserver = class {
     observe() {}
     disconnect() {}
@@ -120,10 +124,11 @@ test('native sorting, search and pagination use accessor values and stable row I
     'owner',
     'member',
   ]);
+  // A plain click opens the column's menu; Shift-click sorts from the header.
   await act(() =>
     Array.from(container.querySelectorAll<HTMLButtonElement>('thead button'))
       .find((button) => button.textContent === 'Name')!
-      .click(),
+      .dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true })),
   );
   expect(await rowIds()).toEqual([
     'member',
@@ -173,7 +178,7 @@ test('injected controls keep click and keyboard ownership; default labels still 
   await act(() => inspect.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, bubbles: true })));
   expect(table.getState().columnOrder).toEqual([]);
   const sort = Array.from(container.querySelectorAll<HTMLButtonElement>('thead button')).find((b) => b.textContent === 'Name')!;
-  await act(() => sort.click());
+  await act(() => sort.dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true })));
   expect(table.getState().sorting).toEqual([{ id: 'name', desc: false }]);
   await act(() => sort.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, bubbles: true })));
   expect(table.getState().columnOrder).toEqual(['select', 'id', 'name']);

@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { ArrowUpRight, ChevronRight } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { CodeBlock } from '@/components/ui/code-block';
+import { cn } from '@/lib/utils';
+import styles from './audit-event-content.module.css';
 import { useQuery } from "@/lib/convex-react";
 import { api } from "~/apps/convex/src/_generated/api";
 import type { AuditEventRecord } from '../../_lib/types';
@@ -93,9 +95,9 @@ export function AuditEventContent({ event }: { event: AuditEventRecord }) {
             Open record <ArrowUpRight aria-hidden className="size-3.5" />
           </Link>
         ) : null}
-        <details className="group/raw min-w-0 flex-1 basis-32">
+        <details className={cn(styles.storedJson, "group/raw min-w-0 flex-1 basis-32")}>
           <summary className="flex min-h-7 w-fit cursor-pointer list-none items-center gap-1 rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
-            <ChevronRight aria-hidden className="size-3.5 group-open/raw:rotate-90" />
+            <ChevronRight aria-hidden className={cn(styles.chevron, "size-3.5 group-open/raw:rotate-90")} />
             Stored JSON
           </summary>
           <div className="mt-1 max-w-3xl">

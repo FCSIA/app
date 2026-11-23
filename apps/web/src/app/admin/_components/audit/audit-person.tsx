@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { PersonTrigger } from '@/components/users/person-trigger';
-import { Bot, Terminal, UserRound } from "lucide-react";
+import { IaOrbitMark } from "@/components/ui/ia-orbit-mark";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { isAuditSystem, auditPersonName } from '~/apps/shared/audit';
 import type { AuditEventRecord } from '../../_lib/types';
@@ -25,9 +25,22 @@ export function AuditPerson({ event, onFilter }: {
   const [filterCount, setFilterCount] = useState(0);
   useEffect(() => { if (filterCount) triggerRef.current?.focus(); }, [filterCount]);
   if (!actor) {
-    const Icon = isAuditSystem(event) ? Bot : UserRound;
-    return <span className="flex min-w-0 items-center gap-2 text-muted-foreground"><Icon size={18} aria-hidden className="shrink-0" /><span className="truncate">{name}</span></span>;
+    // The app itself acts for system events; a removed person leaves an empty seat.
+    return (
+      <span className="flex min-w-0 items-center gap-2 text-muted-foreground">
+        {isAuditSystem(event) ? (
+          <IaOrbitMark alt="" width={20} height={20} className="size-5 shrink-0 rounded-full" />
+        ) : (
+          <span aria-hidden className="size-5 shrink-0 rounded-full border border-dashed border-border" />
+        )}
+        <span className="truncate">{name}</span>
+      </span>
+    );
   }
+  const secondary = [
+    actor.uniqueId && actor.uniqueId !== name ? actor.uniqueId : null,
+    event.client === 'cli' ? 'via CLI' : null,
+  ].filter(Boolean).join(' · ');
   return (
     <PersonTrigger
       key={filterCount}
@@ -37,16 +50,12 @@ export function AuditPerson({ event, onFilter }: {
         <button
           ref={triggerRef}
           type="button"
-          aria-label={`View ${name}'s profile${event.client === 'cli' ? ' (via command line)' : ''}`}
-          title={event.client === "cli" ? `${name} via command line` : name}
+          aria-label={`View ${name}'s profile${event.client === 'cli' ? ', acting through the command-line client' : ''}`}
           className="flex max-w-full items-center gap-2 rounded-sm text-left text-foreground outline-none hover:underline hover:underline-offset-2 focus-visible:ring-1 focus-visible:ring-ring"
         >
-          <span className="relative shrink-0" aria-hidden>
-            <UserAvatar person={actor} seed={actor.id} size={20} />
-            {event.client === 'cli' && <Terminal size={12} className="absolute -bottom-0.5 -right-1 rounded-sm bg-background text-foreground" />}
-          </span>
+          <UserAvatar person={actor} seed={actor.id} size={20} className="shrink-0" />
           <span className="truncate">{name}</span>
-          {actor.uniqueId && actor.uniqueId !== name && <span className="truncate text-xs text-muted-foreground">{actor.uniqueId}</span>}
+          {secondary ? <span className="truncate text-xs text-muted-foreground">{secondary}</span> : null}
         </button>
       }
       actions={<Button type="button" size="sm" variant="ghost" onClick={() => { onFilter(actor.id, name); setFilterCount((count) => count + 1); }}>Filter by this person</Button>}

@@ -67,7 +67,7 @@ export function MentionElement(
     <PlateElement
       {...props}
       className={cn(
-        'inline-block translate-y-[-1px] rounded-md bg-primary/10 px-2 py-0.5 align-baseline text-sm font-medium text-primary mx-0.5',
+        'inline-block translate-y-[-1px] rounded-md bg-primary/10 px-2 py-0.5 align-baseline text-sm font-medium text-primary-ink mx-0.5',
         !readOnly && 'cursor-pointer',
         selected && focused && 'ring-2 ring-ring',
         element.children[0][KEYS.bold] === true && 'font-bold',
@@ -133,7 +133,7 @@ export function MentionInputElement(
         showTrigger={false}
         trigger="@"
       >
-        <span className="mx-0.5 inline-block translate-y-[-1px] rounded-md bg-primary/10 px-2 py-0.5 align-baseline text-sm text-primary ring-ring focus-within:ring-2">
+        <span className="mx-0.5 inline-block translate-y-[-1px] rounded-md bg-primary/10 px-2 py-0.5 align-baseline text-sm text-primary-ink ring-ring focus-within:ring-2">
           <InlineComboboxInput className="min-w-12" />
         </span>
 

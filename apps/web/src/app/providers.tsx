@@ -144,6 +144,7 @@ export function Providers({ children, defaultSidebarOpen = true }: { children: R
           attribute="class"
           defaultTheme="dark"
           enableSystem
+          enableColorScheme={false}
           themes={[...THEME_NAMES, 'system']}
         >
           <ThemeFavicon />

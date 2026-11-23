@@ -131,7 +131,7 @@ export function WrappedSnapshotsTab() {
               </div>
               <Link
                 href="/wrapped"
-                className="text-sm font-medium text-primary hover:underline"
+                className="text-sm font-medium text-primary-ink hover:underline"
               >
                 Preview Wrapped
               </Link>

@@ -168,7 +168,7 @@ export function PushNotificationSettings() {
       <div className="flex min-w-0 items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2" title={disabledReason}>
           {enabled ? (
-            <BellRing className="size-4 shrink-0 text-primary" aria-hidden />
+            <BellRing className="size-4 shrink-0 text-primary-ink" aria-hidden />
           ) : (
             <BellOff className="size-4 shrink-0 text-muted-foreground" aria-hidden />
           )}

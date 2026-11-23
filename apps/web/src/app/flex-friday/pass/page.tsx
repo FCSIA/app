@@ -245,7 +245,7 @@ function PassCard({
             </h2>
             <p className="text-xs text-muted-foreground">{format(group.date, 'yyyy')}</p>
           </div>
-          <div className="flex flex-shrink-0 items-center gap-1 text-xs font-semibold text-emerald-500">
+          <div className="flex flex-shrink-0 items-center gap-1 text-xs font-semibold text-tone-positive">
             <CheckCircle size={12} />
             Confirmed
           </div>
@@ -288,14 +288,7 @@ function WorkshopRow({ pass }: { pass: PassRecord }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex flex-wrap items-center gap-1.5">
-            <Badge
-              className={cn(
-                'text-[10px] leading-none',
-                isAssigned
-                  ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-transparent'
-                  : 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border-transparent',
-              )}
-            >
+            <Badge color={isAssigned ? 'amber' : 'orange'} className="text-[10px] leading-none">
               {isAssigned ? 'Teacher assigned' : 'Student choice'}
             </Badge>
             {linkedSessions.length > 1 ? (

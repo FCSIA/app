@@ -118,7 +118,7 @@ export function ImpersonationBanner() {
   return (
     <div
       ref={bannerRef}
-      className="fixed inset-x-0 bottom-[calc(3.5rem+max(1rem,env(safe-area-inset-bottom)))] z-50 mx-auto flex w-fit max-w-[calc(100vw-2rem)] items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-100 px-2 py-2 text-sm text-amber-950 shadow-lg dark:bg-amber-950 dark:text-amber-100 lg:bottom-4"
+      className="fixed inset-x-0 bottom-[calc(3.5rem+max(1rem,env(safe-area-inset-bottom)))] z-50 mx-auto flex w-fit max-w-[calc(100vw-2rem)] items-center gap-2 rounded-lg border border-tone-caution/40 bg-[color-mix(in_oklab,var(--surface-1)_90%,var(--tone-caution))] px-2 py-2 text-sm text-foreground shadow-lg lg:bottom-4"
       style={{ transform: `translate3d(${position.x}px, ${position.y}px, 0)` }}
     >
       <Button

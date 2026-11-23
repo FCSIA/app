@@ -70,7 +70,7 @@ export default function LoginPage() {
                   className="size-full object-contain"
                 />
               </div>
-              <p className="text-sm font-medium text-primary">Innovation Academy</p>
+              <p className="text-sm font-medium text-primary-ink">Innovation Academy</p>
             </div>
             <div className="space-y-1">
               <CardTitle className="text-2xl font-semibold tracking-tight">Sign in</CardTitle>

@@ -33,7 +33,7 @@ function renderLeafContent(leaf: RichTextLeaf, keyBase: string) {
       leaf.italic && 'italic',
       leaf.underline && 'underline decoration-[0.08em] underline-offset-[0.18em]',
       /^@[A-Za-z0-9_-]+$/.test(part) &&
-        'rounded-md bg-primary/10 px-1.5 py-0.5 font-medium text-primary',
+        'rounded-md bg-primary/10 px-1.5 py-0.5 font-medium text-primary-ink',
     );
 
     if (!className) {
@@ -57,7 +57,7 @@ function renderInlineNode(node: RichTextNode, keyBase: string): ReactNode {
     return (
       <span
         key={keyBase}
-        className="rounded-md bg-primary/10 px-1.5 py-0.5 font-medium text-primary"
+        className="rounded-md bg-primary/10 px-1.5 py-0.5 font-medium text-primary-ink"
       >
         @{node.value}
       </span>
@@ -129,7 +129,7 @@ export function MentionBody({ body, bodyMarkdown, bodyRich, className }: Mention
               const safeHref = allowedMessageHref(href);
               if (!safeHref || isMentionHref(safeHref)) {
                 return (
-                  <span className="rounded-md bg-primary/10 px-1.5 py-0.5 font-medium text-primary">
+                  <span className="rounded-md bg-primary/10 px-1.5 py-0.5 font-medium text-primary-ink">
                     {children}
                   </span>
                 );

@@ -21,10 +21,10 @@ const SURFACE_SHADOW: Record<number, string> = {
 };
 
 export const CARD_SURFACE_FOREGROUND =
-  "text-card-foreground [--foreground:var(--card-foreground)]";
+  "palette-card text-card-foreground [--foreground:var(--card-foreground)] [color-scheme:var(--card-color-scheme,inherit)]";
 
 export const POPOVER_SURFACE_FOREGROUND =
-  "text-popover-foreground [--foreground:var(--popover-foreground)]";
+  "palette-card text-popover-foreground [--foreground:var(--popover-foreground)] [color-scheme:var(--card-color-scheme,inherit)]";
 
 export const SURFACE_HOVER_BG: Record<number, string> = {
   1: "hover:bg-surface-1",

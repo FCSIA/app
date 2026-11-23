@@ -85,7 +85,7 @@ function MemberLimitMeter({ club }: { club: ClubDetail }) {
     <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-3 text-sm">
         <span className="inline-flex min-w-0 items-center gap-2 font-medium text-foreground">
-          <Users className="size-4 shrink-0 text-primary" />
+          <Users className="size-4 shrink-0 text-primary-ink" />
           <span className="truncate">Capacity</span>
         </span>
         <span className="shrink-0 tabular-nums text-foreground">
@@ -469,7 +469,7 @@ function PublicClubOverview({ club }: { club: ClubDetail }) {
         <Card className="bg-transparent">
           <CardHeader className="pb-3 border-b border-border/40 mb-4">
             <h2 className="flex items-center gap-2 text-sm font-semibold">
-              <KeyRound className="size-4 text-primary" />
+              <KeyRound className="size-4 text-primary-ink" />
               Sponsors
             </h2>
           </CardHeader>
@@ -722,7 +722,7 @@ export default function ClubOverviewPage() {
             <CardHeader>
               <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
                 <div className="flex items-center gap-2">
-                  <Megaphone className="size-4 text-primary" />
+                  <Megaphone className="size-4 text-primary-ink" />
                   <h2 className="text-base font-semibold">Announcements</h2>
                 </div>
                 <div className="flex w-full items-center gap-2 sm:w-auto">

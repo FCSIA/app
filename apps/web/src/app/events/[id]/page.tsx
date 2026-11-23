@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { eventStatusLabel } from '../_status';
+import { eventStatusColor, eventStatusLabel } from '../_status';
 import { shareUrl } from '@/lib/share';
 import { useToast } from '@/hooks/use-toast';
 
@@ -84,14 +84,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         <Card className="overflow-hidden rounded-2xl border-border/70 shadow-sm">
           <CardHeader className="bg-muted/20 pb-6 border-b">
             <div className="flex items-center gap-2 mb-4">
-              <Badge 
-                variant={event.status === 'PUBLISHED' ? 'solid' : 'solid'}
-                className={event.status === 'PUBLISHED' ? 'bg-emerald-500/15 text-emerald-500' : ''}
-              >
+              <Badge variant="solid" color={eventStatusColor(event.status)}>
                 {eventStatusLabel(event.status)}
               </Badge>
               {event.club && (
-                <Badge variant="solid" className="text-blue-500 border-blue-500/30">
+                <Badge variant="solid" color="blue">
                   {event.club.name}
                 </Badge>
               )}
@@ -103,7 +100,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-3">
-                <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary-ink">
                   <Calendar size={16} />
                 </div>
                 <div>
@@ -113,7 +110,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary-ink">
                   <Clock size={16} />
                 </div>
                 <div>
@@ -127,7 +124,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
               {event.location && (
                 <div className="flex items-center gap-3">
-                  <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                  <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary-ink">
                     <MapPin size={16} />
                   </div>
                   <div>

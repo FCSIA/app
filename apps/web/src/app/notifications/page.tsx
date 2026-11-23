@@ -324,7 +324,7 @@ export default function NotificationsPage() {
                                     'mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border transition-colors',
                                     n.isRead
                                       ? 'border-border bg-muted/25 text-muted-foreground'
-                                      : 'border-primary/20 bg-primary/10 text-primary',
+                                      : 'border-primary/20 bg-primary/10 text-primary-ink',
                                   )}
                                   aria-hidden
                                 >

@@ -79,7 +79,7 @@ export default function FriendLinkRedemptionPage({
             </div>
           ) : result ? (
             <div className="p-6 text-center">
-              <div className="mx-auto mb-4 flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <div className="mx-auto mb-4 flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary-ink">
                 <Check className="size-5" />
               </div>
               <h1 className="text-lg font-semibold">
@@ -117,9 +117,9 @@ export default function FriendLinkRedemptionPage({
               <div className="space-y-4 p-5">
                 <div className="flex items-start gap-3 rounded-xl bg-surface-3 px-3 py-3">
                   {preview.mode === 'AUTO_ACCEPT' ? (
-                    <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+                    <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary-ink" />
                   ) : (
-                    <UserPlus className="mt-0.5 size-4 shrink-0 text-primary" />
+                    <UserPlus className="mt-0.5 size-4 shrink-0 text-primary-ink" />
                   )}
                   <div>
                     <div className="flex items-center gap-2">

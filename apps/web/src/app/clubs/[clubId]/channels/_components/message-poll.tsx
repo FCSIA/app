@@ -57,7 +57,7 @@ export function PollCard({
                 >
                   {voted ? (
                     <Check
-                      className="size-3.5 shrink-0 text-primary"
+                      className="size-3.5 shrink-0 text-primary-ink"
                       aria-hidden
                     />
                   ) : null}

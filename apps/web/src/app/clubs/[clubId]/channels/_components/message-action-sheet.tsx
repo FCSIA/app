@@ -148,7 +148,7 @@ export function MessageActionSheet({
                       Pick what a double tap adds
                       <button
                         type="button"
-                        className="rounded-full px-1.5 py-0.5 font-medium text-primary outline-none active:opacity-60 focus-visible:ring-1 focus-visible:ring-ring"
+                        className="rounded-full px-1.5 py-0.5 font-medium text-primary-ink outline-none active:opacity-60 focus-visible:ring-1 focus-visible:ring-ring"
                         onClick={() => setChoosingDoubleTap(false)}
                       >
                         Cancel

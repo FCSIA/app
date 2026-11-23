@@ -140,7 +140,7 @@ function MessageReplyReference({
       <span
         className={cn(
           'shrink-0 font-medium',
-          isMine ? 'text-primary' : 'text-foreground',
+          isMine ? 'text-primary-ink' : 'text-foreground',
         )}
       >
         {author ? (isMine ? 'You' : displayName(author)) : 'Original message'}
@@ -454,7 +454,7 @@ export function MessageRow({
             <div
               aria-hidden="true"
               className={cn(
-                'pointer-events-none absolute inset-y-0 end-3 flex translate-x-1 items-center text-primary opacity-0 transition-[opacity,transform] duration-150 ease-out motion-reduce:transition-none group-data-[reply-swiping]/row:translate-x-0 group-data-[reply-swiping]/row:opacity-100',
+                'pointer-events-none absolute inset-y-0 end-3 flex translate-x-1 items-center text-primary-ink opacity-0 transition-[opacity,transform] duration-150 ease-out motion-reduce:transition-none group-data-[reply-swiping]/row:translate-x-0 group-data-[reply-swiping]/row:opacity-100',
               )}
             >
               <Reply className="size-4" />
@@ -826,7 +826,7 @@ export function MessageRow({
                       {!compact && !isTouchPrimary && message.hasReplies ? (
                         <button
                           type="button"
-                          className="mt-1.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-primary hover:bg-primary/10 w-fit"
+                          className="mt-1.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-primary-ink hover:bg-primary/10 w-fit"
                           onClick={() => onOpenThread(message.threadRootId)}
                         >
                           <Reply className="size-3" />

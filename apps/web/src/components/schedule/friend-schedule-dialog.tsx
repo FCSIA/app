@@ -137,7 +137,7 @@ export function FriendScheduleDialog({
                       className={cn(
                         "w-8 shrink-0 text-center font-semibold text-sm",
                         isCurrent
-                          ? "text-primary font-bold"
+                          ? "text-primary-ink font-bold"
                           : "text-foreground",
                       )}
                     >
@@ -175,7 +175,7 @@ export function FriendScheduleDialog({
                       className={cn(
                         "w-24 shrink-0 text-right text-[11px] font-mono",
                         isCurrent
-                          ? "text-primary font-semibold"
+                          ? "text-primary-ink font-semibold"
                           : "text-muted-foreground",
                       )}
                     >
@@ -205,7 +205,7 @@ export function FriendScheduleDialog({
                         className={cn(
                           "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-[11px] border transition-colors",
                           isCurrentCustom
-                            ? "border-primary/60 bg-primary/10 text-primary font-medium"
+                            ? "border-primary/60 bg-primary/10 text-primary-ink font-medium"
                             : "border-border/30 bg-muted/40 text-foreground",
                         )}
                       >

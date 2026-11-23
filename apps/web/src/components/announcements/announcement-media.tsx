@@ -233,7 +233,7 @@ export function AnnouncementMedia({
                 rel="noreferrer"
                 className="flex min-w-0 items-center gap-3 rounded-lg border bg-muted/20 px-3 py-2.5 text-sm transition-colors hover:bg-hover"
               >
-                <LinkIcon className="size-4 shrink-0 text-primary" />
+                <LinkIcon className="size-4 shrink-0 text-primary-ink" />
                 <span className="min-w-0 flex-1 truncate font-medium text-foreground">
                   {hostname}
                 </span>

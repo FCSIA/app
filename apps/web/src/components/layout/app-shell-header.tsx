@@ -248,7 +248,7 @@ function AppShellHeader({
               label="Sign out"
               index={doNotDisturb.actions.length + 1}
               onSelect={onLogout}
-              className="hover:[&_svg]:text-red-500"
+              className="hover:[&_svg]:text-destructive"
             />
           </DropdownContent>
         </DropdownMenu>

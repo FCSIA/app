@@ -150,7 +150,7 @@ export function HeroStat({
         ) : null}
       </div>
       {Icon ? (
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary-ink">
           <Icon className="size-4" />
         </div>
       ) : null}

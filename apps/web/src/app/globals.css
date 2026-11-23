@@ -14,11 +14,12 @@
   --color-popover: hsl(var(--popover));
   --color-popover-foreground: hsl(var(--popover-foreground));
   --color-primary: hsl(var(--primary));
+  --color-primary-ink: color-mix(in srgb, hsl(var(--primary)) var(--primary-ink-brand-weight, 100%), hsl(var(--foreground)));
   --color-primary-foreground: hsl(var(--primary-foreground));
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
   --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-muted-foreground: var(--semantic-muted-foreground, hsl(var(--muted-foreground)));
   --color-accent: hsl(var(--accent));
   --color-accent-foreground: hsl(var(--accent-foreground));
   /* Fluid interaction overlays stay relative to whichever surface contains them. */
@@ -40,8 +41,8 @@
   --shadow-surface-6: var(--shadow-6);
   --shadow-surface-7: var(--shadow-7);
   --shadow-surface-8: var(--shadow-8);
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-destructive: var(--semantic-destructive, hsl(var(--destructive)));
+  --color-destructive-foreground: var(--semantic-destructive-foreground, hsl(var(--destructive-foreground)));
   /* Meaning tones for small marks (icons, dots) on ordinary surfaces. */
   --color-tone-positive: var(--tone-positive);
   --color-tone-negative: var(--tone-negative);
@@ -164,6 +165,7 @@
 
 @layer base {
   :root {
+    color-scheme: light;
     --focus-ring: hsl(var(--ring));
     --mention: var(--foreground);
     --mention-surface: var(--accent);
@@ -178,7 +180,7 @@
     --popover-foreground: 150 10% 10%;
 
     /* Darker orange keeps accent text legible on light surfaces. */
-    --primary: 24 90% 38%;
+    --primary: 24 90% 34%;
     --primary-foreground: 0 0% 100%;
 
     /* Neutral secondary panel (hover, selected rows, etc.) */
@@ -186,16 +188,16 @@
     --secondary-foreground: 150 10% 18%;
 
     --muted: 150 8% 96%;
-    --muted-foreground: 150 6% 42%;
+    --muted-foreground: 150 6% 37%;
     --accent: 150 8% 94%;
     --accent-foreground: 150 10% 18%;
 
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 0%;
+    --destructive: 0 70% 37%;
+    --destructive-foreground: 0 0% 100%;
 
     --border: 150 8% 90%;
     --input: 150 8% 50%;
-    --ring: 24 90% 38%;
+    --ring: 24 90% 34%;
 
     /* Chart palette — blue / orange / purple / green / amber */
     --chart-1: 215 90% 60%;
@@ -207,12 +209,12 @@
     /* Sidebar — always dark, charcoal */
     --sidebar: 150 8% 6%;
     --sidebar-foreground: 150 5% 82%;
-    --sidebar-primary: 24 90% 38%;
+    --sidebar-primary: 24 90% 34%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 150 6% 14%;
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 150 6% 14%;
-    --sidebar-ring: 24 90% 38%;
+    --sidebar-ring: 24 90% 34%;
 
     --radius: 1rem;
   }
@@ -221,6 +223,7 @@
      Pure black backdrop, pure white text, maximum-contrast borders. Designed
      for accessibility / low-vision users. */
   .high-contrast {
+    color-scheme: dark;
     --background: 0 0% 0%;
     --foreground: 0 0% 100%;
 
@@ -240,7 +243,7 @@
     --accent: 0 0% 12%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 100% 60%;
+    --destructive: 0 100% 69%;
     --destructive-foreground: 0 0% 0%;
 
     --border: 0 0% 100%;
@@ -274,7 +277,7 @@
     --popover: 340 45% 99%;
     --popover-foreground: 330 55% 14%;
 
-    --primary: 328 75% 40%;
+    --primary: 328 75% 35%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 335 48% 91%;
@@ -285,12 +288,12 @@
     --accent: 300 45% 90%;
     --accent-foreground: 290 50% 22%;
 
-    --destructive: 0 80% 55%;
-    --destructive-foreground: 0 0% 0%;
+    --destructive: 0 70% 37%;
+    --destructive-foreground: 0 0% 100%;
 
     --border: 330 25% 82%;
     --input: 330 30% 55%;
-    --ring: 328 75% 40%;
+    --ring: 328 75% 35%;
 
     --chart-1: 328 92% 58%;
     --chart-2: 290 78% 60%;
@@ -312,6 +315,7 @@
      The same vivid pink voice in a low-light palette. Bright accents retain
      enough contrast against plum surfaces for controls and dense text. */
   .bubblegum-dark {
+    color-scheme: dark;
     --background: 330 36% 6%;
     --foreground: 330 24% 96%;
 
@@ -331,7 +335,7 @@
     --accent: 290 32% 20%;
     --accent-foreground: 290 20% 94%;
 
-    --destructive: 0 78% 62%;
+    --destructive: 0 80% 72%;
     --destructive-foreground: 0 0% 8%;
 
     --border: 330 22% 21%;
@@ -358,6 +362,13 @@
      User uploads an image; we use the dark palette for surfaces and overlay
      the image behind the body. Cards stay opaque so content remains readable. */
   .custom {
+    color-scheme: var(--page-color-scheme, dark);
+    --card-color-scheme: dark;
+    --wallpaper-foreground: var(--foreground);
+    --primary-ink-brand-weight: 32%;
+    --semantic-muted-foreground: #c0bec3;
+    --semantic-destructive: hsl(0 80% 72%);
+    --semantic-destructive-foreground: black;
     --background: 150 8% 4%;
     --foreground: 150 5% 96%;
 
@@ -377,7 +388,7 @@
     --accent: 150 6% 12%;
     --accent-foreground: 150 5% 92%;
 
-    --destructive: 0 72% 55%;
+    --destructive: 0 80% 72%;
     --destructive-foreground: 0 0% 0%;
 
     --border: 150 6% 14%;
@@ -482,6 +493,7 @@
   }
 
   .dark {
+    color-scheme: dark;
     /* Cool ink surfaces give the warm accent a clear role and retain depth. */
     --background: 220 22% 8%;
     --foreground: 210 18% 95%;
@@ -504,7 +516,7 @@
     --accent: 220 22% 19%;
     --accent-foreground: 210 16% 92%;
 
-    --destructive: 0 72% 55%;
+    --destructive: 0 80% 72%;
     --destructive-foreground: 0 0% 0%;
 
     --border: 220 14% 28%;
@@ -800,11 +812,19 @@
 :root {
   /* Meaning tones: one lightness and a low chroma per theme, so the four hues
      read as a set and none outshouts the text beside it. */
-  --tone-positive: oklch(0.52 0.11 160);
-  --tone-negative: oklch(0.55 0.15 25);
-  --tone-caution: oklch(0.58 0.11 70);
-  --tone-social: oklch(0.53 0.1 245);
-  --tone-neutral: hsl(var(--muted-foreground));
+  --tone-positive-light: oklch(0.43 0.09 160);
+  --tone-positive-dark: oklch(0.8 0.08 165);
+  --tone-positive: var(--tone-positive-light);
+  --tone-negative-light: oklch(0.46 0.14 25);
+  --tone-negative-dark: oklch(0.78 0.1 25);
+  --tone-negative: var(--tone-negative-light);
+  --tone-caution-light: oklch(0.45 0.09 70);
+  --tone-caution-dark: oklch(0.83 0.08 80);
+  --tone-caution: var(--tone-caution-light);
+  --tone-social-light: oklch(0.44 0.1 245);
+  --tone-social-dark: oklch(0.8 0.07 240);
+  --tone-social: var(--tone-social-light);
+  --tone-neutral: var(--semantic-muted-foreground, hsl(var(--muted-foreground)));
 }
 
 /* High contrast sits on black, so it takes the dark tones a step brighter. */
@@ -866,18 +886,18 @@
 .dark,
 .bubblegum-dark,
 .custom {
-  --tone-positive: oklch(0.8 0.08 165);
-  --tone-negative: oklch(0.74 0.1 25);
-  --tone-caution: oklch(0.83 0.08 80);
-  --tone-social: oklch(0.8 0.07 240);
+  --tone-positive: var(--tone-positive-dark);
+  --tone-negative: var(--tone-negative-dark);
+  --tone-caution: var(--tone-caution-dark);
+  --tone-social: var(--tone-social-dark);
   --surface-1: hsl(var(--background));
-  --surface-2: color-mix(in oklab, hsl(var(--card)) 98%, hsl(var(--foreground)) 2%);
-  --surface-3: color-mix(in oklab, hsl(var(--card)) 96%, hsl(var(--foreground)) 4%);
-  --surface-4: color-mix(in oklab, hsl(var(--card)) 94%, hsl(var(--foreground)) 6%);
-  --surface-5: color-mix(in oklab, hsl(var(--card)) 92%, hsl(var(--foreground)) 8%);
-  --surface-6: color-mix(in oklab, hsl(var(--card)) 90%, hsl(var(--foreground)) 10%);
-  --surface-7: color-mix(in oklab, hsl(var(--card)) 88%, hsl(var(--foreground)) 12%);
-  --surface-8: color-mix(in oklab, hsl(var(--card)) 86%, hsl(var(--foreground)) 14%);
+  --surface-2: color-mix(in oklab, hsl(var(--card)) 98%, hsl(var(--card-foreground)) 2%);
+  --surface-3: color-mix(in oklab, hsl(var(--card)) 96%, hsl(var(--card-foreground)) 4%);
+  --surface-4: color-mix(in oklab, hsl(var(--card)) 94%, hsl(var(--card-foreground)) 6%);
+  --surface-5: color-mix(in oklab, hsl(var(--card)) 92%, hsl(var(--card-foreground)) 8%);
+  --surface-6: color-mix(in oklab, hsl(var(--card)) 90%, hsl(var(--card-foreground)) 10%);
+  --surface-7: color-mix(in oklab, hsl(var(--card)) 88%, hsl(var(--card-foreground)) 12%);
+  --surface-8: color-mix(in oklab, hsl(var(--card)) 86%, hsl(var(--card-foreground)) 14%);
   --dm-hi-base: rgba(255, 255, 255, 0.01);
   --dm-hi-mid: rgba(255, 255, 255, 0.02);
   --dm-hi-high: rgba(255, 255, 255, 0.04);
@@ -1015,12 +1035,18 @@
   @media (min-width: 1024px) {
     .app-main-surface {
       --app-main-bg: var(--surface-2);
+      --foreground: var(--card-foreground);
+      color-scheme: var(--card-color-scheme, inherit);
+      color: hsl(var(--foreground));
     }
   }
   /* The wallpaper frosts the surface; a band stays near-opaque so rows
      scrolling beneath it stay legible. */
   .custom[data-custom-wallpaper] .app-main-surface {
     --app-main-bg: hsl(var(--background) / 0.94);
+    --foreground: var(--wallpaper-foreground);
+    color-scheme: var(--page-color-scheme, dark);
+    color: hsl(var(--foreground));
   }
 }
 
@@ -1052,11 +1078,7 @@
 }
 
 /* A single reflected edge on raised controls, independent of press and focus
-   shadows. The theme classes decide dark (the app sets no color-scheme, so
-   light-dark() always resolved to the light value). */
+   shadows. The theme classes control the appropriate reflection strength. */
 @utility surface-top-edge {
-  background-image: linear-gradient(to bottom, rgb(255 255 255 / 30%), transparent 1px);
-  @variant dark {
-    background-image: linear-gradient(to bottom, rgb(255 255 255 / 8%), transparent 1px);
-  }
+  background-image: linear-gradient(to bottom, light-dark(rgb(255 255 255 / 30%), rgb(255 255 255 / 8%)), transparent 1px);
 }

@@ -306,6 +306,8 @@ export function FeedbackTab({ canUpdateFeedback = true }: { canUpdateFeedback?: 
               </TabsList>
             </>
           }
+          footer={<DataTablePagination table={table} />}
+          footerClassName="hidden md:block"
         >
           <TabPanel value={view}>
             <div className="hidden min-w-0 md:block" aria-busy={reportMutation.isPending}>
@@ -319,11 +321,8 @@ export function FeedbackTab({ canUpdateFeedback = true }: { canUpdateFeedback?: 
                 }}
                 onRowClick={(row) => setSelectedId(row.original._id)}
               />
-              <div className="pt-3">
-                <DataTablePagination table={table} />
-              </div>
             </div>
-            <div className="md:hidden">
+            <div className="pb-6 md:hidden">
               {isLoading ? (
                 <div className="space-y-2">
                   {[0, 1, 2].map((index) => (
@@ -442,7 +441,7 @@ function FeedbackRowMeta({ report }: { report: FeedbackReport }) {
       ) : null}
       {syncFailed ? (
         <span className="inline-flex items-center gap-1">
-          <TriangleAlert className="size-3 text-amber-500" aria-hidden />
+          <TriangleAlert className="size-3 text-tone-caution" aria-hidden />
           Not on GitHub
         </span>
       ) : null}
@@ -643,7 +642,7 @@ function FeedbackDetail({
               </a>
             ) : report.githubIssueSyncState && canRetryGithubSync(report, now) ? (
               <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                <TriangleAlert className="size-3.5 text-amber-500" aria-hidden />
+                <TriangleAlert className="size-3.5 text-tone-caution" aria-hidden />
                 {report.githubIssueSyncState === 'FAILED' ? 'Not on GitHub yet' : 'GitHub sync stalled'}
                 {canUpdateFeedback ? (
                   <>

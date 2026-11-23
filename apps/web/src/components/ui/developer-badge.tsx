@@ -32,7 +32,7 @@ export function DeveloperBadge({ user, size = 14, className }: DeveloperBadgePro
       aria-label="Developer"
       title="Developer"
       className={cn(
-        'inline-flex shrink-0 items-center justify-center align-middle text-primary',
+        'inline-flex shrink-0 items-center justify-center align-middle text-primary-ink',
         className,
       )}
     >

@@ -98,7 +98,7 @@ function ClubPickerItem({
   const ClubLogoIcon = ({ className }: { className?: string }) => (
     <span
       className={cn(
-        "flex size-7 items-center justify-center overflow-hidden rounded-lg bg-primary/10 text-[11px] font-semibold text-primary",
+        "flex size-7 items-center justify-center overflow-hidden rounded-lg bg-primary/10 text-[11px] font-semibold text-primary-ink",
         className,
       )}
     >
@@ -143,7 +143,7 @@ function ClubIdentity({
     );
   return (
     <>
-      <span className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-md bg-primary/10 text-[11px] font-bold text-primary">
+      <span className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-md bg-primary/10 text-[11px] font-bold text-primary-ink">
         {club?.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -892,7 +892,7 @@ function ClubRail({
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   CARD_SURFACE_FOREGROUND,
-                  "flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface-2 text-xs font-semibold text-primary outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring",
+                  "flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface-2 text-xs font-semibold text-primary-ink outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring",
                   active && "bg-active text-foreground",
                 )}
               >

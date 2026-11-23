@@ -90,7 +90,7 @@ export function NotificationSettingsPanel() {
       <section className="flex flex-col gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <BellRing className="size-4 text-primary" aria-hidden />
+            <BellRing className="size-4 text-primary-ink" aria-hidden />
             <h2 className="text-sm font-semibold text-foreground">General notifications</h2>
           </div>
         </div>
@@ -114,7 +114,7 @@ export function NotificationSettingsPanel() {
                   <Icon
                     className={cn(
                       'size-4 shrink-0',
-                      enabled ? 'text-primary' : 'text-muted-foreground',
+                      enabled ? 'text-primary-ink' : 'text-muted-foreground',
                     )}
                     aria-hidden
                   />
@@ -146,7 +146,7 @@ export function NotificationSettingsPanel() {
         <section className="flex flex-col gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <AtSign className="size-4 text-primary" aria-hidden />
+              <AtSign className="size-4 text-primary-ink" aria-hidden />
               <h2 className="text-sm font-semibold text-foreground">Club notifications</h2>
             </div>
           </div>
@@ -205,7 +205,7 @@ function ClubNotificationChannels({ clubId, clubName }: { clubId: Id<'clubs'>; c
     <Collapsible open={open} onOpenChange={setOpen}>
       <div className={cn('overflow-hidden border border-border/50 bg-card', shape.mergedBg)}>
         <div id={`notification-club-${clubId}`} className="flex min-w-0 items-center gap-2 bg-surface-3/80 px-3 py-2">
-          <Megaphone className={cn('size-4 shrink-0', clubEnabled ? 'text-primary' : 'text-muted-foreground')} aria-hidden />
+          <Megaphone className={cn('size-4 shrink-0', clubEnabled ? 'text-primary-ink' : 'text-muted-foreground')} aria-hidden />
           <h3 className="min-w-0 flex-1 truncate text-sm font-semibold" title={clubName}>{clubName}</h3>
           <CollapsibleTrigger asChild>
             <Button

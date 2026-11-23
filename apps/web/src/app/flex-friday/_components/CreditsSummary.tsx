@@ -28,7 +28,7 @@ export function CreditsSummary({ credits }: { credits: CreditsSummaryData }) {
       <div className="flex items-center gap-2">
         <CheckCircle
           size={14}
-          className={cn(yearMet ? 'text-emerald-500' : 'text-muted-foreground')}
+          className={cn(yearMet ? 'text-tone-positive' : 'text-muted-foreground')}
         />
         <span className="font-medium">
           {credits.earned} / {credits.required} <span className="text-xs text-muted-foreground ml-1">credits</span>
@@ -45,7 +45,7 @@ export function CreditsSummary({ credits }: { credits: CreditsSummaryData }) {
                 className="flex items-center gap-1.5 text-xs"
                 title={`${sem.label}: ${sem.earned} of ${sem.required} credits`}
               >
-                <span className={cn('font-semibold', met ? 'text-emerald-600' : 'text-muted-foreground')}>
+                <span className={cn('font-semibold', met ? 'text-tone-positive' : 'text-muted-foreground')}>
                   {sem.label.split(' ')[0]}:
                 </span>
                 <span className="tabular-nums font-medium">

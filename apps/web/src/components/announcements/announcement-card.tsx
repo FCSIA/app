@@ -183,7 +183,7 @@ function AnnouncementPreview({
                   onClick={() => onBookmarkToggle(announcement)}
                   aria-label={`${announcement.isBookmarked ? 'Remove from saved' : 'Save announcement'}: ${announcement.title}`}
                 >
-                  <Bookmark fill={announcement.isBookmarked ? 'currentColor' : 'none'} className={announcement.isBookmarked ? 'text-primary' : undefined} />
+                  <Bookmark fill={announcement.isBookmarked ? 'currentColor' : 'none'} className={announcement.isBookmarked ? 'text-primary-ink' : undefined} />
                 </Button>
               </Tooltip>
             ) : null}

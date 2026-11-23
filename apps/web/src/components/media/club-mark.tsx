@@ -12,7 +12,7 @@ export function ClubMark({
   return (
     <div
       className={cn(
-        'flex shrink-0 items-center justify-center overflow-hidden bg-primary/10 font-bold text-primary',
+        'flex shrink-0 items-center justify-center overflow-hidden bg-primary/10 font-bold text-primary-ink',
         size === 'sm'
           ? 'size-8 rounded-md text-xs'
           : 'size-11 rounded-lg text-sm',

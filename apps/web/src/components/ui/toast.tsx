@@ -76,7 +76,7 @@ const ToastAction = React.forwardRef<
     asChild={asChild}
     className={cn(
       // A composed Button owns its geometry, icon sizing, and focus treatment.
-      !asChild && "inline-flex h-8 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium transition-colors hover:bg-secondary focus:outline-none focus:ring-1 focus:ring-ring disabled:pointer-events-none disabled:opacity-50 group-[.destructive]:border-muted/40 group-[.destructive]:hover:border-destructive/30 group-[.destructive]:hover:bg-destructive group-[.destructive]:hover:text-destructive-foreground group-[.destructive]:focus:ring-destructive",
+      !asChild && "inline-flex h-8 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium transition-colors hover:bg-secondary focus:outline-none focus:ring-1 focus:ring-ring disabled:pointer-events-none disabled:opacity-50 group-[.destructive]:border-current group-[.destructive]:hover:bg-current/10 group-[.destructive]:focus:ring-current",
       "shrink-0",
       className
     )}
@@ -92,7 +92,7 @@ const ToastClose = React.forwardRef<
   <ToastPrimitives.Close
     ref={ref}
     className={cn(
-      "flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus:ring-1 touch-target [&_svg]:size-4 group-[.destructive]:text-red-200 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600",
+      "flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus:ring-1 touch-target [&_svg]:size-4 group-[.destructive]:text-inherit group-[.destructive]:hover:bg-current/10 group-[.destructive]:focus:ring-current",
       className
     )}
     aria-label={ariaLabel}

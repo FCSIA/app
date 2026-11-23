@@ -19,7 +19,7 @@ import type { Id } from '~/apps/convex/src/_generated/dataModel';
 import type { AppUser } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { CARD_SURFACE_FOREGROUND } from '@/lib/surface-classes';
-import { eventStatusClass, eventStatusLabel } from './_status';
+import { eventStatusColor, eventStatusLabel } from './_status';
 import { useEventsPage } from './use-events-page';
 import { eventHref } from '~/apps/shared/routes';
 
@@ -39,10 +39,6 @@ function EventCard({ event, onApprove, onReject, onCancel, user, hydrated }: {
   const isAdmin = hasAnyRole(user, EVENT_CANCEL_ANY_WEB_ROLES);
   const isAuthor = event.authorId === user?._id;
 
-  const clubStyle = event.club
-    ? 'text-blue-500 border-blue-500/30 bg-blue-500/10'
-    : 'text-muted-foreground border-border/30 bg-muted/20';
-
   return (
     <CardGroup border="outlined" className={cn(
       'overflow-hidden border-border bg-card',
@@ -53,15 +49,15 @@ function EventCard({ event, onApprove, onReject, onCancel, user, hydrated }: {
           <div className="flex items-start justify-between gap-3 sm:gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-2.5">
-                <Badge variant="solid" size="sm" className={cn(eventStatusClass(event.status))}>
+                <Badge variant="solid" size="sm" color={eventStatusColor(event.status)}>
                   {eventStatusLabel(event.status)}
                 </Badge>
-                <Badge variant="solid" size="sm" className={cn(clubStyle)}>
+                <Badge variant="solid" size="sm" color={event.club ? 'blue' : 'gray'}>
                   {event.club?.name || 'General'}
                 </Badge>
               </div>
               <Link href={eventHref(event._id)} className="block">
-                <h3 className="font-semibold text-foreground leading-snug hover:text-primary transition-colors group">
+                <h3 className="font-semibold text-foreground leading-snug hover:text-primary-ink transition-colors group">
                   {event.title}
                 </h3>
               </Link>
@@ -90,7 +86,7 @@ function EventCard({ event, onApprove, onReject, onCancel, user, hydrated }: {
                 </div>
               )}
               {event.status === 'PUBLISHED' && (isAdmin || isAuthor) && (
-                <Button variant="ghost" size="sm" onClick={() => onCancel(event._id)} className="text-red-500 hover:text-red-400 hover:bg-red-500/10 h-8 gap-1.5" leadingIcon={X}>
+                <Button variant="ghost" size="sm" onClick={() => onCancel(event._id)} className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 gap-1.5" leadingIcon={X}>
                   Cancel
                 </Button>
               )}
@@ -264,7 +260,7 @@ export default function EventsPage() {
             {filteredPending.length > 0 && (
               <section className="space-y-4">
                 <h2 className="flex items-center gap-2 text-sm uppercase tracking-wider font-semibold text-muted-foreground">
-                  <AlertCircle size={16} className="text-amber-500" /> Pending Approval ({filteredPending.length})
+                  <AlertCircle size={16} className="text-tone-caution" /> Pending Approval ({filteredPending.length})
                 </h2>
                 <div className="space-y-4">
                   {filteredPending.map((ev) => <EventCard key={ev._id} event={ev} user={user} hydrated={hydrated} onApprove={handleApprove} onReject={handleReject} onCancel={handleCancel} />)}

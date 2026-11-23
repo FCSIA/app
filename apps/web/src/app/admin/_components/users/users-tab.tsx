@@ -311,7 +311,7 @@ function UserTableSection({
         <IconActionButton
           label={`Activate ${displayName(user)}`}
           onClick={() => onActivate(user._id)}
-          className="text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-600"
+          className="text-tone-positive hover:bg-tone-positive/10 hover:text-tone-positive"
         >
           <UserCheck className="size-4" />
         </IconActionButton>

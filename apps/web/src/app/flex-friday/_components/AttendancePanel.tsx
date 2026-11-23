@@ -107,7 +107,7 @@ export function AttendancePanel({
                   size="icon-sm"
                   variant="ghost"
                   className={cn(
-                    status === 'PRESENT' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-700'
+                    status === 'PRESENT' ? 'bg-tone-positive/15 text-tone-positive' : 'text-muted-foreground hover:bg-tone-positive/10 hover:text-tone-positive'
                   )}
                   aria-label={`${status === 'PRESENT' ? 'Clear present status for' : 'Mark present:'} ${displayName(student)}`}
                   aria-pressed={status === 'PRESENT'}
@@ -135,7 +135,7 @@ export function AttendancePanel({
                   size="icon-sm"
                   variant="ghost"
                   className={cn(
-                    status === 'TARDY' ? 'bg-sky-500/15 text-sky-700 dark:text-sky-300' : 'text-muted-foreground hover:bg-sky-500/10 hover:text-sky-700'
+                    status === 'TARDY' ? 'bg-tone-social/15 text-tone-social' : 'text-muted-foreground hover:bg-tone-social/10 hover:text-tone-social'
                   )}
                   aria-label={`${status === 'TARDY' ? 'Clear tardy status for' : 'Mark tardy:'} ${displayName(student)}`}
                   aria-pressed={status === 'TARDY'}
@@ -149,7 +149,7 @@ export function AttendancePanel({
                   size="icon-sm"
                   variant="ghost"
                   className={cn(
-                    status === 'EXCUSED' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300' : 'text-muted-foreground hover:bg-amber-500/10 hover:text-amber-700'
+                    status === 'EXCUSED' ? 'bg-tone-caution/15 text-tone-caution' : 'text-muted-foreground hover:bg-tone-caution/10 hover:text-tone-caution'
                   )}
                   aria-label={`${status === 'EXCUSED' ? 'Clear excused status for' : 'Mark excused:'} ${displayName(student)}`}
                   aria-pressed={status === 'EXCUSED'}

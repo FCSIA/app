@@ -60,20 +60,16 @@ type BannerVariant = "inline" | "fixed";
 
 // The status color: the icon's fill, and the wash behind a high-contrast
 // banner. Default is the foreground, so a neutral banner reads as ink.
-// --info, --success and --warning ship with the component: Tailwind 500s in
-// light mode, where they carry the light mark cut into a filled glyph, and
-// 300s in dark mode, where the mark turns dark. Error reuses --destructive,
-// so it matches the app's other error states.
 // useLayoutEffect warns when rendered on the server; the effect only
 // measures, so the server can skip it.
 const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 const TONE: Record<BannerStatus, string> = {
   default: "hsl(var(--foreground))",
-  info: "var(--color-blue-500)",
-  success: "var(--color-green-500)",
-  warning: "var(--color-amber-500)",
-  error: "hsl(var(--destructive))",
+  info: "var(--tone-social)",
+  success: "var(--tone-positive)",
+  warning: "var(--tone-caution)",
+  error: "var(--tone-negative)",
 };
 
 // Both fills are translucent, so the banner takes on whatever surface it sits

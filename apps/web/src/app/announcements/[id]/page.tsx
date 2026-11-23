@@ -224,7 +224,7 @@ export default function AnnouncementDetailPage({
                 <Bookmark
                   fill={announcement.isBookmarked ? 'currentColor' : 'none'}
                   className={
-                    announcement.isBookmarked ? 'text-primary' : undefined
+                    announcement.isBookmarked ? 'text-primary-ink' : undefined
                   }
                 />
               </Button>

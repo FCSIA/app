@@ -276,7 +276,7 @@ function ComposerAttachmentTile({
         className={cn(
           'absolute right-1 top-1 flex size-6 items-center justify-center rounded-full',
           'bg-background/90 text-foreground shadow ring-1 ring-border backdrop-blur',
-          'transition hover:bg-destructive hover:text-white focus-visible:outline-2',
+          'transition hover:bg-destructive hover:text-destructive-foreground focus-visible:outline-2',
           'disabled:pointer-events-none disabled:opacity-50',
           // Touch screens have no hover, so the button stays visible there.
           'pointer-fine:opacity-0 pointer-fine:group-hover/tile:opacity-100 pointer-fine:focus-visible:opacity-100',

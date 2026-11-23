@@ -53,6 +53,14 @@ describe('custom theme contrast warnings', () => {
     expect(buildCustomThemeRule({ background: '#ffffff' })).toContain('--foreground: 0 0% 0%;');
   });
 
+  test('sets semantic colors independently for mixed light and dark custom surfaces', () => {
+    const rule = buildCustomThemeRule({ background: '#ffffff', secondary: '#18191a' });
+    expect(rule).toContain('--page-color-scheme: light; --card-color-scheme: dark;');
+    expect(rule).toMatch(/\.custom \{[^}]*--tone-positive: var\(--tone-positive-light\);/);
+    expect(rule).toMatch(/\.custom \.palette-card \{[^}]*--tone-positive: var\(--tone-positive-dark\);/);
+    expect(rule).toContain('.custom:not([data-custom-wallpaper]) .app-main-surface');
+  });
+
   test('still excludes malformed colors and CSS injection from saved palettes', () => {
     const colors = parseCustomColors(JSON.stringify({
       background: '#ffffff; color: red', foreground: '#EEEEEE', primary: 'nope', unknown: '#123456',

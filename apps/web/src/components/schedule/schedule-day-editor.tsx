@@ -126,7 +126,7 @@ export function ScheduleDayEditor({
                 className={cn(
                   "inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors",
                   isCurrentCustom
-                    ? "border-primary/60 bg-primary/10 text-primary font-medium shadow-xs"
+                    ? "border-primary/60 bg-primary/10 text-primary-ink font-medium shadow-xs"
                     : "border-border/50 text-foreground",
                 )}
               >
@@ -190,7 +190,7 @@ export function ScheduleDayEditor({
                   <TableCell
                     className={cn(
                       "w-12 px-3 py-2.5 text-center text-sm font-semibold tabular-nums",
-                      isCurrent ? "text-primary font-bold" : "text-foreground",
+                      isCurrent ? "text-primary-ink font-bold" : "text-foreground",
                     )}
                   >
                     {periodNumber}
@@ -200,7 +200,7 @@ export function ScheduleDayEditor({
                     <div className="flex min-w-0 items-center gap-2">
                       {isLunch ? (
                         <div className="flex min-h-8 flex-1 items-center gap-2 text-sm font-medium text-foreground">
-                          <Lock className="size-3.5 text-primary" />
+                          <Lock className="size-3.5 text-primary-ink" />
                           Lunch
                         </div>
                       ) : (
@@ -253,7 +253,7 @@ export function ScheduleDayEditor({
                     className={cn(
                       "hidden w-40 px-3 py-2.5 text-right text-[11px] tabular-nums sm:table-cell",
                       isCurrent
-                        ? "text-primary font-semibold"
+                        ? "text-primary-ink font-semibold"
                         : "text-muted-foreground",
                     )}
                   >

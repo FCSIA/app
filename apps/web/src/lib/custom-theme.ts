@@ -43,7 +43,7 @@ const colorVariables: Record<
   foreground: { vars: ['--foreground'] },
   primary: {
     vars: ['--primary', '--ring', '--sidebar-primary', '--sidebar-ring'],
-    automaticForegroundVars: ['--primary-foreground'],
+    automaticForegroundVars: ['--primary-foreground', '--sidebar-primary-foreground'],
   },
   secondary: {
     vars: ['--secondary', '--muted', '--card', '--popover'],
@@ -159,7 +159,24 @@ export function buildCustomThemeRule(colors: CustomColors): string | null {
     }
   }
 
-  return declarations.length > 0 ? `.custom { ${declarations.join(' ')} }` : null;
+  if (!declarations.length) return null;
+
+  const schemeFor = (hex?: string) => hex && readableForegroundParts(hex) === '0 0% 0%' ? 'light' : 'dark';
+  const pageScheme = schemeFor(validColors.background);
+  const cardScheme = schemeFor(validColors.secondary);
+  declarations.push(`--page-color-scheme: ${pageScheme};`, `--card-color-scheme: ${cardScheme};`);
+  const palette = (scheme: 'light' | 'dark') => [
+    ...['positive', 'negative', 'caution', 'social'].map((tone) => `--tone-${tone}: var(--tone-${tone}-${scheme});`),
+    `--semantic-muted-foreground: ${scheme === 'light' ? '#4f4b51' : '#c0bec3'};`,
+    `--semantic-destructive: ${scheme === 'light' ? 'hsl(0 70% 37%)' : 'hsl(0 80% 72%)'};`,
+    `--semantic-destructive-foreground: ${scheme === 'light' ? 'white' : 'black'};`,
+  ].join(' ');
+
+  return [
+    `.custom { ${declarations.join(' ')} ${palette(pageScheme)} }`,
+    `.custom .palette-card { ${palette(cardScheme)} }`,
+    `@media(min-width: 1024px) { .custom:not([data-custom-wallpaper]) .app-main-surface { ${palette(cardScheme)} } }`,
+  ].join('\n');
 }
 
 export function applyCustomColors(colors: CustomColors) {

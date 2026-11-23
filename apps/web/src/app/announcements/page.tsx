@@ -386,14 +386,14 @@ export default function AnnouncementsPage() {
                 <FilterToggleIcon>
                   <Inbox
                     aria-hidden
-                    className={readFilter === 'all' && savedFilter === 'all' ? 'text-primary' : undefined}
+                    className={readFilter === 'all' && savedFilter === 'all' ? 'text-primary-ink' : undefined}
                   />
                 </FilterToggleIcon>
                 All
               </FilterToggleItem>
               <FilterToggleItem value="unread">
                 <FilterToggleIcon>
-                  <Mail aria-hidden className={readFilter === 'unread' ? 'text-primary' : undefined} />
+                  <Mail aria-hidden className={readFilter === 'unread' ? 'text-primary-ink' : undefined} />
                 </FilterToggleIcon>
                 Unread
               </FilterToggleItem>
@@ -402,7 +402,7 @@ export default function AnnouncementsPage() {
                   <Bookmark
                     aria-hidden
                     fill={savedFilter === 'saved' ? 'currentColor' : 'none'}
-                    className={savedFilter === 'saved' ? 'text-primary' : undefined}
+                    className={savedFilter === 'saved' ? 'text-primary-ink' : undefined}
                   />
                 </FilterToggleIcon>
                 Saved

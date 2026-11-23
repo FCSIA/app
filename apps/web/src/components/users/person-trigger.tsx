@@ -34,8 +34,14 @@ export const PersonTriggerButton = forwardRef<HTMLButtonElement, ButtonHTMLAttri
     )}
     {...props}
   >
-    <UserAvatar person={person} seed={seed} size={avatarSize} className="shrink-0" />
-    <span className="truncate underline decoration-transparent decoration-1 underline-offset-2 transition-[text-decoration-color] duration-150 ease-out group-hover/person:decoration-current group-data-[state=open]/person:decoration-current">
+    <UserAvatar
+      person={person}
+      seed={seed}
+      size={avatarSize}
+      // Grow into the avatar's reserved space so table cells can still clip long names.
+      className="motion-safe:scale-[.96] motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-[cubic-bezier(.22,1,.36,1)] motion-safe:group-hover/person:scale-100"
+    />
+    <span className="truncate underline decoration-transparent decoration-1 underline-offset-2 motion-safe:transition-[text-decoration-color] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(.22,1,.36,1)] group-hover/person:decoration-current group-data-[state=open]/person:decoration-current">
       {name}
     </span>
   </button>

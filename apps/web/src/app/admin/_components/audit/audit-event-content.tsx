@@ -41,7 +41,7 @@ function Detail({ label, children, wide = false }: { label: string; children: Re
   return (
     <div className={cn('min-w-0 max-w-full', wide && 'basis-full')}>
       <dt className={cn('text-muted-foreground', wide ? 'mb-0.5 block' : 'mr-1.5 inline')}>{label}</dt>
-      <dd className={cn('whitespace-pre-wrap text-foreground/90', !wide && 'inline')}>{children}</dd>
+      <dd className={cn('whitespace-pre-wrap text-foreground', !wide && 'inline')}>{children}</dd>
     </div>
   );
 }

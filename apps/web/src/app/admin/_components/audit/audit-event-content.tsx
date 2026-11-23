@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { AdminNotice } from '../admin-ui';
+import { CodeBlock } from '@/components/ui/code-block';
 import { useQuery } from "@/lib/convex-react";
 import { api } from "~/apps/convex/src/_generated/api";
 import type { AuditEventDetail } from '../../_lib/types';
@@ -36,18 +37,18 @@ function displayValue(value: unknown, event: AuditEventDetail): string {
     ? JSON.stringify(value, null, 2)
     : String(value);
 }
-function Detail({ label, children }: { label: string; children: ReactNode }) {
+function Detail({ label, children, wide = false }: { label: string; children: ReactNode; wide?: boolean }) {
   return (
-    <>
-      <dt className="text-muted-foreground">{label}</dt>
+    <div className={wide ? 'basis-full' : 'min-w-0 max-w-full'}>
+      <dt className="mb-1 text-xs text-muted-foreground">{label}</dt>
       <dd className="min-w-0 whitespace-pre-wrap">{children}</dd>
-    </>
+    </div>
   );
 }
 
 /**
- * One flat label/value list on the row's own tint: what was recorded, the
- * records it touched, then the stored event itself. Nothing nests or scrolls.
+ * What was recorded, side by side on one line (wrapping when it must), then
+ * the stored event as a raised block. Each label is a caption above its value.
  */
 export function AuditEventContent({ eventId }: { eventId: Id<"auditEvents"> }) {
   const eventDetail = useQuery(api.audit.events.get, { auditEventId: eventId });
@@ -60,7 +61,7 @@ export function AuditEventContent({ eventId }: { eventId: Id<"auditEvents"> }) {
     (field) => !/\bID\b/i.test(field.label) && !['0', 'No', 'None', 'null', 'false', ''].includes(field.value),
   );
   return (
-    <dl className="grid grid-cols-[minmax(6rem,max-content)_minmax(0,1fr)] gap-x-8 gap-y-2 pl-[22px] text-sm [overflow-wrap:anywhere]">
+    <dl className="flex flex-wrap gap-x-10 gap-y-4 pl-[22px] text-sm [overflow-wrap:anywhere]">
       {auditMetaFields(eventDetail).map((field) => (
         <Detail key={field.key} label={field.label}>{displayValue(field.value, eventDetail)}</Detail>
       ))}
@@ -83,31 +84,27 @@ export function AuditEventContent({ eventId }: { eventId: Id<"auditEvents"> }) {
           {preview.subtitle ? <span className="text-muted-foreground"> · {preview.subtitle}</span> : null}
         </Detail>
       ) : null}
-      {preview?.body ? <Detail label="Content">{preview.body}</Detail> : null}
+      {preview?.body ? <Detail label="Content" wide>{preview.body}</Detail> : null}
       {previewFields.map((field) => (
         <Detail key={field.label} label={field.label}>{field.value}</Detail>
       ))}
       {snapshot ? (
-        <Detail label="Board">
+        <Detail label="Board" wide>
           <WhiteboardAuditSnapshot boardId={snapshot.boardId} atSeq={snapshot.atSeq} />
         </Detail>
       ) : null}
-      <Detail label="Stored event">
-        <pre className="surface-top-edge rounded-md border border-border/60 px-3 py-2 font-mono text-xs whitespace-pre-wrap">
-          {JSON.stringify(
-            {
-              action: eventDetail.action,
-              entityType: eventDetail.entityType,
-              entityId: eventDetail.entityId,
-              actorId: eventDetail.actorId,
-              client: eventDetail.client,
-              createdAt: eventDetail.createdAt,
-              meta: eventDetail.meta,
-            },
-            null,
-            2,
-          )}
-        </pre>
+      <Detail label="Stored event" wide>
+        <CodeBlock
+          json={{
+            action: eventDetail.action,
+            entityType: eventDetail.entityType,
+            entityId: eventDetail.entityId,
+            actorId: eventDetail.actorId,
+            client: eventDetail.client,
+            createdAt: eventDetail.createdAt,
+            meta: eventDetail.meta,
+          }}
+        />
       </Detail>
     </dl>
   );

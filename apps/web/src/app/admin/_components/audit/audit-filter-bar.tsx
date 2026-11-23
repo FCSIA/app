@@ -5,16 +5,12 @@ import { format, parseISO } from 'date-fns';
 import { ChevronDown, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownTrigger } from '@/components/ui/dropdown';
-import {
-  Popover,
-  PopoverAnchor,
-  PopoverContent,
-} from '@/components/ui/popover';
+import { Popover, PopoverAnchor } from '@/components/ui/popover';
 import type { useAdminAudit } from '../../_hooks/use-admin-audit';
 import {
   AuditColumnFilter,
   WHEN_PRESETS,
-  WhenRangeFields,
+  WhenRangePopoverContent,
   type AuditFilterColumn,
 } from './audit-filters';
 
@@ -86,6 +82,8 @@ function AuditFilterControl({
       : chips.length === 1
         ? chips[0].label
         : `${chips[0].label} +${chips.length - 1}`;
+  // Applied, the pill holds two targets (open, clear) on one shared surface:
+  // ghost buttons over a single tint, so no seam is drawn between them.
   const trigger = (
     <DropdownMenu size="compact" open={menuOpen} onOpenChange={setMenuOpen}>
       <DropdownTrigger
@@ -93,14 +91,14 @@ function AuditFilterControl({
           <Button
             type="button"
             size="compact"
-            variant="secondary"
+            variant={applied ? 'ghost' : 'secondary'}
             active={menuOpen}
             trailingIcon={applied ? undefined : ChevronDown}
             aria-label={`${column} filter: ${value}`}
-            className={applied ? 'rounded-r-none pr-2' : undefined}
+            className={applied ? 'rounded-r-none pr-1.5' : undefined}
           >
             <span className="mr-1 text-muted-foreground">{column}</span>
-            <span className="max-w-48 truncate">{value}</span>
+            <span className="max-w-48 truncate text-foreground">{value}</span>
           </Button>
         }
       />
@@ -116,12 +114,12 @@ function AuditFilterControl({
     </DropdownMenu>
   );
   const control = applied ? (
-    <span className="inline-flex">
+    <span className="surface-top-edge inline-flex rounded-md bg-[var(--tint)]">
       {trigger}
       <Button
         type="button"
         size="icon-compact"
-        variant="secondary"
+        variant="ghost"
         aria-label={`Clear ${column.toLowerCase()} filter`}
         className="rounded-l-none"
         onClick={() => chips.forEach((chip) => chip.clear())}
@@ -138,9 +136,7 @@ function AuditFilterControl({
       <PopoverAnchor asChild>
         <span className="inline-flex">{control}</span>
       </PopoverAnchor>
-      <PopoverContent align="start" aria-label="Custom date range">
-        <WhenRangeFields audit={audit} />
-      </PopoverContent>
+      <WhenRangePopoverContent audit={audit} />
     </Popover>
   );
 }

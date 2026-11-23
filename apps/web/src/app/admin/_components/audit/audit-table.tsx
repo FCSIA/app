@@ -59,11 +59,10 @@ import { DropdownMenu, DropdownTrigger } from '@/components/ui/dropdown';
 import {
   Popover,
   PopoverAnchor,
-  PopoverContent,
 } from '@/components/ui/popover';
 import {
   AuditColumnFilter,
-  WhenRangeFields,
+  WhenRangePopoverContent,
   auditFilterActive,
   type AuditFilterColumn,
 } from './audit-filters';
@@ -180,14 +179,14 @@ function WhereCell({ event }: { event: AuditEventRecord }) {
     </span>
   );
 }
-// Four quiet tones, each tied to meaning: most rows stay neutral so the few
+// Meaning tones from the theme palette: most rows stay neutral so the few
 // approvals, removals, security changes and conversations stand out.
 const tone = {
-  neutral: 'text-muted-foreground',
-  positive: 'text-emerald-700 dark:text-emerald-400',
-  negative: 'text-destructive',
-  caution: 'text-amber-700 dark:text-amber-400',
-  social: 'text-sky-700 dark:text-sky-400',
+  neutral: 'text-tone-neutral',
+  positive: 'text-tone-positive',
+  negative: 'text-tone-negative',
+  caution: 'text-tone-caution',
+  social: 'text-tone-social',
 };
 const actionKinds: Record<AuditActionKind, [LucideIcon, string]> = {
   create: [Plus, tone.neutral], edit: [Pencil, tone.neutral],
@@ -220,7 +219,7 @@ function Action({ event }: { event: AuditEventRecord }) {
       />
       <span
         title={auditActionLabel(event.action)}
-        className={`line-clamp-2 whitespace-normal ${auditActionInfo(event.action)?.destructive ? 'text-destructive' : 'text-foreground'}`}
+        className={`line-clamp-2 whitespace-normal ${auditActionInfo(event.action)?.destructive ? 'text-tone-negative' : 'text-foreground'}`}
       >
         {auditActionLabel(event.action)}
       </span>
@@ -294,9 +293,7 @@ function AuditColumnHeader({
         </div>
       </PopoverAnchor>
       {title === 'When' ? (
-        <PopoverContent align="start" aria-label="Custom date range">
-          <WhenRangeFields audit={audit} />
-        </PopoverContent>
+        <WhenRangePopoverContent audit={audit} />
       ) : null}
     </Popover>
   );

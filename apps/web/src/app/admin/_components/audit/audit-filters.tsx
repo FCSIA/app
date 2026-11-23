@@ -4,7 +4,6 @@ import { useDeferredValue, useRef, useState, type ReactNode } from 'react';
 import { format, subDays } from 'date-fns';
 import {
   AUDIT_CATEGORIES,
-  auditActionInfo,
   auditActionLabel,
   auditRecordLabel,
   type AuditCategory,
@@ -23,6 +22,7 @@ import {
   DropdownSeparator,
 } from '@/components/ui/dropdown';
 import { MenuItem } from '@/components/ui/menu-item';
+import { PopoverContent } from '@/components/ui/popover';
 import type { useAdminAudit } from '../../_hooks/use-admin-audit';
 
 type AuditState = ReturnType<typeof useAdminAudit>;
@@ -381,9 +381,18 @@ function WhenFilter({
   );
 }
 
+/** The custom range beside a When filter: wide enough that both date fields keep their full width. */
+export function WhenRangePopoverContent({ audit }: { audit: AuditState }) {
+  return (
+    <PopoverContent align="start" aria-label="Custom date range" className="w-[min(24rem,calc(100vw-2rem))]">
+      <WhenRangeFields audit={audit} />
+    </PopoverContent>
+  );
+}
+
 export function WhenRangeFields({ audit }: { audit: AuditState }) {
   return (
-    <FieldGroup className="grid grid-cols-2 gap-3">
+    <FieldGroup className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
       <Field>
         <FieldLabel>From</FieldLabel>
         <DateField

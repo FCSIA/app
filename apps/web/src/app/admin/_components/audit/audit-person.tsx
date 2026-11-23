@@ -1,17 +1,44 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { format } from 'date-fns';
+import { SquareTerminal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { PersonTrigger } from '@/components/users/person-trigger';
-import { IaOrbitMark } from "@/components/ui/ia-orbit-mark";
-import { UserAvatar } from "@/components/ui/user-avatar";
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { IaOrbitMark } from '@/components/ui/ia-orbit-mark';
+import { PersonTrigger, PersonTriggerButton } from '@/components/users/person-trigger';
 import { isAuditSystem, auditPersonName } from '~/apps/shared/audit';
 import type { AuditEventRecord } from '../../_lib/types';
 
+/** Marks an action taken through the command-line client; opens what that means. */
+function CliMark({ name, at }: { name: string; at: string }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label="Done from the command-line client"
+          onClick={(event) => event.stopPropagation()}
+          className="shrink-0 cursor-pointer rounded-sm text-muted-foreground outline-none transition-colors duration-150 hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring data-[state=open]:text-foreground"
+        >
+          <SquareTerminal size={14} aria-hidden />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-64 text-sm">
+        <p className="font-medium">Done from the IA CLI</p>
+        <p className="mt-1 text-muted-foreground">
+          {name} did this from the command-line client, signed in through a
+          device they approved, on {format(new Date(at), 'PPP')} at {format(new Date(at), 'p')}.
+        </p>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 /**
- * The actor as a live entity: the name reads as row content (cell type, full
- * contrast) with the chat author-name affordance, and opens the shared profile
- * preview with the log filter. Rows without a person stay plain text.
+ * The actor: avatar, name and their ID, opening the shared profile preview
+ * with the log filter. The app's mark stands in for system events and an
+ * empty seat for a person who no longer exists.
  */
 export function AuditPerson({ event, onFilter }: {
   event: AuditEventRecord;
@@ -25,7 +52,6 @@ export function AuditPerson({ event, onFilter }: {
   const [filterCount, setFilterCount] = useState(0);
   useEffect(() => { if (filterCount) triggerRef.current?.focus(); }, [filterCount]);
   if (!actor) {
-    // The app itself acts for system events; a removed person leaves an empty seat.
     return (
       <span className="flex min-w-0 items-center gap-2 text-muted-foreground">
         {isAuditSystem(event) ? (
@@ -37,28 +63,27 @@ export function AuditPerson({ event, onFilter }: {
       </span>
     );
   }
-  const secondary = [
-    actor.uniqueId && actor.uniqueId !== name ? actor.uniqueId : null,
-    event.client === 'cli' ? 'via CLI' : null,
-  ].filter(Boolean).join(' · ');
   return (
-    <PersonTrigger
-      key={filterCount}
-      person={{ ...actor, _id: actor.id, preferredName: actor.preferredName ?? undefined }}
-      usersHref={`/admin/users?user=${encodeURIComponent(actor.id)}`}
-      trigger={
-        <button
-          ref={triggerRef}
-          type="button"
-          aria-label={`View ${name}'s profile${event.client === 'cli' ? ', acting through the command-line client' : ''}`}
-          className="flex max-w-full items-center gap-2 rounded-sm text-left text-foreground outline-none hover:underline hover:underline-offset-2 focus-visible:ring-1 focus-visible:ring-ring"
-        >
-          <UserAvatar person={actor} seed={actor.id} size={20} className="shrink-0" />
-          <span className="truncate">{name}</span>
-          {secondary ? <span className="truncate text-xs text-muted-foreground">{secondary}</span> : null}
-        </button>
-      }
-      actions={<Button type="button" size="sm" variant="ghost" onClick={() => { onFilter(actor.id, name); setFilterCount((count) => count + 1); }}>Filter by this person</Button>}
-    />
+    <span className="flex min-w-0 items-center gap-2">
+      <PersonTrigger
+        key={filterCount}
+        person={{ ...actor, _id: actor.id, preferredName: actor.preferredName ?? undefined }}
+        usersHref={`/admin/users?user=${encodeURIComponent(actor.id)}`}
+        trigger={
+          <PersonTriggerButton
+            ref={triggerRef}
+            person={actor}
+            seed={actor.id}
+            name={name}
+            aria-label={`View ${name}'s profile`}
+          />
+        }
+        actions={<Button type="button" size="sm" variant="ghost" onClick={() => { onFilter(actor.id, name); setFilterCount((count) => count + 1); }}>Filter by this person</Button>}
+      />
+      {actor.uniqueId && actor.uniqueId !== name ? (
+        <span className="truncate text-xs text-muted-foreground">{actor.uniqueId}</span>
+      ) : null}
+      {event.client === 'cli' ? <CliMark name={name} at={event.createdAt} /> : null}
+    </span>
   );
 }

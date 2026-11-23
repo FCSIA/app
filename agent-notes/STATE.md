@@ -447,7 +447,8 @@
   panel frame. Static groups use a single border without an elevation outline
   stacked on it. Design guidance distinguishes useful grouping from redundant
   chrome. Scoped switches reflect global inheritance and report failed saves.
-  The owner's interaction principles are captured in `.impeccable.md`.
+  The owner's interaction principles are captured in
+  `agent-notes/design-context.md`.
   Three hierarchy regressions, web typecheck/lint (21 existing warnings), and
   production build pass. Compiled browser checks cover route parity, preference
   persistence/inheritance, parent disabling, keyboard disclosure/switches,

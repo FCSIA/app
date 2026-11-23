@@ -15,7 +15,7 @@ Web UI is human-directed and primitive-first.
 
 Before changing `apps/web` UI:
 
-1. Read `.impeccable.md` and `agent-notes/WEB_UI_WORKFLOW.md`.
+1. Read `agent-notes/design-context.md` and `agent-notes/WEB_UI_WORKFLOW.md`.
 2. If a primitive is involved, also read
    `agent-notes/UI_PRIMITIVE_COMPATIBILITY.md`.
 3. Inspect the current Fluid documentation: rendered example, Code example,

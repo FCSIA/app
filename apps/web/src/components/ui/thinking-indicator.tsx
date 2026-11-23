@@ -1,10 +1,16 @@
 "use client";
 
 import { forwardRef, useState, useEffect, type HTMLAttributes } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { fontWeights } from "@/lib/font-weight";
+import { useSize, typeClass, type SizeVariant } from "@/lib/size-context";
 
+// The glyph is one path morphing circle → infinity → circle → infinity →
+// circle. All 3 shapes share the same commands (a move, 4 curves, a close),
+// so the morph interpolates point for point. circleA and circleB trace the
+// same circle in opposite directions: each pass through the infinity sign
+// keeps flowing the same way instead of unwinding.
 const circleA =
   "M 12 8 C 14.21 8 16 9.79 16 12 C 16 14.21 14.21 16 12 16 C 9.79 16 8 14.21 8 12 C 8 9.79 9.79 8 12 8 Z";
 
@@ -14,16 +20,20 @@ const infinity =
 const circleB =
   "M 12 16 C 14.21 16 16 14.21 16 12 C 16 9.79 14.21 8 12 8 C 9.79 8 8 9.79 8 12 C 8 14.21 9.79 16 12 16 Z";
 
+// The label moves to the next word every 4000ms.
 const words = ["Thinking", "Moonwalking", "Planning", "Refining"];
 
 interface ThinkingIndicatorProps extends HTMLAttributes<HTMLDivElement> {
   /** Show the morphing circle⇄infinity glyph before the label. Set to `false`
    *  for a text-only indicator (e.g. inline before a streamed reply). */
   showIcon?: boolean;
+  /** Step on the size ladder. Wins over the surrounding SizeProvider. */
+  size?: SizeVariant;
 }
 
 const ThinkingIndicator = forwardRef<HTMLDivElement, ThinkingIndicatorProps>(
-  ({ className, showIcon = true, ...props }, ref) => {
+  ({ className, showIcon = true, size, ...props }, ref) => {
+  const compactStep = useSize(size).variant === "compact";
   const [index, setIndex] = useState(0);
   // Reduced motion drops the infinite glyph morph and the word cycling — a
   // static glyph and label carry the same meaning without the movement.
@@ -51,8 +61,8 @@ const ThinkingIndicator = forwardRef<HTMLDivElement, ThinkingIndicatorProps>(
       {showIcon && (
         <motion.svg
           aria-hidden
-          width={20}
-          height={20}
+          width={compactStep ? 18 : 20}
+          height={compactStep ? 18 : 20}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -61,10 +71,13 @@ const ThinkingIndicator = forwardRef<HTMLDivElement, ThinkingIndicatorProps>(
           strokeLinejoin="round"
           className="text-muted-foreground shrink-0"
         >
+          {/* 4 equal quarters over 6s, easeInOut, forever. */}
           {reduceMotion ? (
             <path d={infinity} />
           ) : (
             <motion.path
+              d={circleA}
+              initial={{ d: circleA }}
               animate={{
                 d: [circleA, infinity, circleB, infinity, circleA],
               }}
@@ -80,11 +93,22 @@ const ThinkingIndicator = forwardRef<HTMLDivElement, ThinkingIndicatorProps>(
           )}
         </motion.svg>
       )}
+      {/* Every word sits in the same grid cell. overflow-hidden clips them
+          as they roll in from below and out the top, like a slot. */}
       <span
         aria-hidden="true"
-        className="inline-grid text-[13px] overflow-hidden"
-        style={{ fontVariationSettings: fontWeights.medium }}
+        className={cn(
+          "inline-grid overflow-hidden",
+          typeClass("body", compactStep ? "compact" : "default")
+        )}
+        style={{ fontVariationSettings: fontWeights.normal }}
       >
+        {/* An invisible copy of the longest word reserves the width, so the
+            cycle never shifts what sits next to the indicator.
+            `shimmer-text` ships with this component's CSS: transparent text
+            over a 300%-wide gradient clipped to the letters, sweeping every
+            1.5s. Its colors are light-dark() pairs, so the bright band
+            inverts per theme. */}
         <span className="col-start-1 row-start-1 invisible shimmer-text">
           {words.reduce((a, b) => (a.length >= b.length ? a : b))}
         </span>
@@ -93,6 +117,10 @@ const ThinkingIndicator = forwardRef<HTMLDivElement, ThinkingIndicatorProps>(
             {words[0]}
           </span>
         ) : (
+          // popLayout lets the outgoing word leave layout at once, so both
+          // words overlap in the cell. The exit (0.16s) is quicker than the
+          // entrance (0.24s): the old word clears before the new one lands.
+          // initial={false}: the first word is already there on mount.
           <AnimatePresence mode="popLayout" initial={false}>
             <motion.span
               key={words[index]}

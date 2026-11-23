@@ -2,7 +2,7 @@
 
 import { isAdmin } from '~/apps/shared/roles';
 import Link from 'next/link';
-import { useState, type ReactElement, type ReactNode } from 'react';
+import { forwardRef, useState, type ButtonHTMLAttributes, type ReactElement, type ReactNode } from 'react';
 import { Copy, UserRound } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,37 @@ import { UserProfileContent, UserProfileDialog, type UserProfilePerson } from '@
 import { displayName } from '~/apps/shared/user-name';
 import { useCurrentUser } from '@/lib/auth';
 import { copyText } from '@/lib/share';
+import { UserAvatar, type AvatarPerson, type UserAvatarSize } from '@/components/ui/user-avatar';
+import { cn } from '@/lib/utils';
+
+/**
+ * The inline avatar-and-name that opens a person's preview. The hand cursor,
+ * the avatar's lift and the name's underline fading in all mark the whole
+ * thing as one target. Pass it as PersonTrigger's `trigger`.
+ */
+export const PersonTriggerButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement> & {
+  person: AvatarPerson;
+  seed?: string;
+  name: string;
+  avatarSize?: UserAvatarSize;
+}>(({ person, seed, name, avatarSize = 20, className, ...props }, ref) => (
+  <button
+    ref={ref}
+    type="button"
+    className={cn(
+      'group/person flex min-w-0 max-w-full cursor-pointer items-center gap-2 rounded-sm text-left text-foreground outline-none',
+      'focus-visible:ring-1 focus-visible:ring-ring',
+      className,
+    )}
+    {...props}
+  >
+    <UserAvatar person={person} seed={seed} size={avatarSize} className="shrink-0" />
+    <span className="truncate underline decoration-transparent decoration-1 underline-offset-4 transition-[text-decoration-color] duration-150 ease-out group-hover/person:decoration-current group-data-[state=open]/person:decoration-current">
+      {name}
+    </span>
+  </button>
+));
+PersonTriggerButton.displayName = 'PersonTriggerButton';
 
 /** Click/tap profile preview shared by activity tables and person references. */
 export function PersonTrigger({ person, actions, usersHref, roleName, trigger }: {

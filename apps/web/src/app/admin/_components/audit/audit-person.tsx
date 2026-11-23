@@ -36,7 +36,7 @@ function CliMark({ name, at }: { name: string; at: string }) {
 }
 
 /**
- * The actor: avatar, name and their ID, opening the shared profile preview
+ * The actor's avatar and name open the shared profile preview
  * with the log filter. The app's mark stands in for system events and an
  * empty seat for a person who no longer exists.
  */
@@ -82,9 +82,6 @@ export function AuditPerson({ event, onFilter }: {
         }
         actions={<Button type="button" size="sm" variant="ghost" onClick={() => { onFilter(actor.id, name); setFilterCount((count) => count + 1); }}>Filter by this person</Button>}
       />
-      {actor.uniqueId && actor.uniqueId !== name ? (
-        <span className="truncate text-xs text-muted-foreground">{actor.uniqueId}</span>
-      ) : null}
       {event.client === 'cli' ? <CliMark name={name} at={event.createdAt} /> : null}
     </span>
   );

@@ -19,7 +19,10 @@ export function AdminScrollTabPanel({ value, children }: AdminTabPanelProps) {
     <section aria-label={`${value} administration`} className={cn(TAB_PANEL_BASE, '-mx-1 flex overflow-hidden')}>
       {/* Keep the existing content alignment, with room inside the clipping
           viewport for controls' outset focus rings on every edge. */}
-      <ScrollArea className="min-h-0 min-w-0 flex-1" viewportClassName="px-1 pb-6 pt-3">
+      <ScrollArea
+        className="min-h-0 min-w-0 flex-1"
+        viewportClassName="group/admin-scroll [container-type:size] px-1 pb-6 pt-3 has-[[data-slot=table-footer]]:pb-0"
+      >
         {children}
       </ScrollArea>
     </section>

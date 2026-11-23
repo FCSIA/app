@@ -71,41 +71,35 @@ export function AdminDataTable<T>({
       {toolbarBelow}
     </>
   );
-  // Client pages cover the table only; phone cards list every row.
-  const pagination =
-    footer === undefined ? (
-      <div className="pt-3">
-        <DataTablePagination table={table} />
-      </div>
-    ) : null;
-  const body = (
+  // A server footer can serve both table rows and phone cards. Client
+  // pagination only applies to the desktop table when phone cards are supplied.
+  const pagination = footer === undefined ? <DataTablePagination table={table} /> : footer;
+  const desktopOnlyFooter = !!mobile && footer === undefined;
+  const body = mobile ? (
     <>
-      {mobile ? (
-        <>
-          <div className="hidden min-w-0 md:block">
-            {desktop}
-            {pagination}
-          </div>
-          <div className="md:hidden">{mobile}</div>
-        </>
-      ) : (
-        <>
-          {desktop}
-          {pagination}
-        </>
-      )}
-      {footer}
+      <div className="hidden min-w-0 md:block">{desktop}</div>
+      <div className={desktopOnlyFooter && label ? 'pb-6 md:hidden' : 'md:hidden'}>{mobile}</div>
     </>
-  );
+  ) : desktop;
   if (!label)
     return (
       <div className="flex min-w-0 flex-col gap-3">
         {toolbar}
-        <div className="min-w-0">{body}</div>
+        <div className="min-w-0">
+          {body}
+          {pagination != null ? (
+            <div className={desktopOnlyFooter ? 'hidden pt-3 md:block' : 'pt-3'}>{pagination}</div>
+          ) : null}
+        </div>
       </div>
     );
   return (
-    <DataTableSection label={label} toolbar={toolbar}>
+    <DataTableSection
+      label={label}
+      toolbar={toolbar}
+      footer={pagination}
+      footerClassName={desktopOnlyFooter ? 'hidden md:block' : undefined}
+    >
       {body}
     </DataTableSection>
   );

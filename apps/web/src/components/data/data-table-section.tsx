@@ -16,16 +16,21 @@ export const PINNED_TABLE_HEADER =
  * the top of the tab's scroll viewport, then the table (or list) on the main
  * surface with no card frame. Place it directly in an `AdminScrollTabPanel`;
  * the toolbar pulls up into that viewport's top padding so rows never show
- * above it.
+ * above it. A footer fills short lists to the viewport height and stays
+ * below the visible rows while a long list scrolls.
  */
 export function DataTableSection({
   label,
   toolbar,
+  footer,
+  footerClassName,
   children,
   className,
 }: {
   label: string;
   toolbar: ReactNode;
+  footer?: ReactNode;
+  footerClassName?: string;
   children: ReactNode;
   className?: string;
 }) {
@@ -48,14 +53,40 @@ export function DataTableSection({
   }, []);
 
   return (
-    <section ref={sectionRef} aria-label={label} className={cn('flex min-w-0 flex-col [--data-table-substrate:var(--app-main-bg)]', className)}>
+    <section
+      ref={sectionRef}
+      aria-label={label}
+      className={cn(
+        'flex min-w-0 flex-col [--data-table-substrate:var(--app-main-bg)]',
+        footer != null && 'min-h-[100cqh]',
+        className,
+      )}
+    >
       <div
         ref={toolbarRef}
-        className="sticky -top-3 z-30 -mt-3 flex flex-col gap-2 bg-(--app-main-bg) pb-3 pt-3"
+        data-slot="table-toolbar"
+        className={cn(
+          'sticky -top-3 z-30 -mt-3 flex flex-col gap-2 bg-(--app-main-bg) pb-3 pt-3',
+          'after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-3 after:bg-linear-to-b after:from-black/15 after:to-transparent after:opacity-0 motion-safe:after:transition-opacity dark:after:from-black/35',
+          'group-data-[at-scroll-start=false]/admin-scroll:after:opacity-100',
+        )}
       >
         {toolbar}
       </div>
       {children}
+      {footer != null ? (
+        <div
+          data-slot="table-footer"
+          className={cn(
+            'sticky bottom-0 z-20 mt-auto bg-(--app-main-bg) py-3',
+            'before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-3 before:bg-linear-to-t before:from-black/15 before:to-transparent before:opacity-0 motion-safe:before:transition-opacity dark:before:from-black/35',
+            'group-data-[at-scroll-end=false]/admin-scroll:before:opacity-100',
+            footerClassName,
+          )}
+        >
+          {footer}
+        </div>
+      ) : null}
     </section>
   );
 }

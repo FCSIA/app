@@ -5,6 +5,7 @@ import { CircleHelp, SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DataTableCount, DataTableSection } from '@/components/data/data-table-section';
 import {
+  DataTablePagination,
   DataTableViewOptions,
 } from '@/components/ui/data-table';
 import {
@@ -192,6 +193,7 @@ export function AuditTab() {
           ) : null}
           </>
         }
+        footer={<DataTablePagination table={table} />}
       >
         <AuditTable audit={audit} table={table} />
       </DataTableSection>

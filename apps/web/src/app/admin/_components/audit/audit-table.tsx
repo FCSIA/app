@@ -9,7 +9,6 @@ import {
   DataTableColumnHeader,
   DataTableColumnHeaderLabel,
   DataTableControls,
-  DataTablePagination,
   type ColumnDef,
 } from '@/components/ui/data-table';
 import { AuditEventContent } from './audit-event-content';
@@ -393,7 +392,6 @@ export function AuditTable({
           : null}
       />
       </AuditTableContext.Provider>
-      <DataTablePagination table={table} />
       {audit.auditStatus !== 'Exhausted' && !audit.isAuditLoading ? (
         <div className="flex items-center justify-between gap-3">
           <span className="text-sm text-muted-foreground">

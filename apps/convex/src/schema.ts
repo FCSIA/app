@@ -166,6 +166,7 @@ export const schema = defineSchema({
     client: v.optional(v.literal("cli")),
     actorId: v.optional(v.id("users")),
     category: v.optional(v.string()),
+    workshopId: v.optional(v.id("flexWorkshops")),
     action: v.string(),
     entityType: v.string(),
     entityId: v.optional(v.string()),
@@ -176,6 +177,7 @@ export const schema = defineSchema({
     .index("by_actorId_and_createdAt", ["actorId", "createdAt"])
     .index("by_category_and_createdAt", ["category", "createdAt"])
     .index("by_action_and_createdAt", ["action", "createdAt"])
+    .index("by_workshopId_and_action_and_createdAt", ["workshopId", "action", "createdAt"])
     .index("by_entityType_and_createdAt", ["entityType", "createdAt"])
     .index("by_entityType_and_entityId_and_createdAt", [
       "entityType",

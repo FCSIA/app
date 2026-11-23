@@ -31,6 +31,7 @@ export const auditEventValidator = v.object({
   meta: v.union(v.any(), v.null()),
   actor: actorValidator,
   actorId: v.union(v.id("users"), v.null()),
+  workshopId: v.optional(v.id("flexWorkshops")),
   context: v.object({
     title: v.string(),
     subtitle: v.union(v.string(), v.null()),
@@ -58,6 +59,7 @@ export function auditEventSerializer(ctx: QueryCtx) {
       id: event._id,
       client: event.client,
       actorId: event.actorId ?? null,
+      workshopId: event.workshopId,
       context,
       action: event.action,
       entityType: event.entityType,
@@ -89,6 +91,7 @@ export async function logAuditEvent(
     action: AuditAction;
     entityType: string;
     entityId?: string;
+    workshopId?: Id<"flexWorkshops">;
     meta?: unknown;
   },
 ) {
@@ -128,6 +131,7 @@ export async function logAuditEvent(
     action: input.action,
     entityType: input.entityType,
     entityId: input.entityId,
+    workshopId: input.workshopId,
     meta,
     createdAt: Date.now(),
   });

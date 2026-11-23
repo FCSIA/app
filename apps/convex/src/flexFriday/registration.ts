@@ -113,6 +113,7 @@ export const register = mutation({
   args: {
     workshopId: v.id("flexWorkshops"),
   },
+  returns: v.id("flexRegistrations"),
   handler: async (ctx, args) => {
     const user = await getCurrentAppUser(ctx);
 
@@ -195,6 +196,8 @@ export const register = mutation({
       action: "FLEX_WORKSHOP_REGISTERED",
       entityId: registrationId,
       entityType: "FLEX_REGISTRATION",
+      workshopId: workshop._id,
+      meta: { workshopTitle: workshop.title },
     });
 
     return registrationId;
@@ -203,6 +206,7 @@ export const register = mutation({
 
 export const unregister = mutation({
   args: { workshopId: v.id("flexWorkshops") },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const user = await getCurrentAppUser(ctx);
 
@@ -215,6 +219,7 @@ export const unregister = mutation({
 
     if (!registration) throw new Error("Registration not found");
 
+    const workshop = await ctx.db.get(registration.workshopId);
     await ctx.db.delete(registration._id);
 
     await logAuditEvent(ctx, {
@@ -222,7 +227,10 @@ export const unregister = mutation({
       action: "FLEX_REGISTRATION_REMOVED",
       entityId: registration._id,
       entityType: "FLEX_REGISTRATION",
+      workshopId: registration.workshopId,
+      meta: workshop ? { workshopTitle: workshop.title } : undefined,
     });
+    return null;
   },
 });
 
@@ -231,6 +239,7 @@ export const assign = mutation({
     workshopId: v.id("flexWorkshops"),
     studentId: v.id("users"),
   },
+  returns: v.id("flexAssignments"),
   handler: async (ctx, args) => {
     const user = await getCurrentAppUser(ctx);
 
@@ -329,6 +338,8 @@ export const assign = mutation({
       action: "FLEX_WORKSHOP_ASSIGNED",
       entityId: assignmentId,
       entityType: "FLEX_ASSIGNMENT",
+      workshopId: workshop._id,
+      meta: { workshopTitle: workshop.title, studentId: student._id },
     });
 
     return assignmentId;

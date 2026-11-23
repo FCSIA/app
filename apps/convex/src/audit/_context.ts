@@ -124,10 +124,12 @@ export function auditContextResolver(ctx: QueryCtx) {
     const references = (
       await Promise.all(
         Object.entries(REFERENCE_TABLES).map(async ([key, refTable]) => {
-          const id = meta[key] ?? entity?.[key];
+          const workshop = key === 'workshopId';
+          const id = (workshop ? event.workshopId : undefined) ?? meta[key] ?? entity?.[key];
           if (typeof id !== 'string') return null;
-          const doc = await read(refTable, id);
-          const name = doc ? recordName(doc) : null;
+          const snapshot = workshop && typeof meta.workshopTitle === 'string' ? meta.workshopTitle : null;
+          const doc = snapshot ? null : await read(refTable, id);
+          const name = snapshot || (doc ? recordName(doc) : null);
           return name
             ? { id, label: auditLabel(key.replace(/Id$/, '')), name }
             : null;

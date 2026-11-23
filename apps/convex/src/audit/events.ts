@@ -137,13 +137,58 @@ export const listPage = query({
   },
 });
 
+const workshopEnrollmentActions = [
+  'FLEX_WORKSHOP_REGISTERED',
+  'FLEX_REGISTRATION_REMOVED',
+  'FLEX_WORKSHOP_ASSIGNED',
+] as const;
+
+function workshopActivityStream(
+  ctx: QueryCtx,
+  workshopId: Id<'flexWorkshops'>,
+  { startAt, endAt }: { startAt?: number; endAt?: number },
+) {
+  const db = stream(ctx.db, schema);
+  const enrollment = (scope: Id<'flexWorkshops'> | undefined, action: (typeof workshopEnrollmentActions)[number]) =>
+    db.query('auditEvents').withIndex('by_workshopId_and_action_and_createdAt', (q) => {
+      const scoped = q.eq('workshopId', scope).eq('action', action);
+      const lower = startAt === undefined ? scoped : scoped.gte('createdAt', startAt);
+      return endAt === undefined ? lower : lower.lte('createdAt', endAt);
+    }).order('desc');
+
+  // Older events can still be associated with their workshop while the
+  // registration or assignment record exists.
+  const legacy = workshopEnrollmentActions.map((action) =>
+    enrollment(undefined, action).filterWith(async (event) => {
+      if (!event.entityId) return false;
+      const table = action === 'FLEX_WORKSHOP_ASSIGNED' ? 'flexAssignments' : 'flexRegistrations';
+      const id = ctx.db.normalizeId(table, event.entityId);
+      return !!id && (await ctx.db.get(id))?.workshopId === workshopId;
+    }),
+  );
+  const workshopChanges = AUDIT_ENTITY_TYPES.filter((type) => auditEntityKey(type) === 'flexworkshop').map((type) =>
+    db.query('auditEvents').withIndex('by_entityType_and_entityId_and_createdAt', (q) => {
+      const scoped = q.eq('entityType', type).eq('entityId', workshopId);
+      const lower = startAt === undefined ? scoped : scoped.gte('createdAt', startAt);
+      return endAt === undefined ? lower : lower.lte('createdAt', endAt);
+    }).order('desc'),
+  );
+  return mergedStream([
+    ...workshopEnrollmentActions.map((action) => enrollment(workshopId, action)),
+    ...workshopChanges,
+    ...legacy,
+  ], ['createdAt']);
+}
+
 export const listFilteredPage = query({
-  args: { paginationOpts: paginationOptsValidator, ...auditFilters },
+  args: { paginationOpts: paginationOptsValidator, ...auditFilters, workshopId: v.optional(v.string()) },
   returns: auditPageValidator,
   handler: async (ctx, args) => {
     const viewer = await viewerWithRoles(ctx, STAFF_ROLES);
     if (!viewer)
       return { page: [], isDone: true, continueCursor: "" };
+    const workshopId = args.workshopId ? ctx.db.normalizeId("flexWorkshops", args.workshopId) : null;
+    if (args.workshopId && !workshopId) return { page: [], isDone: true, continueCursor: "" };
     const matches = auditMatcher(args);
     const db = stream(ctx.db, schema);
     const actorId = args.actorId ? ctx.db.normalizeId("users", args.actorId) : null;
@@ -167,7 +212,8 @@ export const listFilteredPage = query({
     const aliases = args.entityType ? [...new Set([args.entityType, ...AUDIT_ENTITY_TYPES.filter((type) => auditEntityKey(type) === auditEntityKey(args.entityType!))])] : [];
     const actions = [...new Set(args.actions ?? [])];
     const categories = [...new Set(args.categories ?? [])];
-    const ordered = aliases.length && !actorId
+    const workshopStream = workshopId ? workshopActivityStream(ctx, workshopId, args) : null;
+    const ordered = workshopStream ?? (aliases.length && !actorId
       ? mergedStream(aliases.map((type) => args.recordId
         ? db.query('auditEvents').withIndex('by_entityType_and_entityId_and_createdAt', (q) => { const lower = args.startAt === undefined ? q.eq('entityType', type).eq('entityId', args.recordId!) : q.eq('entityType', type).eq('entityId', args.recordId!).gte('createdAt', args.startAt); return args.endAt === undefined ? lower : lower.lte('createdAt', args.endAt); }).order('desc')
         : db.query('auditEvents').withIndex('by_entityType_and_createdAt', (q) => { const lower = args.startAt === undefined ? q.eq('entityType', type) : q.eq('entityType', type).gte('createdAt', args.startAt); return args.endAt === undefined ? lower : lower.lte('createdAt', args.endAt); }).order('desc')), ['createdAt'])
@@ -175,7 +221,7 @@ export const listFilteredPage = query({
         ? mergedStream(actions.map((action) => db.query('auditEvents').withIndex('by_action_and_createdAt', (q) => { const lower = args.startAt === undefined ? q.eq('action', action) : q.eq('action', action).gte('createdAt', args.startAt); return args.endAt === undefined ? lower : lower.lte('createdAt', args.endAt); }).order('desc')), ['createdAt'])
         : categories.length && ready && !actorId
           ? mergedStream(categories.map((category) => db.query('auditEvents').withIndex('by_category_and_createdAt', (q) => { const lower = args.startAt === undefined ? q.eq('category', category) : q.eq('category', category).gte('createdAt', args.startAt); return args.endAt === undefined ? lower : lower.lte('createdAt', args.endAt); }).order('desc')), ['createdAt'])
-          : source.order('desc');
+          : source.order('desc'));
     // Reject stored-field mismatches before reading actors and related records.
     const matchesRecord = auditRecordMatcher(args);
     return ordered
@@ -222,11 +268,11 @@ export const get = query({
 
 /** Counts remain unavailable until every historical row has been indexed. */
 export const counts = query({
-  args: auditFilters,
+  args: { ...auditFilters, workshopId: v.optional(v.string()) },
   returns: v.object({ total: v.union(v.number(), v.null()), exact: v.boolean(), byCategory: v.array(v.object({ category: v.string(), count: v.number() })) }),
   handler: async (ctx, args) => {
     const viewer = await viewerWithRoles(ctx, STAFF_ROLES);
-    if (!viewer) return { total: null, exact: false, byCategory: [] };
+    if (!viewer || args.workshopId) return { total: null, exact: false, byCategory: [] };
     if (!(await auditIndexReady(ctx))) return { total: null, exact: false, byCategory: [] };
     const byCategory = await Promise.all((Object.keys(AUDIT_CATEGORIES) as AuditCategory[]).map(async (category) => ({
       category,

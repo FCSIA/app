@@ -5,29 +5,13 @@ import {
   FLEX_CREDITS_REQUIRED_PER_SEMESTER,
   FLEX_CREDITS_REQUIRED_PER_YEAR,
   flexAttendancesInRange,
+  semesterRanges,
 } from "./_credits";
 import {
   schoolYearLabel,
   schoolYearRange,
   schoolYearStart,
 } from "../../../shared/school-time";
-
-function semesterRanges(startYear: number) {
-  return [
-    {
-      key: "FALL" as const,
-      label: `Fall ${startYear}`,
-      start: new Date(startYear, 7, 1).getTime(),
-      end: new Date(startYear, 11, 31, 23, 59, 59, 999).getTime(),
-    },
-    {
-      key: "SPRING" as const,
-      label: `Spring ${startYear + 1}`,
-      start: new Date(startYear + 1, 0, 1).getTime(),
-      end: new Date(startYear + 1, 4, 31, 23, 59, 59, 999).getTime(),
-    },
-  ];
-}
 
 export const getMyCredits = query({
   args: { schoolYearStart: v.optional(v.number()) },

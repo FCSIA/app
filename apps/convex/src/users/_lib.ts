@@ -1,5 +1,4 @@
 import { ConvexError, v, type Infer } from "convex/values";
-import { paginationResultValidator } from "convex/server";
 import { hashPassword } from "better-auth/crypto";
 import { createAuth } from "../auth";
 import { components } from "../_generated/api";
@@ -100,8 +99,6 @@ export const userRoleGroupValidator = v.union(
 );
 
 export type UserRoleGroup = Infer<typeof userRoleGroupValidator>;
-
-export const listUsersResultValidator = paginationResultValidator(adminUserProfileValidator);
 
 export const generatedCredentialValidator = v.object({
   firstName: v.string(),

@@ -1,4 +1,4 @@
-import { paginationOptsValidator } from "convex/server";
+import { paginationOptsValidator, paginationResultValidator } from "convex/server";
 import { ConvexError, v, type Infer } from "convex/values";
 import { components, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
@@ -41,7 +41,6 @@ import {
   buildStudentEmail,
   generateTemporaryPassword,
   isGradeLevelOutOfRange,
-  listUsersResultValidator,
   normalizeUniqueId,
   adminUserProfileValidator,
   applyRoleChange,
@@ -60,6 +59,8 @@ import {
   writeUserNames,
 } from "./_lib";
 import { assertCsvRowCount, recordAuditBestEffort, runCsvRows } from "./_csvRows";
+import { parseUserSearch } from "../../../shared/admin-user-filters";
+import { rosterDetailsValidator, rosterFilterValidator, userRoster } from "./_roster";
 
 const studentImportRowValidator = v.object({
   uniqueId: v.string(),
@@ -85,6 +86,10 @@ const administratorImportRowValidator = v.object({
   email: v.string(),
 });
 
+const userListRowValidator = adminUserProfileValidator.extend({
+  roster: v.optional(rosterDetailsValidator),
+});
+
 export const list = query({
   args: {
     paginationOpts: paginationOptsValidator,
@@ -92,8 +97,13 @@ export const list = query({
     // Exact record target for admin links. Authorization still comes from the session.
     userId: v.optional(v.string()),
     roleGroup: v.optional(userRoleGroupValidator),
+    roster: v.optional(v.object({
+      schoolYear: v.number(),
+      filters: rosterFilterValidator,
+      search: v.optional(v.string()),
+    })),
   },
-  returns: listUsersResultValidator,
+  returns: paginationResultValidator(userListRowValidator),
   handler: async (ctx, args) => {
     const actor = await viewerWithRoles(ctx, STAFF_ROLES);
     if (!actor) {
@@ -104,15 +114,33 @@ export const list = query({
       };
     }
 
+    const year = args.roster?.schoolYear;
+    if (year !== undefined && (!Number.isInteger(year) || year < 2000 || year > 2100)) {
+      throw new ConvexError("Invalid school year.");
+    }
+    const roster = year === undefined ? null : userRoster(ctx, year);
+    const serialize: (user: Parameters<typeof toAdminUserProfile>[0]) => Infer<typeof userListRowValidator> | Promise<Infer<typeof userListRowValidator>> =
+      roster?.serialize ?? toAdminUserProfile;
+
     if (args.userId !== undefined) {
       const id = ctx.db.normalizeId("users", args.userId);
       const target = id ? await ctx.db.get(id) : null;
-      return { page: target ? [toAdminUserProfile(target)] : [], isDone: true, continueCursor: "" };
+      return { page: target ? [await serialize(target)] : [], isDone: true, continueCursor: "" };
     }
 
     const roleGroup = args.roleGroup ?? "all";
-    const search = args.search?.trim().toLowerCase();
+    const structured = args.roster?.search ?? "";
+    const parsed = parseUserSearch(structured);
+    if (parsed.error) return { page: [], isDone: true, continueCursor: "" };
 
+    const filters = args.roster?.filters ?? {};
+    if (roster && (parsed.terms.length || Object.values(filters).some((values) => values.length))) {
+      const page = await roster.page(roleGroup, filters, parsed.terms, args.paginationOpts);
+      return { ...page, page: await Promise.all(page.page.map(roster.serialize)) };
+    }
+
+    const search = args.search?.trim().toLowerCase();
+    const pagination = roster ? { ...args.paginationOpts, numItems: Math.max(1, Math.min(50, Math.floor(args.paginationOpts.numItems || 1))) } : args.paginationOpts;
     const page = search
       ? await ctx.db
           .query("users")
@@ -129,21 +157,21 @@ export const list = query({
             }
             return searchQuery;
           })
-          .paginate(args.paginationOpts)
+          .paginate(pagination)
       : roleGroup === "students"
         ? await ctx.db
             .query("users")
             .withIndex("by_isStudent_and_lastName_and_firstName", (q) =>
               q.eq("isStudent", true),
             )
-            .paginate(args.paginationOpts)
+            .paginate(pagination)
         : roleGroup === "teachers"
           ? await ctx.db
               .query("users")
               .withIndex("by_isTeacherStaff_and_lastName_and_firstName", (q) =>
                 q.eq("isTeacherStaff", true),
               )
-              .paginate(args.paginationOpts)
+              .paginate(pagination)
           : roleGroup === "student-admin"
             ? await ctx.db
                 .query("users")
@@ -151,22 +179,22 @@ export const list = query({
                   "by_isStudentAdmin_and_lastName_and_firstName",
                   (q) => q.eq("isStudentAdmin", true),
                 )
-                .paginate(args.paginationOpts)
+                .paginate(pagination)
             : roleGroup === "other"
               ? await ctx.db
                   .query("users")
                   .withIndex("by_isOtherRole_and_lastName_and_firstName", (q) =>
                     q.eq("isOtherRole", true),
                   )
-                  .paginate(args.paginationOpts)
+                  .paginate(pagination)
               : await ctx.db
                   .query("users")
                   .withIndex("by_lastName_and_firstName")
-                  .paginate(args.paginationOpts);
+                  .paginate(pagination);
 
     return {
       ...page,
-      page: page.page.map(toAdminUserProfile),
+      page: await Promise.all(page.page.map(serialize)),
     };
   },
 });

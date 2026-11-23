@@ -160,6 +160,7 @@ import type * as uploads_uploadIntents from "../uploads/uploadIntents.js";
 import type * as uploads_volunteerProofs from "../uploads/volunteerProofs.js";
 import type * as users__csvRows from "../users/_csvRows.js";
 import type * as users__lib from "../users/_lib.js";
+import type * as users__roster from "../users/_roster.js";
 import type * as users_admin from "../users/admin.js";
 import type * as users_auth from "../users/auth.js";
 import type * as users_cliSessions from "../users/cliSessions.js";
@@ -328,6 +329,7 @@ declare const fullApi: ApiFromModules<{
   "uploads/volunteerProofs": typeof uploads_volunteerProofs;
   "users/_csvRows": typeof users__csvRows;
   "users/_lib": typeof users__lib;
+  "users/_roster": typeof users__roster;
   "users/admin": typeof users_admin;
   "users/auth": typeof users_auth;
   "users/cliSessions": typeof users_cliSessions;

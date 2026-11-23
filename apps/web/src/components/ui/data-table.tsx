@@ -310,6 +310,8 @@ interface DataTableProps<TData> {
    *  stop: ↑ / ↓ and Home / End move between them, Enter or Space opens
    *  one. */
   onRowClick?: (row: Row<TData>) => void;
+  groupLabel?: (row: Row<TData>, previous?: Row<TData>) => ReactNode;
+  rowDetail?: (row: Row<TData>) => ReactNode;
   /** Adds a handle on each header's right edge: drag it, or focus it and
    *  press ← / →, to set the column's width. Columns start at the widths the
    *  table lays out on its own (or their `size`); the last resizable one takes the
@@ -455,6 +457,8 @@ function DataTable<TData>({
   size,
   empty,
   onRowClick,
+  groupLabel,
+  rowDetail,
   resizeColumns = false,
   reorderColumns = false,
   cellAlign = "auto",
@@ -1284,32 +1288,41 @@ function DataTable<TData>({
             </TableRow>
           ))
         ) : rows.length > 0 ? (
-          rows.map((row, i) => (
-            <DataTableBodyRow
-              // Keyed by record, so state in a cell (an open row menu, a
-              // consumer's own input, focus) stays with its row through a
-              // sort, a search or a page turn.
-              key={row.id}
-              table={table}
-              row={row}
-              i={i}
-              selected={row.getIsSelected()}
-              someSelected={row.getIsSomeSelected()}
-              expanded={row.getIsExpanded()}
-              expanderId={expanderId}
-              onToggleExpand={stableToggle}
-              columns={table.options.columns}
-              layoutKey={layoutKey}
-              onRowClick={onRowClick}
-              rowsFocusable={rowsFocusable}
-              editable={!!onCellEdit}
-              sized={sized}
-              alignTop={alignTop}
-              swapping={swapping}
-              compact={sizeClasses.variant === "compact"}
-              shapeVariant={shape.variant}
-            />
-          ))
+          rows.map((row, i) => {
+            const label = groupLabel?.(row, rows[i - 1]);
+            const detail = rowDetail?.(row);
+            return (
+              <Fragment key={row.id}>
+                {label != null && (
+                  <tr><th colSpan={columnCount} className="px-3 pt-3 pb-1 text-left text-xs font-medium text-muted-foreground">{label}</th></tr>
+                )}
+                <DataTableBodyRow
+                  detailOpen={detail != null}
+                  table={table}
+                  row={row}
+                  i={i}
+                  selected={row.getIsSelected()}
+                  someSelected={row.getIsSomeSelected()}
+                  expanded={row.getIsExpanded()}
+                  expanderId={expanderId}
+                  onToggleExpand={stableToggle}
+                  columns={table.options.columns}
+                  layoutKey={layoutKey}
+                  onRowClick={onRowClick}
+                  rowsFocusable={rowsFocusable}
+                  editable={!!onCellEdit}
+                  sized={sized}
+                  alignTop={alignTop}
+                  swapping={swapping}
+                  compact={sizeClasses.variant === "compact"}
+                  shapeVariant={shape.variant}
+                />
+                {detail != null && (
+                  <tr className="border-b border-accent/40 bg-muted/40"><td colSpan={columnCount} className="px-3 pb-3 pt-2">{detail}</td></tr>
+                )}
+              </Fragment>
+            );
+          })
         ) : (
           <TableEmpty
             columns={columnCount}
@@ -1807,6 +1820,7 @@ function ExpandToggle({
 // ── Body row ─────────────────────────────────────────────
 
 interface DataTableBodyRowProps<TData> {
+  detailOpen: boolean;
   table: TanStackTable<TData>;
   row: Row<TData>;
   i: number;
@@ -1845,6 +1859,7 @@ const DataTableBodyRow = memo(
       selected,
       expanded,
       expanderId,
+      detailOpen,
       onToggleExpand,
       onRowClick,
       rowsFocusable,
@@ -1895,6 +1910,7 @@ const DataTableBodyRow = memo(
           : undefined
       }
       className={cn(
+        detailOpen && "border-transparent bg-muted/40",
         onRowClick && "cursor-pointer",
         rowsFocusable && "outline-none",
         // Rows each stack on their own (z-10); the one holding a raised
@@ -2043,6 +2059,7 @@ const DataTableBodyRow = memo(
     a.row === b.row &&
     a.i === b.i &&
     a.selected === b.selected &&
+    a.detailOpen === b.detailOpen &&
     a.someSelected === b.someSelected &&
     a.expanded === b.expanded &&
     a.expanderId === b.expanderId &&

@@ -8164,12 +8164,15 @@ interface DataTablePaginationProps<TData> {
   /** The choices in the rows-per-page menu; an empty array hides it. The
    *  current page size is always among them. @default [10, 20, 50] */
   pageSizes?: number[];
-  /** For a table that can fetch additional rows when Next is pressed. */
+  /** For a table that can fetch additional rows when paging. */
   continuation?: {
     totalRows: number | null;
     canAdvance: boolean;
     loading: boolean;
     onNextPage: () => void;
+    canGoBack?: boolean;
+    loadingPrevious?: boolean;
+    onPreviousPage?: () => void;
   };
   size?: SizeVariant;
   className?: string;
@@ -8253,8 +8256,9 @@ function DataTablePagination<TData>({
                 variant="ghost"
                 size={iconSize}
                 aria-label="Previous page"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
+                onClick={continuation?.onPreviousPage ?? (() => table.previousPage())}
+                disabled={!(continuation?.canGoBack ?? table.getCanPreviousPage())}
+                loading={continuation?.loadingPrevious}
               >
                 <Prev />
               </Button>

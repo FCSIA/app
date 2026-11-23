@@ -6,7 +6,7 @@ import { displayName } from '~/apps/shared/user-name';
 
 import { forwardRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ChevronLeft, ChevronRight, KeyRound, Trash2, UserCheck, UserX } from 'lucide-react';
+import { KeyRound, Trash2, UserCheck, UserX } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button, type ButtonProps } from '@/components/ui/button';
 import { DeveloperBadge } from '@/components/ui/developer-badge';
@@ -14,6 +14,7 @@ import {
   useDataTable,
   DataTableColumnHeader,
   DataTableControls,
+  DataTablePagination,
   selectColumn,
   type ColumnDef,
 } from '@/components/ui/data-table';
@@ -233,6 +234,10 @@ function UserTableSection({
   status,
   canLoadPrevious,
   pageIndex,
+  pageSize,
+  onPageSizeChange,
+  pendingPageDirection,
+  isSearchPending,
   loadNextPage,
   loadPreviousPage,
 }: {
@@ -261,6 +266,10 @@ function UserTableSection({
   status: 'LoadingFirstPage' | 'CanLoadMore' | 'LoadingMore' | 'Exhausted';
   canLoadPrevious: boolean;
   pageIndex: number;
+  pageSize: number;
+  onPageSizeChange: (size: number) => void;
+  pendingPageDirection: 'next' | 'previous' | null;
+  isSearchPending: boolean;
   loadNextPage: () => void;
   loadPreviousPage: () => void;
 }) {
@@ -360,33 +369,6 @@ function UserTableSection({
         </div>
   ) : null;
 
-  // The toolbar owns the count; the list end only pages.
-  const pagination = isLoading || (!canLoadPrevious && status === 'Exhausted') ? null : (
-    <div className="flex min-h-9 min-w-0 items-center justify-between gap-3 pt-2 text-xs text-muted-foreground">
-      <span>Page {pageIndex + 1}</span>
-      <div className="flex items-center gap-1.5">
-        <Button
-          variant="tertiary"
-          size="sm"
-          onClick={loadPreviousPage}
-          disabled={isLoading || !canLoadPrevious || status === 'LoadingMore'}
-          leadingIcon={ChevronLeft}
-        >
-          Previous
-        </Button>
-        <Button
-          variant="tertiary"
-          size="sm"
-          onClick={loadNextPage}
-          disabled={status !== 'CanLoadMore'}
-          trailingIcon={ChevronRight}
-        >
-          {status === 'LoadingMore' ? 'Loading...' : 'Next page'}
-        </Button>
-      </div>
-    </div>
-  );
-
   const columns: ColumnDef<AdminUserRecord>[] = [
     selectColumn<AdminUserRecord>(),
     {
@@ -455,14 +437,18 @@ function UserTableSection({
   const table = useDataTable({
     data: users,
     columns,
-    pageSize: 20,
     getRowId: (user) => user._id,
     manualFiltering: true,
     manualPagination: true,
     enableSorting: false,
     state: {
       globalFilter: search,
+      pagination: { pageIndex, pageSize },
       rowSelection: Object.fromEntries([...selectedUserIds].map((id) => [id, true])),
+    },
+    onPaginationChange: (update) => {
+      const next = typeof update === 'function' ? update({ pageIndex, pageSize }) : update;
+      onPageSizeChange(next.pageSize);
     },
     onGlobalFilterChange: (update) => onSearchChange(typeof update === 'function' ? update(search) : update),
     enableRowSelection: (row) => canDeleteUsers && row.original._id !== currentUserId && !isDeleteUsersPending,
@@ -484,7 +470,23 @@ function UserTableSection({
       controls={roleFilter}
       count={countLabel}
       toolbarBelow={selectionBar}
-      footer={pagination}
+      footer={
+        <DataTablePagination
+          table={table}
+          pageSizes={[10, 20, 30, 50]}
+          continuation={{
+            totalRows: search.trim()
+              ? status === 'Exhausted' && pageIndex === 0 && !isSearchPending ? users.length : null
+              : totalCount ?? null,
+            canAdvance: status === 'CanLoadMore' && !isSearchPending,
+            loading: pendingPageDirection === 'next',
+            onNextPage: loadNextPage,
+            canGoBack: canLoadPrevious && status !== 'LoadingMore' && !isSearchPending,
+            loadingPrevious: pendingPageDirection === 'previous',
+            onPreviousPage: loadPreviousPage,
+          }}
+        />
+      }
       mobile={
         isLoading ? (
           <div className="space-y-2">
@@ -538,7 +540,7 @@ function AdminUsersTabContent({ initialSearch, initialUserId }: { initialSearch:
 
   return (
     <UserTableSection
-      key={`${users.userRoleGroup}:${users.pageIndex}`}
+      key={`${users.userRoleGroup}:${users.pageIndex}:${users.pageSize}`}
       title={users.selectedUserRoleMeta.label}
       emptyMessage={users.selectedUserRoleMeta.emptyMessage}
       users={users.users}
@@ -564,6 +566,10 @@ function AdminUsersTabContent({ initialSearch, initialUserId }: { initialSearch:
       status={users.status}
       canLoadPrevious={users.canLoadPrevious}
       pageIndex={users.pageIndex}
+      pageSize={users.pageSize}
+      onPageSizeChange={users.setPageSize}
+      pendingPageDirection={users.pendingPageDirection}
+      isSearchPending={users.isSearchPending}
       loadNextPage={users.loadNextPage}
       loadPreviousPage={users.loadPreviousPage}
     />

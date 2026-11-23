@@ -28,6 +28,8 @@ type UsersPageStatus = 'LoadingFirstPage' | 'CanLoadMore' | 'LoadingMore' | 'Exh
 type DisplayedUsersPageState = {
   search: string;
   userRoleGroup: AdminUserRoleGroup;
+  pageSize: number;
+  pageIndex: number;
   page: UsersPage | undefined;
 };
 
@@ -40,13 +42,17 @@ export function useAdminUsers(initialSearch = '', initialUserId = '') {
   const exactUserId = initialUserId && deferredSearch === initialUserId ? initialUserId : undefined;
   const [userRoleGroup, setUserRoleGroup] = useState<AdminUserRoleGroup>(initialUserId ? 'all' : 'students');
   const [isUserMutationPending, setIsUserMutationPending] = useState(false);
+  const [pageSize, setPageSize] = useState(USERS_PAGE_SIZE);
   const [currentCursor, setCurrentCursor] = useState<string | null>(null);
   const [previousCursors, setPreviousCursors] = useState<(string | null)[]>([]);
   const [displayedPageState, setDisplayedPageState] = useState<DisplayedUsersPageState>({
     search: deferredSearch,
     userRoleGroup,
+    pageSize,
+    pageIndex: 0,
     page: undefined,
   });
+  const requestedPageIndex = previousCursors.length;
 
   const canManage = (targetUser: AdminUserRecord) => canManageUser(user, targetUser);
 
@@ -55,33 +61,31 @@ export function useAdminUsers(initialSearch = '', initialUserId = '') {
     userId: exactUserId,
     roleGroup: userRoleGroup === 'all' ? undefined : userRoleGroup,
     paginationOpts: {
-      numItems: USERS_PAGE_SIZE,
+      numItems: pageSize,
       cursor: currentCursor,
     },
   });
 
-  let displayedPage = displayedPageState.page;
-  const isSearchChangeOnly =
-    displayedPageState.userRoleGroup === userRoleGroup &&
-    displayedPageState.search !== deferredSearch;
+  const pageScopeChanged =
+    displayedPageState.userRoleGroup !== userRoleGroup ||
+    displayedPageState.pageSize !== pageSize;
+  const searchChanged = displayedPageState.search !== deferredSearch;
+  const displayedPage = usersPage ?? (pageScopeChanged ? undefined : displayedPageState.page);
+  const pageIndex = usersPage
+    ? requestedPageIndex
+    : pageScopeChanged || searchChanged ? 0 : displayedPageState.pageIndex;
 
   if (
-    displayedPageState.search !== deferredSearch ||
-    displayedPageState.userRoleGroup !== userRoleGroup
+    pageScopeChanged ||
+    searchChanged ||
+    (usersPage && (displayedPageState.page !== usersPage || displayedPageState.pageIndex !== pageIndex))
   ) {
-    if (!isSearchChangeOnly) {
-      displayedPage = undefined;
-    }
     setDisplayedPageState({
       search: deferredSearch,
       userRoleGroup,
-      page: isSearchChangeOnly ? displayedPageState.page : undefined,
-    });
-  } else if (usersPage && displayedPageState.page !== usersPage) {
-    displayedPage = usersPage;
-    setDisplayedPageState({
-      ...displayedPageState,
-      page: usersPage,
+      pageSize,
+      pageIndex,
+      page: displayedPage,
     });
   }
 
@@ -122,17 +126,14 @@ export function useAdminUsers(initialSearch = '', initialUserId = '') {
 
   const selectedUserRoleMeta = USER_ROLE_GROUP_META[userRoleGroup];
   const isSuperAdmin = hasAnyRole(user, SUPER_ADMIN_ROLES);
-  const status: UsersPageStatus = displayedPage
-    ? usersPage
-      ? usersPage.isDone
-        ? 'Exhausted'
-        : 'CanLoadMore'
-      : 'LoadingMore'
-    : usersPage
-      ? usersPage.isDone
-        ? 'Exhausted'
-        : 'CanLoadMore'
-      : 'LoadingFirstPage';
+  const status: UsersPageStatus = usersPage
+    ? usersPage.isDone ? 'Exhausted' : 'CanLoadMore'
+    : displayedPage ? 'LoadingMore' : 'LoadingFirstPage';
+  const isSearchPending = search !== deferredSearch;
+  const pendingPageDirection: 'next' | 'previous' | null =
+    status !== 'LoadingMore' || isSearchPending || pageIndex === requestedPageIndex
+      ? null
+      : requestedPageIndex > pageIndex ? 'next' : 'previous';
 
   return {
     search,
@@ -151,8 +152,17 @@ export function useAdminUsers(initialSearch = '', initialUserId = '') {
     users: displayedPage?.page ?? [],
     totalCount: exactUserId ? usersPage?.page.length : totalCount ?? undefined,
     status,
-    canLoadPrevious: previousCursors.length > 0,
-    pageIndex: previousCursors.length,
+    canLoadPrevious: pageIndex > 0,
+    pageIndex,
+    pageSize,
+    setPageSize: (size: number) => {
+      if (size === pageSize) return;
+      setPageSize(size);
+      setCurrentCursor(null);
+      setPreviousCursors([]);
+    },
+    pendingPageDirection,
+    isSearchPending,
     loadNextPage: () => {
       if (!displayedPage || displayedPage.isDone || !usersPage) return;
       setPreviousCursors((cursors) => [...cursors, currentCursor]);

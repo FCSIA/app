@@ -43,9 +43,22 @@ export type AuditCategory = keyof typeof AUDIT_CATEGORIES;
 export const auditEntityKey = (type: string) => type.replace(/[_\s]/g, '').toLowerCase();
 /** Known stored spellings share one semantic filter without rewriting history. */
 export const AUDIT_ENTITY_TYPES = ['User', 'authAccount', 'authSession', 'Club', 'ClubChannel', 'ClubChannelMessage', 'ClubWhiteboard', 'ClubUnit', 'ClubPeopleGroup', 'ClubJoinRequest', 'Announcement', 'Comment', 'Report', 'KeywordRule', 'StudentSchedule', 'StudentScheduleGroup', 'StudentFriendShareLink', 'SchoolDayBlock', 'SchoolDayTemplate', 'SchoolDayDateOverride', 'SchoolScheduleSettings', 'FlexFriday', 'FlexSession', 'FlexWorkshop', 'FlexRegistration', 'FlexAssignment', 'FlexAttendance', 'Event', 'user', 'club', 'studentSchedule', 'studentScheduleGroup', 'studentFriendShareLink', 'schoolDayBlock', 'schoolDayTemplate', 'schoolDayDateOverride', 'schoolScheduleSettings', 'FLEX_FRIDAY', 'FLEX_SESSION', 'FLEX_WORKSHOP', 'FLEX_REGISTRATION', 'FLEX_ASSIGNMENT', 'FLEX_ATTENDANCE', 'EVENT'] as const;
+/**
+ * What an action did, independent of where it happened. The category says
+ * which part of the product; the kind picks the row's icon and tint.
+ */
+export const AUDIT_ACTION_KINDS = [
+  'create', 'edit', 'delete', 'approve', 'reject', 'archive', 'restore', 'deactivate',
+  'import', 'join', 'assign', 'request', 'access', 'publish', 'message', 'reply',
+  'pin', 'toggle', 'attendance', 'report', 'rule', 'reaction', 'lock', 'unlock',
+  'impersonate', 'cli', 'sync', 'retry', 'failure',
+] as const;
+export type AuditActionKind = (typeof AUDIT_ACTION_KINDS)[number];
 type AuditActionInfo = {
   label: string;
   category: AuditCategory;
+  /** Overrides the kind read from the label's leading verb. */
+  kind?: AuditActionKind;
   destructive?: boolean;
   /** Written by the system itself, so an event without an actor is not "unknown". */
   system?: boolean;
@@ -55,7 +68,7 @@ export const AUDIT_ACTIONS = {
   "ADMINISTRATOR_CSV_IMPORT": { label: "Imported administrators from CSV", category: "people-access" },
   "ANNOUNCEMENT_APPROVED": { label: "Approved announcement", category: "announcements" },
   "ANNOUNCEMENT_ARCHIVED": { label: "Archived announcement", category: "announcements" },
-  "ANNOUNCEMENT_COMMENT_ADDED": { label: "Added announcement comment", category: "announcements" },
+  "ANNOUNCEMENT_COMMENT_ADDED": { kind: "message", label: "Added announcement comment", category: "announcements" },
   "ANNOUNCEMENT_COMMENT_DELETED": { label: "Deleted announcement comment", category: "announcements", destructive: true },
   "ANNOUNCEMENT_CREATED": { label: "Created announcement", category: "announcements" },
   "ANNOUNCEMENT_REJECTED": { label: "Rejected announcement", category: "announcements", destructive: true },
@@ -65,10 +78,10 @@ export const AUDIT_ACTIONS = {
   "CLUB_CHANNEL_MESSAGE_DELETED": { label: "Deleted a message", category: "clubs-chat", destructive: true },
   "CLUB_CHANNEL_MESSAGE_PINNED": { label: "Pinned a message", category: "clubs-chat" },
   "CLUB_CHANNEL_MESSAGE_POSTED": { label: "Posted a message", category: "clubs-chat" },
-  "CLUB_CHANNEL_MESSAGE_REACTION_ADDED": { label: "Added a reaction", category: "clubs-chat" },
-  "CLUB_CHANNEL_MESSAGE_REACTION_REMOVED": { label: "Removed a reaction", category: "clubs-chat", destructive: true },
+  "CLUB_CHANNEL_MESSAGE_REACTION_ADDED": { kind: "reaction", label: "Added a reaction", category: "clubs-chat" },
+  "CLUB_CHANNEL_MESSAGE_REACTION_REMOVED": { kind: "reaction", label: "Removed a reaction", category: "clubs-chat", destructive: true },
   "CLUB_CHANNEL_MESSAGE_UNPINNED": { label: "Unpinned a message", category: "clubs-chat" },
-  "CLUB_CHANNEL_MESSAGE_UPDATED": { label: "Edited a message", category: "clubs-chat" },
+  "CLUB_CHANNEL_MESSAGE_UPDATED": { kind: "edit", label: "Edited a message", category: "clubs-chat" },
   "CLUB_CHANNEL_WHITEBOARDS_DISABLED": { label: "Disabled channel whiteboards", category: "clubs-chat" },
   "CLUB_CHANNEL_WHITEBOARDS_ENABLED": { label: "Enabled channel whiteboards", category: "clubs-chat" },
   "CLUB_CREATED": { label: "Created club", category: "clubs-chat" },
@@ -92,7 +105,7 @@ export const AUDIT_ACTIONS = {
   "CLUB_PEOPLE_GROUP_UPDATED": { label: "Updated club people group", category: "clubs-chat" },
   "CLUB_ROLE_CREATED": { label: "Created club role", category: "clubs-chat" },
   "CLUB_ROLE_DIRECTORY_VISIBILITY_UPDATED": { label: "Updated club role directory visibility", category: "clubs-chat" },
-  "CLUB_ROLE_PERMISSIONS_UPDATED": { label: "Updated club role permissions", category: "clubs-chat" },
+  "CLUB_ROLE_PERMISSIONS_UPDATED": { kind: "access", label: "Updated club role permissions", category: "clubs-chat" },
   "CLUB_ROLE_REMOVED": { label: "Removed club role", category: "clubs-chat", destructive: true },
   "CLUB_ROLE_RENAMED": { label: "Renamed club role", category: "clubs-chat" },
   "CLUB_UNITS_BULK_CREATED": { label: "Created club groups in bulk", category: "clubs-chat" },
@@ -116,13 +129,13 @@ export const AUDIT_ACTIONS = {
   "EVENT_CREATED": { label: "Created event", category: "flex-events" },
   "EVENT_PUBLISHED": { label: "Published event", category: "flex-events" },
   "EVENT_REJECTED": { label: "Rejected event", category: "flex-events", destructive: true },
-  "FEEDBACK_GITHUB_ISSUE_CREATED": { label: "Created feedback GitHub issue", category: "moderation", system: true },
-  "FEEDBACK_GITHUB_ISSUE_FAILED": { label: "Failed feedback GitHub issue", category: "moderation", system: true },
-  "FEEDBACK_GITHUB_ISSUE_RETRY_QUEUED": { label: "Queued feedback GitHub issue retry", category: "moderation" },
-  "FEEDBACK_GITHUB_ISSUE_STATE_SYNCED": { label: "Synced feedback GitHub issue state", category: "moderation", system: true },
-  "FEEDBACK_RESPONSE_ADDED": { label: "Added feedback response", category: "moderation" },
-  "FLEX_ATTENDANCE_CLEARED": { label: "Cleared attendance", category: "flex-events" },
-  "FLEX_ATTENDANCE_MARKED": { label: "Recorded attendance", category: "flex-events" },
+  "FEEDBACK_GITHUB_ISSUE_CREATED": { kind: "sync", label: "Created feedback GitHub issue", category: "moderation", system: true },
+  "FEEDBACK_GITHUB_ISSUE_FAILED": { kind: "failure", label: "Failed feedback GitHub issue", category: "moderation", system: true },
+  "FEEDBACK_GITHUB_ISSUE_RETRY_QUEUED": { kind: "retry", label: "Queued feedback GitHub issue retry", category: "moderation" },
+  "FEEDBACK_GITHUB_ISSUE_STATE_SYNCED": { kind: "sync", label: "Synced feedback GitHub issue state", category: "moderation", system: true },
+  "FEEDBACK_RESPONSE_ADDED": { kind: "reply", label: "Added feedback response", category: "moderation" },
+  "FLEX_ATTENDANCE_CLEARED": { kind: "attendance", label: "Cleared attendance", category: "flex-events" },
+  "FLEX_ATTENDANCE_MARKED": { kind: "attendance", label: "Recorded attendance", category: "flex-events" },
   "FLEX_FRIDAY_CREATED": { label: "Created Flex Friday", category: "flex-events" },
   "FLEX_REGISTRATION_REMOVED": { label: "Removed a workshop registration", category: "flex-events", destructive: true },
   "FLEX_SESSION_CREATED": { label: "Created Flex session", category: "flex-events" },
@@ -133,22 +146,22 @@ export const AUDIT_ACTIONS = {
   "FLEX_WORKSHOP_DELETED": { label: "Deleted a workshop", category: "flex-events", destructive: true },
   "FLEX_WORKSHOP_REGISTERED": { label: "Registered for a workshop", category: "flex-events" },
   "FLEX_WORKSHOP_UPDATED": { label: "Updated a workshop", category: "flex-events" },
-  "KEYWORD_ADDED": { label: "Added keyword", category: "moderation" },
-  "KEYWORD_REMOVED": { label: "Removed keyword", category: "moderation", destructive: true },
-  "REPORT_SUBMITTED": { label: "Submitted report", category: "moderation" },
-  "REPORT_UPDATED": { label: "Updated report", category: "moderation" },
+  "KEYWORD_ADDED": { kind: "rule", label: "Added keyword", category: "moderation" },
+  "KEYWORD_REMOVED": { kind: "rule", label: "Removed keyword", category: "moderation", destructive: true },
+  "REPORT_SUBMITTED": { kind: "report", label: "Submitted report", category: "moderation" },
+  "REPORT_UPDATED": { kind: "edit", label: "Updated report", category: "moderation" },
   "RESTORE": { label: "Restore", category: "people-access" },
   "USER_CSV_BULK_UPDATED": { label: "Updated people from CSV", category: "people-access" },
   "USER_CSV_IMPORT": { label: "Imported people from CSV", category: "people-access" },
-  "USER_DEVELOPER_STATUS_UPDATED": { label: "Updated user developer status", category: "people-access" },
-  "USER_FEEDBACK_REVIEW_ACCESS_UPDATED": { label: "Updated user feedback review access", category: "people-access" },
+  "USER_DEVELOPER_STATUS_UPDATED": { kind: "access", label: "Updated user developer status", category: "people-access" },
+  "USER_FEEDBACK_REVIEW_ACCESS_UPDATED": { kind: "access", label: "Updated user feedback review access", category: "people-access" },
   "auth.login_locked": { label: "Temporarily locked sign-in", category: "people-access", system: true },
   "auth.login_unlocked": { label: "Unlocked sign-in", category: "people-access" },
-  "auth.cli_signed_in": { label: "Signed in to the command-line client", category: "people-access" },
-  "auth.cli_session_revoked": { label: "Signed out a command-line client", category: "people-access" },
+  "auth.cli_signed_in": { kind: "cli", label: "Signed in to the command-line client", category: "people-access" },
+  "auth.cli_session_revoked": { kind: "cli", label: "Signed out a command-line client", category: "people-access" },
   "club.unit_channel_defaults_updated": { label: "Updated club group channel defaults", category: "clubs-chat" },
   "club.unit_channels_created": { label: "Created club group channels", category: "clubs-chat" },
-  "impersonation.requested": { label: "Requested impersonation", category: "people-access" },
+  "impersonation.requested": { kind: "impersonate", label: "Requested impersonation", category: "people-access" },
   "schedule.friend_accepted": { label: "Accepted schedule friend", category: "schedules" },
   "schedule.friend_link_auto_accepted": { label: "Accepted schedule sharing automatically", category: "schedules" },
   "schedule.friend_link_created": { label: "Created schedule friend link", category: "schedules" },
@@ -176,10 +189,10 @@ export const AUDIT_ACTIONS = {
   "user.bulk_deleted": { label: "Deleted people in bulk", category: "people-access", destructive: true },
   "user.created": { label: "Created user", category: "people-access" },
   "user.deactivated": { label: "Deactivated user", category: "people-access", destructive: true },
-  "user.legacy_credential_rotated": { label: "Rotated user legacy credential", category: "people-access", system: true },
-  "user.password_changed": { label: "Changed password", category: "people-access" },
-  "user.password_reset": { label: "Reset user password", category: "people-access" },
-  "user.roles_assigned": { label: "Assigned user roles", category: "people-access" },
+  "user.legacy_credential_rotated": { kind: "access", label: "Rotated user legacy credential", category: "people-access", system: true },
+  "user.password_changed": { kind: "access", label: "Changed password", category: "people-access" },
+  "user.password_reset": { kind: "access", label: "Reset user password", category: "people-access" },
+  "user.roles_assigned": { kind: "access", label: "Assigned user roles", category: "people-access" },
 } satisfies Record<string, AuditActionInfo>;
 export type AuditAction = keyof typeof AUDIT_ACTIONS;
 const AUDIT_ACTION_INFO: Partial<Record<string, AuditActionInfo>> = AUDIT_ACTIONS;
@@ -199,6 +212,26 @@ function entityCategory(entityType: string): AuditCategory {
   if (["report", "keywordrule"].includes(type)) return "moderation";
   if (type.includes("schedule") || type.startsWith("schoolday")) return "schedules";
   return "people-access";
+}
+const VERB_KINDS: Record<string, AuditActionKind> = {
+  Created: 'create', Generated: 'create',
+  Updated: 'edit', Edited: 'edit', Set: 'edit', Renamed: 'edit', Configured: 'edit',
+  Changed: 'edit', Applied: 'edit', Unlinked: 'edit', Reset: 'edit', Cleared: 'edit',
+  Deleted: 'delete', Removed: 'delete', Started: 'delete',
+  Approved: 'approve', Accepted: 'approve',
+  Rejected: 'reject', Declined: 'reject', Cancelled: 'reject',
+  Archived: 'archive', Restored: 'restore', Restore: 'restore', Unarchived: 'restore',
+  Activated: 'restore', Deactivated: 'deactivate',
+  Imported: 'import', Joined: 'join', Registered: 'join', Redeemed: 'join', Added: 'join',
+  Assigned: 'assign', Requested: 'request', Rotated: 'access', Revoked: 'access',
+  Posted: 'publish', Published: 'publish', Pinned: 'pin', Unpinned: 'pin',
+  Enabled: 'toggle', Disabled: 'toggle', Flagged: 'report', Submitted: 'report',
+  Temporarily: 'lock', Unlocked: 'unlock',
+};
+/** Retired or unknown actions have no kind and fall back to their category. */
+export function auditActionKind(action: string): AuditActionKind | undefined {
+  const info = auditActionInfo(action);
+  return info && (info.kind ?? VERB_KINDS[info.label.split(' ', 1)[0]]);
 }
 export function auditActionLabel(action: string): string {
   return auditActionInfo(action)?.label ?? auditLabel(action);

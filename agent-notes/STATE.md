@@ -2,6 +2,19 @@
 
 ## Active Focus
 
+- **Released main and workspace cleanup (2026-11-17)**: v0.8.47 is live at
+  release commit `d3b6d73b`; the primary checkout is synchronized with main.
+  Navigation PR #237 and wallpaper PR #227 are closed because their changes
+  are already on main. The owner authorized retiring completed worktrees and
+  obsolete local/owned remote branches. Historical worktree paths below no
+  longer indicate active ownership: local edits, review fixtures, environment
+  files, local Convex state, and all Git refs are preserved on this workstation
+  under `C:/Users/reban/ia-app-cleanup-20261117` (see its `README.md`).
+  Active work retained: FERPA PR #76 (`codex/32-ferpa-reconcile`) and metadata
+  PR #226's review checkout (`.worktrees/pr-226-review`,
+  `review/channel-mobile-metadata`). Other contributors' remote branches and
+  production deployments are outside this cleanup.
+
 - **Untangle refactor (2026-11-06)**: Branch `refactor/untangle` (worktree
   `.worktrees/untangle`) restructures convex, web, mobile and `apps/shared`
   so each domain rule has one owner; behaviour is unchanged apart from listed

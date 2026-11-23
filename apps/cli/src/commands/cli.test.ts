@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { run } from "../testing";
 
 let base: string;
@@ -67,7 +67,7 @@ describe("cli alias set", () => {
 
   test("refuses a name another program on PATH provides, unless forced", async () => {
     executable(join(other, "ia"));
-    const path = `${bin}:${other}`;
+    const path = `${bin}${delimiter}${other}`;
     const refused = await installed(["cli", "alias", "set", "ia"], { path });
     expect(refused.code).toBe(1);
     expect(refused.stderr).toContain(`Can't set alias ia. ${join(other, "ia")} already provides ia.`);

@@ -40,7 +40,7 @@ exception: OSV records its withdrawal at November 16, 2026, 18:55:38 UTC. Retain
 the existing source/CJS/UMD hardening patch and poisoned-source/target tests.
 The exact advisory allowlist now explicitly rejects restoring this exception.
 
-Renew the remaining **nine** advisory-specific exceptions through
+Renew the remaining **ten** advisory-specific exceptions through
 **January 16, 2027, 00:00 UTC**, a 60-day review window. Owner @rebanto, exact
 package versions, source-patch checks, auth configuration guards, and the
 absolute expiration failure remain enforced. No package-wide override or
@@ -55,6 +55,8 @@ describes the mitigations; this review supersedes its dates and upstream snapsho
   generations retain all four cancellation exits and ordinary traversal.
   Legacy 7.2.3 remains outside the affected range. Their fixed major upgrades
   change the matcher/dependency generation and require caller migration.
+- Picomatch 2.3.2/4.0.7 now carry the local repeated-wildcard hardening patch
+  described in the later November 17 review below. No fixed release is available.
 - Both sandbox records still describe gf3's old isolation package with an
   unbounded OSV range. The installed 4.4.0 package is Vercel's CLI; provenance
   and every locked instance remain guarded. A newer Vercel CLI version alone
@@ -101,3 +103,40 @@ describes the mitigations; this review supersedes its dates and upstream snapsho
 Raw advisory/registry responses, scan inventories/results, and local check logs
 are retained in this worktree's `.tmp/ci-snake-audit/`. No shared backend or
 production deployment is changed by this repair.
+
+
+## Later November 17 review: repeated picomatch extglobs
+
+The cleanup commit's CI scan surfaced
+[GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf)
+(CVE-2026-112366). OSV's reviewed record was modified at 16:00 UTC on November
+17, after v0.8.47's validation. Its affected range includes both locked versions:
+2.3.2 and 4.0.7. The npm registry still reports 4.0.7 as latest, with no fixed
+release. [Upstream PR #194](https://github.com/micromatch/picomatch/pull/194)
+explicitly leaves the single-branch `+(*a)` case exponential; it is not a fix
+for this advisory.
+
+The local Bun patches retain both existing package generations and extend their
+existing risky-extglob handling: a repeated extglob containing a top-level
+unbounded wildcard is treated literally. This covers `+(*)`, `+(*a)`, related
+star/plus repetitions, alternatives, and an unclosed bracket before the star.
+Escaped stars and complete bracket classes retain their existing behavior.
+This deliberately restricts risky repeated patterns; it is a local source patch,
+not an upstream version upgrade. The existing explicit
+`maxExtglobRecursion: false` opt-out is unchanged and must not be used with
+untrusted patterns.
+
+Before patching, the actual `+(*a)` match exceeded a one-second child-process
+limit in both versions. The regression resolves all six locked caller paths,
+checks their exact versions and patch declarations, and runs adversarial matches
+in time-bounded Node children. Ordinary globbing, non-risky repeated extglobs,
+escaped stars, bracket classes, and directory boundaries also pass.
+
+A checksum-verified OSV-Scanner 2.5.1 scan covers all **2,320** locked instances.
+The unfiltered scan reports **16** advisory/package pairs, including these two
+picomatch versions. The reviewed configuration leaves **zero** findings; the
+new exception has the same owner, exact-version guard, and January 16 expiry as
+the other reviewed exceptions. All 24 inventory/security regressions, the frozen
+install, workspace tests (eight existing web tests skipped), web typecheck, web
+lint, and the production web build pass. No production deployment was performed
+as part of workspace cleanup.

@@ -91,6 +91,7 @@ export function useAdminAudit() {
     endAt: auditEndDate ? new Date(`${auditEndDate}T23:59:59.999`).getTime() : undefined,
     categories: auditCategoryFilters.length ? auditCategoryFilters : undefined,
   }), [deferredQuery, auditActor, auditActorId, auditEntityId, auditActionFilters, auditEntityTypeFilter, auditActorScope, auditStartDate, auditEndDate, auditCategoryFilters]);
+  const filterKey = JSON.stringify([user?._id, { ...auditQueryParams, advancedQuery: query.trim() || undefined }]);
   const { results: auditEvents, status: auditStatus, loadMore: loadMoreAuditEvents, isStale } = useStreamPaginatedQuery(
     api.audit.events.listFilteredPage, auditQueryParams,
     { initialNumItems: AUDIT_FETCH_LIMIT, keepPreviousResults: true, scopeKey: user?._id ?? 'signed-out' },
@@ -128,7 +129,8 @@ export function useAdminAudit() {
     auditCategoryFilters, setAuditCategoryFilters: (values: AuditCategory[]) => update({ category: values.join(','), action: auditActionFilters.filter((action) => !values.length || values.includes(auditActionInfo(action)?.category as AuditCategory)).join(',') }),
     selectedAuditEventId, setSelectedAuditEventId, auditEvents, displayedAuditEvents: auditEvents,
     isAuditLoading: auditStatus === 'LoadingFirstPage' && !isStale, isStale,
-    auditStatus, loadMoreAuditEvents, auditCounts,
+    auditStatus, loadMoreAuditEvents, auditCounts, filterKey,
+    isAuditUpdating: isStale || query.trim() !== deferredQuery.trim(),
     auditActionOptions: auditFilterOptions?.actions ?? [], auditEntityTypeOptions: auditFilterOptions?.entityTypes ?? [],
     hasActiveAuditFilters: chips.length > 0 || !!query, clearAuditFilters, auditFilterChips: chips,
   };

@@ -5,7 +5,6 @@ import { CircleHelp, SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DataTableCount, DataTableSection } from '@/components/data/data-table-section';
 import {
-  DataTablePagination,
   DataTableViewOptions,
 } from '@/components/ui/data-table';
 import {
@@ -27,7 +26,7 @@ import { useAdminAudit } from '../../_hooks/use-admin-audit';
 import { AuditColumnFilter, type AuditFilterColumn } from './audit-filters';
 import { AuditFilterBar } from './audit-filter-bar';
 import { AuditSearch } from './audit-search';
-import { AuditTable, useAuditDataTable } from './audit-table';
+import { AuditPagination, AuditTable, useAuditDataTable } from './audit-table';
 
 const columns: AuditFilterColumn[] = ['When', 'Person', 'Action', 'Record'];
 
@@ -194,7 +193,7 @@ export function AuditTab() {
           </>
         }
         tableViewport="always"
-        footer={<DataTablePagination table={table} />}
+        footer={<AuditPagination audit={audit} table={table} />}
       >
         <AuditTable audit={audit} table={table} />
       </DataTableSection>

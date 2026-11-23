@@ -8164,6 +8164,13 @@ interface DataTablePaginationProps<TData> {
   /** The choices in the rows-per-page menu; an empty array hides it. The
    *  current page size is always among them. @default [10, 20, 50] */
   pageSizes?: number[];
+  /** For a table that can fetch additional rows when Next is pressed. */
+  continuation?: {
+    totalRows: number | null;
+    canAdvance: boolean;
+    loading: boolean;
+    onNextPage: () => void;
+  };
   size?: SizeVariant;
   className?: string;
 }
@@ -8176,6 +8183,7 @@ const DEFAULT_PAGE_SIZES = [10, 20, 50];
 function DataTablePagination<TData>({
   table,
   pageSizes = DEFAULT_PAGE_SIZES,
+  continuation,
   size,
   className,
 }: DataTablePaginationProps<TData>) {
@@ -8187,9 +8195,15 @@ function DataTablePagination<TData>({
   const iconSize = sizeClasses.variant === "compact" ? "icon-compact" : "icon";
   const total = table.getFilteredRowModel().rows.length;
   const selected = selectedRows(table.getFilteredSelectedRowModel()).length;
-  const pageCount = Math.max(1, table.getPageCount());
-  const page = Math.min(table.getState().pagination.pageIndex + 1, pageCount);
-  const pageSize = table.getState().pagination.pageSize;
+  const { pageIndex, pageSize } = table.getState().pagination;
+  const totalRows = continuation ? continuation.totalRows : total;
+  const pageCount = continuation
+    ? totalRows === null ? null : Math.max(1, Math.ceil(totalRows / pageSize))
+    : Math.max(1, table.getPageCount());
+  const page = Math.min(pageIndex + 1, pageCount ?? Infinity);
+  const pageRows = continuation
+    ? table.getRowModel().rows.length
+    : pageCount === 1 ? total : Math.max(0, Math.min(pageSize, total - (page - 1) * pageSize));
   const sizes = pageSizes.length
     ? [...new Set([...pageSizes, pageSize])].sort((a, b) => a - b)
     : [];
@@ -8206,10 +8220,9 @@ function DataTablePagination<TData>({
       <span aria-live="polite" className="pl-2">
         {selected > 0
           ? `${selected} of ${total} ${total === 1 ? "row" : "rows"} selected`
-          : pageCount > 1
-            ? // The rows this page shows against the result: "10 / 35 rows".
-              `${Math.max(0, Math.min(pageSize, total - (page - 1) * pageSize))} / ${total} rows`
-            : `${total} ${total === 1 ? "row" : "rows"}`}
+          : totalRows !== null && pageCount !== null && pageCount > 1
+            ? `${pageRows} / ${totalRows} rows`
+            : `${pageRows} ${pageRows === 1 ? "row" : "rows"}`}
       </span>
       {/* On a narrow bar the two groups wrap as wholes; their words don't. */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 whitespace-nowrap">
@@ -8231,7 +8244,7 @@ function DataTablePagination<TData>({
         )}
         <span className="flex items-center gap-1">
           <span>
-            Page {page} of {pageCount}
+            Page {page}{pageCount === null ? null : ` of ${pageCount}`}
           </span>
           {/* The arrows share one gliding tooltip. */}
           <TooltipGroup>
@@ -8251,8 +8264,9 @@ function DataTablePagination<TData>({
                 variant="ghost"
                 size={iconSize}
                 aria-label="Next page"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
+                onClick={continuation?.onNextPage ?? (() => table.nextPage())}
+                disabled={!(continuation?.canAdvance ?? table.getCanNextPage())}
+                loading={continuation?.loading}
               >
                 <Next />
               </Button>

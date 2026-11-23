@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Fragment, createContext, useContext, useMemo, useState } from 'react';
+import { Fragment, createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Column, Table } from '@tanstack/react-table';
 import {
   useDataTable,
@@ -9,6 +9,7 @@ import {
   DataTableColumnHeader,
   DataTableColumnHeaderLabel,
   DataTableControls,
+  DataTablePagination,
   type ColumnDef,
 } from '@/components/ui/data-table';
 import { AuditEventContent } from './audit-event-content';
@@ -350,7 +351,7 @@ export function useAuditDataTable(audit: AuditState) {
     ],
     [],
   );
-  return useDataTable<AuditEventRecord>({
+  const table = useDataTable<AuditEventRecord>({
     data: audit.displayedAuditEvents,
     columns,
     pageSize: 20,
@@ -365,6 +366,75 @@ export function useAuditDataTable(audit: AuditState) {
         typeof update === 'function' ? update(audit.auditSearch) : update,
       ),
   });
+  const lastFilter = useRef(audit.filterKey);
+  useLayoutEffect(() => {
+    if (lastFilter.current === audit.filterKey) return;
+    lastFilter.current = audit.filterKey;
+    table.setPageIndex(0);
+  }, [audit.filterKey, table]);
+  return table;
+}
+
+type AuditPagerProps = {
+  audit: AuditState;
+  table: Table<AuditEventRecord>;
+};
+
+export function AuditPagination({ audit, table }: AuditPagerProps) {
+  const { pageIndex, pageSize } = table.getState().pagination;
+  const [pending, setPending] = useState<{
+    filterKey: string;
+    pageIndex: number;
+    pageSize: number;
+    targetPage: number;
+  } | null>(null);
+  const { filterKey, auditStatus, isAuditUpdating, loadMoreAuditEvents } = audit;
+  const loaded = audit.displayedAuditEvents.length;
+  const targetPage = loaded > pageIndex * pageSize ? pageIndex + 1 : pageIndex;
+  const exhausted = auditStatus === 'Exhausted';
+  const canAdvance = loaded > targetPage * pageSize || auditStatus === 'CanLoadMore';
+  const isPending = pending?.filterKey === filterKey &&
+    pending.pageIndex === pageIndex && pending.pageSize === pageSize;
+
+  useEffect(() => {
+    if (!pending) return;
+    if (!isPending || isAuditUpdating) {
+      setPending(null);
+      return;
+    }
+
+    const start = pending.targetPage * pending.pageSize;
+    if (loaded >= start + pending.pageSize || exhausted) {
+      setPending(null);
+      if (loaded > start) table.setPageIndex(pending.targetPage);
+    } else if (auditStatus === 'CanLoadMore') {
+      // Sparse filters can return short or empty cursor batches.
+      loadMoreAuditEvents(AUDIT_FETCH_LIMIT);
+    }
+  }, [auditStatus, exhausted, isAuditUpdating, isPending, loaded, loadMoreAuditEvents, pending, table]);
+
+  const exactTotal = !isAuditUpdating && audit.auditCounts?.exact
+    ? audit.auditCounts.total
+    : null;
+  const totalRows = exhausted ? loaded : exactTotal == null ? null : Math.max(loaded, exactTotal);
+
+  return (
+    <DataTablePagination
+      table={table}
+      continuation={{
+        totalRows,
+        canAdvance: !isAuditUpdating && auditStatus !== 'LoadingFirstPage' && canAdvance,
+        loading: isPending,
+        onNextPage: () => {
+          if (exhausted || loaded >= (targetPage + 1) * pageSize) {
+            table.setPageIndex(targetPage);
+          } else {
+            setPending({ filterKey, pageIndex, pageSize, targetPage });
+          }
+        },
+      }}
+    />
+  );
 }
 
 export function AuditTable({
@@ -374,15 +444,24 @@ export function AuditTable({
   audit: AuditState;
   table: Table<AuditEventRecord>;
 }) {
-  const canLoad = audit.auditStatus === 'CanLoadMore' && !audit.isStale;
+  const contentRef = useRef<HTMLDivElement>(null);
+  const { pageIndex, pageSize } = table.getState().pagination;
+  useLayoutEffect(() => {
+    const viewport = contentRef.current?.querySelector<HTMLElement>('[data-slot=scroll-area-viewport]');
+    if (viewport) viewport.scrollTop = 0;
+  }, [pageIndex, pageSize, audit.filterKey]);
   return (
-    <div className="@container/audit flex min-h-0 min-w-0 flex-1 flex-col" aria-busy={audit.isStale}>
+    <div ref={contentRef} className="@container/audit flex min-h-0 min-w-0 flex-1 flex-col" aria-busy={audit.isStale}>
       <AuditTableContext.Provider value={audit}>
       <DataTable
         table={table}
         fill
         loading={audit.isAuditLoading}
-        empty={{ title: 'No activity matches these filters.' }}
+        empty={{
+          title: audit.auditStatus === 'Exhausted'
+            ? 'No activity matches these filters.'
+            : 'No matches in the history checked so far.',
+        }}
         groupLabel={(row, previous) => {
           const day = new Date(row.original.createdAt);
           return previous && isSameDay(day, new Date(previous.original.createdAt)) ? null : format(day, 'EEEE, MMM d, yyyy');
@@ -393,22 +472,6 @@ export function AuditTable({
           : null}
       />
       </AuditTableContext.Provider>
-      {audit.auditStatus !== 'Exhausted' && !audit.isAuditLoading ? (
-        <div className="flex shrink-0 items-center justify-between gap-3 pt-1">
-          <span className="text-sm text-muted-foreground">
-            Pages cover {audit.displayedAuditEvents.length.toLocaleString()}{' '}
-            loaded events.
-          </span>
-          <Button
-            variant="ghost"
-            loading={audit.auditStatus === 'LoadingMore'}
-            disabled={!canLoad}
-            onClick={() => audit.loadMoreAuditEvents(AUDIT_FETCH_LIMIT)}
-          >
-            Load older activity
-          </Button>
-        </div>
-      ) : null}
     </div>
   );
 }

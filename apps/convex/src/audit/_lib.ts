@@ -1,3 +1,4 @@
+import { CLI_CLIENT_ID } from "../../../shared/cli-client";
 import { auditCategory, type AuditAction } from "../../../shared/audit";
 import { auditByActor, auditByCategory } from "./_aggregates";
 import { v } from "convex/values";
@@ -15,12 +16,14 @@ export const actorValidator = v.union(
     lastName: v.string(),
     preferredName: v.optional(v.string()),
     uniqueId: v.string(),
+    avatarUrl: v.optional(v.string()),
   }),
   v.null(),
 );
 
 export const auditEventValidator = v.object({
   id: v.id("auditEvents"),
+  client: v.optional(v.literal("cli")),
   action: v.string(),
   entityType: v.string(),
   entityId: v.union(v.string(), v.null()),
@@ -53,6 +56,7 @@ export function auditEventSerializer(ctx: QueryCtx) {
     ]);
     return {
       id: event._id,
+      client: event.client,
       actorId: event.actorId ?? null,
       context,
       action: event.action,
@@ -66,6 +70,7 @@ export function auditEventSerializer(ctx: QueryCtx) {
         lastName: actor.lastName,
         preferredName: actor.preferredName,
         uniqueId: actor.uniqueId,
+        avatarUrl: actor.avatarUrl,
       } : null,
     };
   };
@@ -93,12 +98,14 @@ export async function logAuditEvent(
   let meta = input.actorId === 'system'
     ? { ...(isRecord(input.meta) ? input.meta : input.meta === undefined ? {} : { originalMeta: input.meta }), auditSource: 'system' }
     : input.meta;
+  let client: "cli" | undefined;
   const identity = await ctx.auth.getUserIdentity();
   if (identity?.sessionId) {
     const session = (await ctx.runQuery(components.betterAuth.adapter.findOne, {
       model: "session",
       where: [{ field: "_id", value: identity.sessionId as string }],
-    })) as { impersonatedBy?: string | null } | null;
+    })) as { clientId?: string; impersonatedBy?: string | null } | null;
+    if (input.actorId !== "system" && session?.clientId === CLI_CLIENT_ID) client = "cli";
     if (session?.impersonatedBy) {
       const impersonator = await ctx.db
         .query("users")
@@ -116,6 +123,7 @@ export async function logAuditEvent(
   }
   const id = await ctx.db.insert("auditEvents", {
     actorId: input.actorId === "system" ? undefined : input.actorId,
+    client,
     category: auditCategory(input.entityType, input.action),
     action: input.action,
     entityType: input.entityType,

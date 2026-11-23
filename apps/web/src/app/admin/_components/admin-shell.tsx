@@ -85,7 +85,7 @@ function PersistAdminSidebar() {
 function AdminContent({ children }: { children: ReactNode }) {
   const { open } = useSidebar();
   return (
-    <div className={cn('relative flex min-h-0 min-w-0 flex-1 p-4 pt-1 md:p-6 md:pt-2 lg:p-8 lg:pt-2', !open && 'lg:pl-14')}>
+    <div className={cn('relative flex min-h-0 min-w-0 flex-1 p-4 pt-1 md:p-6 md:pt-2 lg:p-8 lg:pt-2 has-[[data-slot=table-footer]]:pb-0', !open && 'lg:pl-14')}>
       {open ? null : <SidebarTrigger size="icon-compact" className="absolute left-3 top-3 z-10 hidden lg:inline-flex" />}
       {children}
     </div>

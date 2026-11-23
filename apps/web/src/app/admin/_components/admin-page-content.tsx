@@ -56,8 +56,10 @@ export function AdminPageContent() {
   if (canReviewFeedback && !isSuperAdmin && (reportId || !hasAdministrativeAccess)) {
     return (
       <AdminPageLayout>
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col p-4 md:p-6 lg:p-8">
-          <FeedbackTab canUpdateFeedback={false} />
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col p-4 md:p-6 lg:p-8 has-[[data-slot=table-footer]]:pb-0">
+          <AdminScrollTabPanel value="feedback">
+            <FeedbackTab canUpdateFeedback={false} />
+          </AdminScrollTabPanel>
         </div>
       </AdminPageLayout>
     );

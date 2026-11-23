@@ -3430,12 +3430,15 @@ function DataTable<TData>({
               </div>
             </div>
             {fill && (
+              <div className="absolute inset-x-0 top-(--ff-head,0px) h-(--ff-vertical-cue-height,0px) bg-linear-to-b from-(--ff-vertical-cue-color,transparent) to-transparent opacity-0 transition-opacity duration-80 group-data-scrolled/scroll:opacity-100" />
+            )}
+            {fill && (
               // Filled, the rows scroll inside the box: while there are more
               // under its bottom edge they fade into the page there, over a
               // hairline in the frozen edge's color, as the header's shows
               // once rows have passed under it. Over the frozen columns too.
-              <div className="absolute inset-x-0 bottom-0 h-(--ff-fade,48px) opacity-0 transition-opacity duration-80 group-data-more-below/scroll:opacity-100">
-                <div className="absolute inset-0 bg-linear-to-t from-background to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 h-[var(--ff-vertical-cue-height,var(--ff-fade,48px))] opacity-0 transition-opacity duration-80 group-data-more-below/scroll:opacity-100">
+                <div className="absolute inset-0 bg-linear-to-t from-[var(--ff-vertical-cue-color,var(--data-table-substrate,var(--color-background)))] to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 h-px bg-foreground/[0.08]" />
               </div>
             )}
@@ -3445,7 +3448,7 @@ function DataTable<TData>({
               // rows' content fades, a selected row keeps its fill. Masked
               // by the fade's own gradient, so the copy comes in as the fill
               // under the fade goes out and the two add up to one.
-              <div className="absolute inset-0 opacity-0 transition-opacity duration-80 group-data-more-below/scroll:opacity-100 [clip-path:inset(0_var(--pin-r,0px)_0_var(--pin-l,0px))] [mask-image:linear-gradient(to_top,black,transparent)] [mask-position:bottom] [mask-repeat:no-repeat] [mask-size:100%_var(--ff-fade,48px)]">
+              <div className="absolute inset-0 opacity-0 transition-opacity duration-80 group-data-more-below/scroll:opacity-100 [clip-path:inset(0_var(--pin-r,0px)_0_var(--pin-l,0px))] [mask-image:linear-gradient(to_top,black,transparent)] [mask-position:bottom] [mask-repeat:no-repeat] [mask-size:100%_var(--ff-vertical-cue-height,var(--ff-fade,48px))]">
                 <div className="ff-ride absolute inset-0">
                   <div ref={bottomFillHostRef} />
                   <div ref={bottomHoverRef} data-row-hover="" className="absolute inset-x-0 top-0 bg-hover opacity-0" />

@@ -306,13 +306,15 @@ export function FeedbackTab({ canUpdateFeedback = true }: { canUpdateFeedback?: 
               </TabsList>
             </>
           }
+          tableViewport="desktop"
           footer={<DataTablePagination table={table} />}
           footerClassName="hidden md:block"
         >
-          <TabPanel value={view}>
-            <div className="hidden min-w-0 md:block" aria-busy={reportMutation.isPending}>
+          <TabPanel value={view} className="md:flex md:min-h-0 md:flex-1 md:flex-col">
+            <div className="hidden min-w-0 md:flex md:min-h-0 md:flex-1 md:flex-col" aria-busy={reportMutation.isPending}>
               <DataTable
                 table={table}
+                fill
                 loading={isLoading}
                 empty={{
                   title: deferredFeedbackSearch

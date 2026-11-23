@@ -13,6 +13,7 @@ import {
   DataTableSection,
 } from '@/components/data/data-table-section';
 import { SearchToolbarRow } from '@/components/ui/search';
+import { cn } from '@/lib/utils';
 
 /**
  * The admin table anatomy: a pinned toolbar (search, the tab's own controls,
@@ -52,6 +53,7 @@ export function AdminDataTable<T>({
   const desktop = (
     <DataTable
       table={table}
+      fill={!!label}
       loading={loading}
       empty={empty ? { title: empty } : undefined}
       onRowClick={onRowClick}
@@ -77,7 +79,7 @@ export function AdminDataTable<T>({
   const desktopOnlyFooter = !!mobile && footer === undefined;
   const body = mobile ? (
     <>
-      <div className="hidden min-w-0 md:block">{desktop}</div>
+      <div className={cn("hidden min-w-0", label ? "md:flex md:min-h-0 md:flex-1 md:flex-col" : "md:block")}>{desktop}</div>
       <div className={desktopOnlyFooter && label ? 'pb-6 md:hidden' : 'md:hidden'}>{mobile}</div>
     </>
   ) : desktop;
@@ -97,6 +99,7 @@ export function AdminDataTable<T>({
     <DataTableSection
       label={label}
       toolbar={toolbar}
+      tableViewport={mobile ? 'desktop' : 'always'}
       footer={pagination}
       footerClassName={desktopOnlyFooter ? 'hidden md:block' : undefined}
     >

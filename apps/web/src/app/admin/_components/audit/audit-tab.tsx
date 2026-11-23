@@ -193,6 +193,7 @@ export function AuditTab() {
           ) : null}
           </>
         }
+        tableViewport="always"
         footer={<DataTablePagination table={table} />}
       >
         <AuditTable audit={audit} table={table} />

@@ -376,10 +376,11 @@ export function AuditTable({
 }) {
   const canLoad = audit.auditStatus === 'CanLoadMore' && !audit.isStale;
   return (
-    <div className="@container/audit flex min-w-0 flex-col gap-3" aria-busy={audit.isStale}>
+    <div className="@container/audit flex min-h-0 min-w-0 flex-1 flex-col" aria-busy={audit.isStale}>
       <AuditTableContext.Provider value={audit}>
       <DataTable
         table={table}
+        fill
         loading={audit.isAuditLoading}
         empty={{ title: 'No activity matches these filters.' }}
         groupLabel={(row, previous) => {
@@ -393,7 +394,7 @@ export function AuditTable({
       />
       </AuditTableContext.Provider>
       {audit.auditStatus !== 'Exhausted' && !audit.isAuditLoading ? (
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex shrink-0 items-center justify-between gap-3 pt-1">
           <span className="text-sm text-muted-foreground">
             Pages cover {audit.displayedAuditEvents.length.toLocaleString()}{' '}
             loaded events.

@@ -24,6 +24,7 @@ export function DataTableSection({
   toolbar,
   footer,
   footerClassName,
+  tableViewport,
   children,
   className,
 }: {
@@ -31,6 +32,8 @@ export function DataTableSection({
   toolbar: ReactNode;
   footer?: ReactNode;
   footerClassName?: string;
+  /** A Fluid fill table owns vertical scrolling, with phone cards optionally in flow. */
+  tableViewport?: "always" | "desktop";
   children: ReactNode;
   className?: string;
 }) {
@@ -59,6 +62,9 @@ export function DataTableSection({
       className={cn(
         'flex min-w-0 flex-col [--data-table-substrate:var(--app-main-bg)]',
         footer != null && 'min-h-[100cqh]',
+        tableViewport === 'always' && 'h-[100cqh]',
+        tableViewport === 'desktop' && 'md:h-[100cqh]',
+        '[--ff-vertical-cue-height:8px] [--ff-vertical-cue-color:rgb(0_0_0/0.09)] dark:[--ff-vertical-cue-color:rgb(0_0_0/0.18)]',
         className,
       )}
     >
@@ -66,8 +72,8 @@ export function DataTableSection({
         ref={toolbarRef}
         data-slot="table-toolbar"
         className={cn(
-          'sticky -top-3 z-30 -mt-3 flex flex-col gap-2 bg-(--app-main-bg) pb-3 pt-3',
-          'after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-3 after:bg-linear-to-b after:from-black/15 after:to-transparent after:opacity-0 motion-safe:after:transition-opacity dark:after:from-black/35',
+          'sticky -top-3 z-30 -mt-3 flex shrink-0 flex-col gap-2 bg-(--app-main-bg) pb-3 pt-3',
+          'after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-2 after:bg-linear-to-b after:from-(--ff-vertical-cue-color) after:to-transparent after:opacity-0 motion-safe:after:transition-opacity',
           'group-data-[at-scroll-start=false]/admin-scroll:after:opacity-100',
         )}
       >
@@ -78,8 +84,8 @@ export function DataTableSection({
         <div
           data-slot="table-footer"
           className={cn(
-            'sticky bottom-0 z-20 mt-auto bg-(--app-main-bg) py-3',
-            'before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-3 before:bg-linear-to-t before:from-black/15 before:to-transparent before:opacity-0 motion-safe:before:transition-opacity dark:before:from-black/35',
+            'sticky bottom-0 z-20 mt-auto shrink-0 bg-(--app-main-bg) py-2',
+            'before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-2 before:bg-linear-to-t before:from-(--ff-vertical-cue-color) before:to-transparent before:opacity-0 motion-safe:before:transition-opacity',
             'group-data-[at-scroll-end=false]/admin-scroll:before:opacity-100',
             footerClassName,
           )}

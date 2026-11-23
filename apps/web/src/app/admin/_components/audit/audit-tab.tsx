@@ -69,7 +69,7 @@ export function AuditTab() {
         label="Audit activity"
         toolbar={
           <>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:gap-3">
             <AuditSearch audit={audit} table={table} />
             <DataTableViewOptions table={table} className="ml-auto" />
             <Popover>
@@ -158,7 +158,7 @@ export function AuditTab() {
               {audit.advancedError} Showing the last valid search.
             </p>
           ) : null}
-          <div className="hidden md:block">
+          <div className="hidden pt-1 md:block">
             <AuditFilterBar audit={audit} />
           </div>
           {audit.auditFilterChips.length ? (

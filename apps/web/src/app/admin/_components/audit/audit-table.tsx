@@ -147,8 +147,10 @@ function RecordCell({ event }: { event: AuditEventRecord }) {
 function WhereCell({ event }: { event: AuditEventRecord }) {
   const places = auditPlaces(event);
   if (!places.length)
-    return (
-      <span className="block truncate">{event.context?.subtitle || '—'}</span>
+    return event.context?.subtitle ? (
+      <span className="block truncate">{event.context.subtitle}</span>
+    ) : (
+      <span className="sr-only">No location recorded</span>
     );
   // The innermost place (the channel) is the most specific, so the club truncates first.
   return (
@@ -313,7 +315,7 @@ export function useAuditDataTable(audit: AuditState) {
         id: 'person',
         accessorFn: auditPersonName,
         header: ({ column }) => <AuditColumnHeader column={column} title="Person" />,
-        meta: { label: 'Person', className: 'overflow-visible' },
+        meta: { label: 'Person', className: 'overflow-visible xl:pr-5' },
         cell: ({ row }) => (
           <AuditPersonCell event={row.original} />
         ),
@@ -322,7 +324,7 @@ export function useAuditDataTable(audit: AuditState) {
         id: 'action',
         accessorFn: (event) => auditActionLabel(event.action),
         header: ({ column }) => <AuditColumnHeader column={column} title="Action" />,
-        meta: { label: 'Action' },
+        meta: { label: 'Action', className: 'xl:pr-6' },
         cell: ({ row }) => <Action event={row.original} />,
       },
       {
@@ -372,9 +374,10 @@ export function AuditTable({
 }) {
   const canLoad = audit.auditStatus === 'CanLoadMore' && !audit.isStale;
   return (
-    <div className="flex min-w-0 flex-col gap-3" aria-busy={audit.isStale}>
+    <div className="mt-1 flex min-w-0 flex-col gap-3 md:mt-2" aria-busy={audit.isStale}>
       <AuditTableContext.Provider value={audit}>
       <DataTable
+        className="md:[--table-cell-py:--spacing(2.5)] md:[&_tbody>tr>th[colspan]]:pt-5 md:[&_tbody>tr>th[colspan]]:pb-1.5"
         table={table}
         loading={audit.isAuditLoading}
         empty={{ title: 'No activity matches these filters.' }}

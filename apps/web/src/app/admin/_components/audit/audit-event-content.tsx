@@ -54,7 +54,7 @@ export function AuditEventContent({ event }: { event: AuditEventRecord }) {
     (field) => !/\bID\b/i.test(field.label) && !['0', 'No', 'None', 'null', 'false', ''].includes(field.value),
   );
   return (
-    <dl className="flex min-w-0 flex-wrap gap-x-8 gap-y-3 border-l border-border bg-surface-2 px-4 py-3 text-sm [overflow-wrap:anywhere] lg:bg-surface-3">
+    <dl className="flex min-w-0 max-w-[calc(var(--table-view-w,100%)-1.5rem)] flex-wrap gap-x-8 gap-y-3 border-l border-border bg-surface-2 px-4 py-3 text-sm [overflow-wrap:anywhere] lg:bg-surface-3">
       {auditMetaFields(event).map((field) => (
         <Detail key={field.key} label={field.label}>{displayValue(field.value, event)}</Detail>
       ))}

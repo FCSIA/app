@@ -55,6 +55,7 @@ function FilterSurface({
   return surface === 'menu' ? (
     <DropdownContent
       align="start"
+      collisionPadding={8}
       className="bg-surface-4 shadow-surface-2 lg:bg-surface-5"
       checkedIndex={checkedIndex}
       checkedIndices={checkedIndices}

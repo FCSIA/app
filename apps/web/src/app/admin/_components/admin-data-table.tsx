@@ -60,7 +60,7 @@ export function AdminDataTable<T>({
   const toolbar = (
     <>
       <SearchToolbarRow className="flex-row flex-wrap items-center gap-2">
-        <DataTableSearch table={table} placeholder={searchPlaceholder} />
+        <DataTableSearch table={table} placeholder={searchPlaceholder} collapsible={false} />
         {/* Trailing controls sit at the row's end, as in the audit log. */}
         <div className="ml-auto flex shrink-0 items-center gap-2">
           {controls}

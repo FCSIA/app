@@ -48,7 +48,7 @@ export function DataTableSection({
   }, []);
 
   return (
-    <section ref={sectionRef} aria-label={label} className={cn('flex min-w-0 flex-col', className)}>
+    <section ref={sectionRef} aria-label={label} className={cn('flex min-w-0 flex-col [--data-table-substrate:var(--app-main-bg)]', className)}>
       <div
         ref={toolbarRef}
         className="sticky -top-3 z-30 -mt-3 flex flex-col gap-2 bg-(--app-main-bg) pb-3 pt-3"

@@ -3102,7 +3102,7 @@ function DataTable<TData>({
                     // tint of the text color), so every line that marks
                     // content passing under something is the same one.
                     fill && [
-                      "sticky top-0 bg-background",
+                      "sticky top-0 bg-[var(--data-table-substrate,var(--color-background))]",
                       // The cell's own bottom border takes the color (the
                       // row fades it over 80ms), under the boxes' column
                       // too, which has no rule at rest. A shadow inside the
@@ -3342,12 +3342,7 @@ function DataTable<TData>({
         style={{ "--pin-l": `${pinWidths.l}px`, "--pin-r": `${pinWidths.r}px` } as CSSProperties}
         viewportClassName={cn(
           "scroll-fade-x",
-          // No rubber-banding sideways: past either end the browser slides
-          // the whole content, frozen columns included, while what is
-          // drawn over them from the box (the hover and selection fills,
-          // the fades) stays put, so they came apart for the bounce. It
-          // also keeps a hard swipe from going back a page.
-          "overscroll-x-none",
+          // Let the browser handle horizontal navigation at the scroll edges.
           // Up and down too where the rows scroll inside the box: the
           // sticky header and what rides the scroll came apart the same
           // way. Only then: a table that doesn't scroll up and down must
@@ -4136,7 +4131,7 @@ function RollingCount({ value }: { value: number }) {
 /** One block of rows in the drag's copy: the page background under the
  *  rows and the --active fill over them. */
 const GHOST_BLOCK =
-  "absolute inset-x-0 overflow-hidden bg-background after:pointer-events-none after:absolute after:inset-0 after:z-10 after:bg-active";
+  "absolute inset-x-0 overflow-hidden bg-[var(--data-table-substrate,var(--color-background))] after:pointer-events-none after:absolute after:inset-0 after:z-10 after:bg-active";
 
 /** A selection box shows only where it's wanted: on the row under the
  *  pointer or holding focus, on a checked (or, in the header, partly
@@ -4544,7 +4539,7 @@ function PinLayers({ pin, children }: { pin: PinInfo; children?: ReactNode }) {
       <span
         data-pin-bg=""
         className={cn(
-          "absolute inset-y-0 left-0 right-0 bg-background",
+          "absolute inset-y-0 left-0 right-0 bg-[var(--data-table-substrate,var(--color-background))]",
           // Not the table's last column either: nothing follows it, and a
           // pixel past the table's end is a pixel of sideways scroll, which
           // read as "content under the frozen column" on a table that fits.
@@ -6630,6 +6625,7 @@ function DataTableSearch<TData>({
         ) : (
           <DataTableSearchInput
             ref={inputRef}
+            outlined={!collapsible}
             tabIndex={expanded ? undefined : -1}
             aria-hidden={expanded ? undefined : true}
             onBlur={() => {
@@ -6660,9 +6656,12 @@ function DataTableSearch<TData>({
 
 // Value and density are owned by the provider; decorators may add ARIA,
 // refs and events without introducing another source of filter state.
-type DataTableSearchInputProps = Omit<ComponentPropsWithRef<typeof Input>, "value" | "defaultValue" | "size">;
+type DataTableSearchInputProps = Omit<ComponentPropsWithRef<typeof Input>, "value" | "defaultValue" | "size"> & {
+  /** Use the regular Input appearance for a persistent search field. */
+  outlined?: boolean;
+};
 const DataTableSearchInput = forwardRef<HTMLInputElement, DataTableSearchInputProps>(
-  ({ onChange, onKeyDown, className, ...props }, ref) => {
+  ({ onChange, onKeyDown, className, outlined = false, ...props }, ref) => {
     const { state: { value }, actions, meta: { placeholder, size } } = useDataTableSearch();
     const compact = useSize(size).variant === "compact";
     return (
@@ -6692,7 +6691,7 @@ const DataTableSearchInput = forwardRef<HTMLInputElement, DataTableSearchInputPr
         // shows where typing goes.
         className={cn(
           compact ? "pl-[28px]" : "pl-9",
-          "border-transparent focus:border-transparent aria-invalid:focus:border-transparent focus:bg-hover focus:hover:bg-hover",
+          !outlined && "border-transparent bg-none focus:border-transparent aria-invalid:focus:border-transparent focus:bg-hover focus:hover:bg-hover",
           className
         )}
       />

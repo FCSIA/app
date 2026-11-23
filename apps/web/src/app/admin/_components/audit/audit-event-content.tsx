@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { ArrowUpRight, ChevronRight } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { CodeBlock } from '@/components/ui/code-block';
 import { useQuery } from "@/lib/convex-react";
@@ -53,52 +54,65 @@ export function AuditEventContent({ event }: { event: AuditEventRecord }) {
   const previewFields = (preview?.fields ?? []).filter(
     (field) => !/\bID\b/i.test(field.label) && !['0', 'No', 'None', 'null', 'false', ''].includes(field.value),
   );
+  const recordLink = links.find((ref) => ref.id === event.entityId);
+  const recordHref = recordLink?.href ?? preview?.href;
+  const related = links.filter((ref) => ref !== recordLink);
+  const fields = auditMetaFields(event);
+  const hasDetails = fields.length > 0 || related.length > 0 || preview?.body || previewFields.length > 0 || snapshot;
+
   return (
-    <dl className="flex min-w-0 max-w-[calc(var(--table-view-w,100%)-1.5rem)] flex-wrap gap-x-8 gap-y-3 border-l border-border bg-surface-2 px-4 py-3 text-sm [overflow-wrap:anywhere] lg:bg-surface-3">
-      {auditMetaFields(event).map((field) => (
-        <Detail key={field.key} label={field.label}>{displayValue(field.value, event)}</Detail>
-      ))}
-      {links.map((ref) => (
-        <Detail key={`${ref.label}:${ref.id}`} label={ref.label}>
-          {ref.href ? (
-            <Link href={ref.href} className="underline underline-offset-4">{ref.name}</Link>
-          ) : (
-            <>{ref.name} <span className="text-muted-foreground">(no longer available)</span></>
-          )}
-        </Detail>
-      ))}
-      <Detail label="Stored event" wide>
-        <CodeBlock
-          json={{
-            action: event.action,
-            entityType: event.entityType,
-            entityId: event.entityId,
-            actorId: event.actorId,
-            client: event.client,
-            createdAt: event.createdAt,
-            meta: event.meta,
-          }}
-        />
-      </Detail>
-      {preview && !links.some((link) => link.id === event.entityId) ? (
-        <Detail label="Record">
-          {preview.href ? (
-            <Link href={preview.href} className="underline underline-offset-4">{preview.title}</Link>
-          ) : (
-            preview.title
-          )}
-          {preview.subtitle ? <span className="text-muted-foreground"> · {preview.subtitle}</span> : null}
-        </Detail>
+    <div className="min-w-0 max-w-[calc(var(--table-view-w,100%)-1.5rem)] px-4 pb-1 text-sm [overflow-wrap:anywhere]">
+      {hasDetails ? (
+        <dl className="mb-2 flex flex-wrap gap-x-8 gap-y-3">
+          {fields.map((field) => (
+            <Detail key={field.key} label={field.label}>{displayValue(field.value, event)}</Detail>
+          ))}
+          {related.map((ref) => (
+            <Detail key={`${ref.label}:${ref.id}`} label={ref.label}>
+              {ref.href ? (
+                <Link href={ref.href} className="underline underline-offset-4">{ref.name}</Link>
+              ) : (
+                <>{ref.name} <span className="text-muted-foreground">(no longer available)</span></>
+              )}
+            </Detail>
+          ))}
+          {preview?.body ? <Detail label="Content" wide>{preview.body}</Detail> : null}
+          {previewFields.map((field) => (
+            <Detail key={field.label} label={field.label}>{field.value}</Detail>
+          ))}
+          {snapshot ? (
+            <Detail label="Board" wide>
+              <WhiteboardAuditSnapshot boardId={snapshot.boardId} atSeq={snapshot.atSeq} />
+            </Detail>
+          ) : null}
+        </dl>
       ) : null}
-      {preview?.body ? <Detail label="Content" wide>{preview.body}</Detail> : null}
-      {previewFields.map((field) => (
-        <Detail key={field.label} label={field.label}>{field.value}</Detail>
-      ))}
-      {snapshot ? (
-        <Detail label="Board" wide>
-          <WhiteboardAuditSnapshot boardId={snapshot.boardId} atSeq={snapshot.atSeq} />
-        </Detail>
-      ) : null}
-    </dl>
+      <div className="flex flex-wrap items-start gap-x-5 gap-y-1">
+        {recordHref ? (
+          <Link href={recordHref} className="inline-flex min-h-7 items-center gap-1 rounded-sm font-medium hover:underline focus-visible:outline focus-visible:outline-ring">
+            Open record <ArrowUpRight aria-hidden className="size-3.5" />
+          </Link>
+        ) : null}
+        <details className="group/raw min-w-0 flex-1 basis-32">
+          <summary className="flex min-h-7 w-fit cursor-pointer list-none items-center gap-1 rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+            <ChevronRight aria-hidden className="size-3.5 group-open/raw:rotate-90" />
+            Stored JSON
+          </summary>
+          <div className="mt-1 max-w-3xl">
+            <CodeBlock
+              json={{
+                action: event.action,
+                entityType: event.entityType,
+                entityId: event.entityId,
+                actorId: event.actorId,
+                client: event.client,
+                createdAt: event.createdAt,
+                meta: event.meta,
+              }}
+            />
+          </div>
+        </details>
+      </div>
+    </div>
   );
 }

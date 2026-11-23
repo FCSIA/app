@@ -27,12 +27,12 @@ function highlightJson(text: string): ReactNode[] {
       out.push(
         <span key={key} className="text-muted-foreground">
           {string}
-          <span className="opacity-60">{colon}</span>
+          {colon}
         </span>,
       );
     else if (string) out.push(<span key={key} className="text-foreground">{string}</span>);
     else if (literal || number) out.push(<span key={key} className="text-tone-social">{whole}</span>);
-    else if (punctuation) out.push(<span key={key} className="text-muted-foreground/60">{whole}</span>);
+    else if (punctuation) out.push(<span key={key} className="text-muted-foreground">{whole}</span>);
     last = at + whole.length;
   }
   if (last < text.length) out.push(text.slice(last));
@@ -61,7 +61,7 @@ const CodeBlock = forwardRef<HTMLPreElement, CodeBlockProps>(
     }
 
     return (
-      <div className="surface-top-edge relative rounded-lg border border-border bg-surface-4 lg:bg-surface-5">
+      <div className="relative rounded-lg bg-[hsl(var(--foreground)/0.045)] shadow-[inset_0_1px_hsl(var(--foreground)/0.10)]">
         <pre
           ref={ref}
           className={cn(

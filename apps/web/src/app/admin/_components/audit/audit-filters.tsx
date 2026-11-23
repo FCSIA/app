@@ -56,7 +56,7 @@ function FilterSurface({
     <DropdownContent
       align="start"
       collisionPadding={8}
-      className="bg-surface-4 shadow-surface-2 lg:bg-surface-5"
+      className="[--audit-filter-bg:var(--surface-4)] lg:[--audit-filter-bg:var(--surface-5)] bg-(--audit-filter-bg) shadow-surface-2 [&_[data-slot=dropdown-search]]:bg-(--audit-filter-bg)"
       checkedIndex={checkedIndex}
       checkedIndices={checkedIndices}
       onCloseAutoFocus={onCloseAutoFocus}

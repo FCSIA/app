@@ -367,6 +367,7 @@ const DropdownSearch = forwardRef<HTMLInputElement, DropdownSearchProps>(
 
     return (
       <div
+        data-slot="dropdown-search"
         // Sticky at the top of the scrolling popup, bleeding into its 4px
         // padding so the divider runs edge to edge and rows scroll underneath
         // it. The field is a row's height (box-content: the padding and the

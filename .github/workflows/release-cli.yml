@@ -112,7 +112,11 @@ jobs:
         run: |
           set -euo pipefail
           if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            notes=$(printf 'IA App release %s.\n\nInstall the command-line client:\n    curl -fsSL https://app.fcsia.com/install.sh | sh\n\nBinaries for macOS, Linux, and Windows are attached with SHA256SUMS.' "$RELEASE_TAG")
+            notes=$(printf '%s\n' \
+              "IA App release $RELEASE_TAG." \
+              '' 'Install the command-line client:' '' \
+              '```sh' 'curl -fsSL https://app.fcsia.com/install.sh | sh' '```' '' \
+              'Binaries for macOS, Linux, and Windows are attached with SHA256SUMS.')
             gh release create "$RELEASE_TAG" \
               --verify-tag \
               --title "IA App $RELEASE_TAG" \

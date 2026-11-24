@@ -2,6 +2,7 @@ import { COMPLETION_SHELLS, completionCandidates, completionScript, completionSh
 import type { CommandSpec } from "../registry/types";
 
 const completion: CommandSpec = {
+  access: "public",
   kind: "command",
   name: "completion",
   summary: "Print a shell completion script",
@@ -29,6 +30,7 @@ const completion: CommandSpec = {
 // Called by the generated scripts. Everything after `--` is data: the words
 // typed so far, with the partial word last.
 const complete: CommandSpec = {
+  access: "public",
   kind: "command",
   name: "__complete",
   summary: "Print completion candidates for a shell",

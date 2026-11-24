@@ -135,7 +135,7 @@ Global options:
 | `--non-interactive` | Never prompt; fail with the missing input instead. |
 | `--no-color` | Turn off color. `NO_COLOR` also works. |
 | `--debug`, `-d` | Print redacted diagnostics on stderr. |
-| `--help`, `-h` | Show help. Works offline and needs no sign-in. |
+| `--help`, `-h` | Show help. Lists only the commands your account can use (see below). |
 | `--version`, `-v` | Print the CLI version. |
 
 Prompts appear only on a terminal. CI, an agent environment, `--json`, and
@@ -146,9 +146,19 @@ fails with `confirmation_required` and prints the exact command to run with
 ## Commands
 
 Run `fcsia --help` for the command tree, `fcsia <command> --help` for one
-command, or `fcsia help --all` for every command. `fcsia help search <words>`
+command, or `fcsia help --all` for every command you can use. `fcsia help search <words>`
 finds commands by what they do. `fcsia <command> --help --json` returns the
 same contract as a document for scripts.
+
+Help is filtered by access. Signed out, it lists only setup and account
+commands and says how to sign in. Signed in, it reads your roles from the
+selected site and lists what your account can use: staff see `users` and
+`audit`, teachers and staff see `reports`, feedback reviewers see `feedback`,
+and admin-only `users` changes appear only for admins. If the site can't be
+reached within a few seconds, help lists every signed-in command and says it
+couldn't check. The server still checks every request; help only decides what
+to show. Asking for one command's help always works and says when your account
+can't use it.
 
 ### Your day
 
@@ -265,6 +275,8 @@ read, so two reviewers cannot silently overwrite each other.
 | `fcsia cli alias set <name> [--dir DIR] [--force]` | Add another name, such as `ia`. |
 | `fcsia cli alias inspect` | Show the saved alias. |
 | `fcsia cli alias remove` | Remove it. |
+| `fcsia cli config edit` | Open the settings file in `$VISUAL` or `$EDITOR` (vi or notepad otherwise). |
+| `fcsia cli config path` | Print where the settings file is. |
 | `fcsia completion <shell>` | Print a completion script for `bash`, `zsh`, or `fish`. |
 | `fcsia upgrade [--check]` | Update the compiled CLI. |
 | `fcsia help [command]...` | Show help. |

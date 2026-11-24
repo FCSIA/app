@@ -21,6 +21,7 @@ export interface FakeRuntimeOptions {
   // null simulates a system without a credential store.
   secrets?: Map<string, string> | null;
   openUrl?: (url: string) => boolean;
+  editFile?: (path: string) => boolean;
   // Answers terminal prompts; default is to decline.
   confirm?: (question: string) => boolean | Promise<boolean>;
   // What standard input holds, for `-` file arguments.
@@ -41,6 +42,7 @@ export function fakeRuntime(options: FakeRuntimeOptions = {}) {
   let stderr = "";
   const requests: Request[] = [];
   const opened: string[] = [];
+  const edited: string[] = [];
   const asked: string[] = [];
   const secrets = options.secrets === undefined ? new Map<string, string>() : options.secrets;
   const runtime: Runtime = {
@@ -81,6 +83,10 @@ export function fakeRuntime(options: FakeRuntimeOptions = {}) {
       opened.push(url);
       return options.openUrl?.(url) ?? true;
     },
+    editFile: async (path) => {
+      edited.push(path);
+      return options.editFile?.(path) ?? true;
+    },
     compiled: options.compiled ?? false,
   };
   return {
@@ -89,6 +95,7 @@ export function fakeRuntime(options: FakeRuntimeOptions = {}) {
     stderr: () => stderr,
     requests,
     opened,
+    edited,
     asked,
     secrets,
   };
@@ -104,6 +111,7 @@ export async function run(argv: string[], options: FakeRuntimeOptions = {}, root
     runtime: fake.runtime,
     requests: fake.requests,
     opened: fake.opened,
+    edited: fake.edited,
     asked: fake.asked,
     secrets: fake.secrets,
   };

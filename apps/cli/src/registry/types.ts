@@ -9,6 +9,15 @@ export type Lifecycle =
   | { label: "deprecated"; replacement: string }
   | { label: "hidden" };
 
+// Who a command is listed for in help. The server still decides every request;
+// this only keeps help to what the reader can use. Unset, a node takes its
+// parent's rule, and the root's is "signedIn".
+export type Access =
+  | "public"
+  | "signedIn"
+  // Any listed role, or (with feedbackReview) feedback review access.
+  | { roles?: readonly string[]; feedbackReview?: boolean };
+
 export interface OptionSpec {
   // Long name in kebab-case, without dashes.
   name: string;
@@ -66,6 +75,7 @@ export interface CommandContext {
 }
 
 export interface CommandSpec {
+  access?: Access;
   kind: "command";
   name: string;
   summary: string;
@@ -83,6 +93,7 @@ export interface CommandSpec {
 }
 
 export interface GroupSpec {
+  access?: Access;
   kind: "group";
   name: string;
   summary: string;

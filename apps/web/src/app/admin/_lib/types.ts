@@ -1,3 +1,5 @@
+import type { FunctionReturnType } from 'convex/server';
+import type { api } from '~/apps/convex/src/_generated/api';
 import type { Id } from '~/apps/convex/src/_generated/dataModel';
 
 export type StudentImportResult = {
@@ -73,6 +75,6 @@ export type AdminUserRecord = {
   avatarUrl?: string;
   isActive?: boolean;
   isDeveloper?: boolean;
-};
+} & Pick<FunctionReturnType<typeof api.users.admin.list>['page'][number], 'roster'>;
 
 export type AdminUserRoleGroup = 'students' | 'teachers' | 'other' | 'student-admin' | 'all';

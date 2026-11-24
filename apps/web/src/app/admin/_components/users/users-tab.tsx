@@ -2,6 +2,8 @@
 
 import { isPathway, PATHWAY_ABBREVIATIONS } from '~/apps/shared/labels';
 import { isPrivilegedAccount } from '~/apps/shared/roles';
+import type { UserFilter } from '~/apps/shared/admin-user-filters';
+import { SCHOOL_TIME_ZONE } from '~/apps/shared/school-time';
 import { displayName } from '~/apps/shared/user-name';
 
 import { forwardRef, useState } from 'react';
@@ -13,6 +15,7 @@ import { DeveloperBadge } from '@/components/ui/developer-badge';
 import {
   useDataTable,
   DataTableColumnHeader,
+  DataTableColumnHeaderLabel,
   DataTableControls,
   DataTablePagination,
   selectColumn,
@@ -41,8 +44,13 @@ import { UserPermissionsPopover } from './user-permissions-popover';
 import { ImpersonateUserAction } from '@/components/auth/impersonate-user-action';
 import { InputCopy } from '@/components/ui/input-copy';
 import { Skeleton } from '@/components/ui/skeleton';
+import { UserFilterBar, UserFilterTools, UserHeaderFilter, UserRosterSearch } from './user-table-filters';
 
 const ROLE_BADGE_LIMIT = 2;
+const rosterDateFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short', day: 'numeric', year: 'numeric', timeZone: SCHOOL_TIME_ZONE,
+});
+const formatRosterDate = (value: string | number) => rosterDateFormatter.format(Number(value));
 
 function PathwayCell({ value }: { value?: string | null }) {
   const label = formatPathwayLabel(value);
@@ -208,72 +216,47 @@ function BulkDeleteUsersAction({
   );
 }
 
-function UserTableSection({
-  title,
-  emptyMessage,
-  users,
-  totalCount,
-  isLoading,
-  search,
-  onSearchChange,
-  userRoleGroup,
-  onUserRoleGroupChange,
-  currentUserId,
-  isSuperAdmin,
-  canManage,
-  canDeleteUsers,
-  onDeactivate,
-  onActivate,
-  onResetPassword,
-  onDeleteUsers,
-  isDeleteUsersPending,
-  isResetPasswordPending,
-  isAssignRolesPending,
-  onAssignRoles,
-  onSetDeveloper,
-  status,
-  canLoadPrevious,
-  pageIndex,
-  pageSize,
-  onPageSizeChange,
-  pendingPageDirection,
-  isSearchPending,
-  loadNextPage,
-  loadPreviousPage,
-}: {
-  title: string;
-  emptyMessage: string;
-  users: AdminUserRecord[];
-  totalCount?: number;
-  isLoading: boolean;
-  search: string;
-  onSearchChange: (value: string) => void;
-  userRoleGroup: AdminUserRoleGroup;
-  onUserRoleGroupChange: (value: AdminUserRoleGroup) => void;
-  currentUserId?: string;
-  isSuperAdmin: boolean;
-  canManage: (user: AdminUserRecord) => boolean;
-  canDeleteUsers: boolean;
-  onDeactivate: (userId: string) => void;
-  onActivate: (userId: string) => void;
-  onResetPassword: (user: AdminUserRecord) => Promise<string | undefined>;
-  onDeleteUsers: (userIds: string[]) => Promise<boolean | undefined>;
-  isDeleteUsersPending: boolean;
-  isResetPasswordPending: boolean;
-  isAssignRolesPending: boolean;
-  onAssignRoles: (payload: { _id: string; roles: string[] }) => void;
-  onSetDeveloper?: (payload: { _id: string; enabled: boolean }) => void;
-  status: 'LoadingFirstPage' | 'CanLoadMore' | 'LoadingMore' | 'Exhausted';
-  canLoadPrevious: boolean;
-  pageIndex: number;
-  pageSize: number;
-  onPageSizeChange: (size: number) => void;
-  pendingPageDirection: 'next' | 'previous' | null;
-  isSearchPending: boolean;
-  loadNextPage: () => void;
-  loadPreviousPage: () => void;
-}) {
+function UserTableSection({ roster }: { roster: ReturnType<typeof useAdminUsers> }) {
+  const {
+    selectedUserRoleMeta: { label: title, emptyMessage },
+    users,
+    totalCount,
+    isUsersLoading: isLoading,
+    search,
+    setSearch: onSearchChange,
+    userRoleGroup,
+    setUserRoleGroup: onUserRoleGroupChange,
+    currentUserId,
+    isSuperAdmin,
+    canManage,
+    canDeleteUsers,
+    onDeactivate,
+    onActivate,
+    onResetPassword,
+    onDeleteUsers,
+    isDeleteUsersPending,
+    isResetPasswordPending,
+    isAssignRolesPending,
+    onAssignRoles,
+    onSetDeveloper,
+    status,
+    canLoadPrevious,
+    pageIndex,
+    pageSize,
+    setPageSize: onPageSizeChange,
+    pendingPageDirection,
+    isSearchPending,
+    loadNextPage,
+    loadPreviousPage,
+  } = roster;
+  // Keep the Fluid table mounted so frozen/visible columns survive paging.
+  const scope = JSON.stringify([roster.selectionScope, userRoleGroup, pageIndex, pageSize]);
+  const [selectionScope, setSelectionScope] = useState(scope);
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(() => new Set());
+  if (selectionScope !== scope) {
+    setSelectionScope(scope);
+    setSelectedUserIds(new Set());
+  }
   const selectedCount = selectedUserIds.size;
 
   const clearSelection = () => setSelectedUserIds(new Set());
@@ -330,22 +313,27 @@ function UserTableSection({
 
   const countLabel = isLoading
     ? '—'
-    : search.trim()
-      ? `${users.length} ${users.length === 1 ? 'match' : 'matches'}`
+    : roster.isFiltered
+      ? status === 'Exhausted' && pageIndex === 0
+        ? `${users.length} ${users.length === 1 ? 'match' : 'matches'}`
+        : `${users.length} shown`
       : typeof totalCount === 'number'
         ? `${users.length.toLocaleString()}/${totalCount.toLocaleString()} ${totalCount === 1 ? 'user' : 'users'}`
         : `${users.length} ${users.length === 1 ? 'user' : 'users'}`;
-  const roleFilter = (
+  const rosterControls = (
+    <>
       <Select value={userRoleGroup} onValueChange={(value) => onUserRoleGroupChange(value as AdminUserRoleGroup)}>
-          <SelectTrigger className="w-44 shrink-0" placeholder="Filter by role" aria-label="Filter users by role" />
-          <SelectContent>
-            <SelectItem index={0} value="students">Students</SelectItem>
-            <SelectItem index={1} value="teachers">Teachers</SelectItem>
-            <SelectItem index={2} value="student-admin">Student Admins</SelectItem>
-            <SelectItem index={3} value="other">Other Roles</SelectItem>
-            <SelectItem index={4} value="all">All Users</SelectItem>
-          </SelectContent>
-        </Select>
+        <SelectTrigger className="min-w-28 shrink-0 sm:min-w-36" placeholder="User group" aria-label="User group" />
+        <SelectContent>
+          <SelectItem index={0} value="students">Students</SelectItem>
+          <SelectItem index={1} value="teachers">Teachers</SelectItem>
+          <SelectItem index={2} value="student-admin">Student Admins</SelectItem>
+          <SelectItem index={3} value="other">Other Roles</SelectItem>
+          <SelectItem index={4} value="all">All Users</SelectItem>
+        </SelectContent>
+      </Select>
+      <UserFilterTools roster={roster} />
+    </>
   );
   const selectionBar = canDeleteUsers && selectedCount > 0 ? (
         <div className="flex flex-wrap items-center gap-2">
@@ -369,6 +357,35 @@ function UserTableSection({
         </div>
   ) : null;
 
+  function rosterColumn(
+    id: string,
+    label: string,
+    accessorFn: (user: AdminUserRecord) => string | number | undefined | null,
+    { field, format = String, minWidth }: {
+      field?: UserFilter;
+      format?: (value: number | string) => string;
+      minWidth?: string;
+    } = {},
+  ): ColumnDef<AdminUserRecord> {
+    return {
+      id,
+      accessorFn,
+      header: ({ column }) => field ? (
+        <DataTableColumnHeader column={column} title={label}>
+          <DataTableColumnHeaderLabel />
+          <DataTableControls><UserHeaderFilter field={field} roster={roster} /></DataTableControls>
+        </DataTableColumnHeader>
+      ) : <DataTableColumnHeader column={column} title={label} />,
+      cell: ({ getValue }) => {
+        const value = getValue<number | string | null | undefined>();
+        if (value == null || value === '') return <span className="text-muted-foreground" aria-label="Not available">—</span>;
+        const text = format(value);
+        return <span className="block truncate tabular-nums" title={text}>{text}</span>;
+      },
+      meta: { label, className: minWidth },
+    };
+  }
+
   const columns: ColumnDef<AdminUserRecord>[] = [
     selectColumn<AdminUserRecord>(),
     {
@@ -381,47 +398,46 @@ function UserTableSection({
           <DeveloperBadge user={row.original} size={13} />
         </span>
       ),
-      meta: { label: 'Name' },
+      meta: { label: 'Name', className: 'min-w-36' },
     },
+    rosterColumn('grade', 'Grade', (user) => user.gradeLevel, { field: 'grade' }),
     {
-      id: 'grade',
-      accessorFn: (user) => user.gradeLevel,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Grade" />,
-      cell: ({ row }) => <span className="text-muted-foreground">{row.original.gradeLevel || '-'}</span>,
-      meta: { label: 'Grade' },
-    },
-    {
-      id: 'major',
-      accessorFn: (user) => user.major,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Major" />,
+      ...rosterColumn('major', 'Major', (user) => user.major, { field: 'major' }),
       cell: ({ row }) => <PathwayCell value={row.original.major} />,
-      meta: { label: 'Major' },
     },
     {
-      id: 'minor',
-      accessorFn: (user) => user.minor,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Minor" />,
+      ...rosterColumn('minor', 'Minor', (user) => user.minor, { field: 'minor' }),
       cell: ({ row }) => <PathwayCell value={row.original.minor} />,
-      meta: { label: 'Minor' },
     },
     {
-      id: 'roles',
-      accessorFn: (user) => (user.roles ?? []).join(', '),
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Roles" />,
+      ...rosterColumn('roles', 'Roles', (user) => (user.roles ?? []).join(', '), { field: 'role' }),
       cell: ({ row }) => <RoleSummary roles={row.original.roles ?? []} />,
-      meta: { label: 'Roles' },
     },
     {
-      id: 'status',
-      accessorFn: (user) => (user.isActive ? 'Active' : 'Inactive'),
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+      ...rosterColumn('status', 'Status', (user) => (user.isActive ? 'Active' : 'Inactive'), { field: 'status' }),
       cell: ({ row }) => (
         <Badge variant="solid" color={row.original.isActive ? 'emerald' : 'red'} size="sm">
           {row.original.isActive ? 'Active' : 'Inactive'}
         </Badge>
       ),
-      meta: { label: 'Status' },
     },
+    rosterColumn('school-id', 'School ID', (user) => user.uniqueId, { minWidth: 'min-w-28' }),
+    rosterColumn('email', 'Email', (user) => user.email, { minWidth: 'min-w-52' }),
+    rosterColumn('flex-credits', 'Flex credits', (user) => user.roster?.flex?.earned, { field: 'flex', minWidth: 'min-w-32' }),
+    rosterColumn('flex-remaining', 'Flex credits left', (user) => user.roster?.flex?.remaining, { minWidth: 'min-w-32' }),
+    rosterColumn('flex-fall', 'Fall Flex credits', (user) => user.roster?.flex?.fall),
+    rosterColumn('flex-spring', 'Spring Flex credits', (user) => user.roster?.flex?.spring),
+    rosterColumn('flex-absences', 'Flex absences', (user) => user.roster?.flex?.absences),
+    rosterColumn('flex-excused', 'Flex excused', (user) => user.roster?.flex?.excused),
+    rosterColumn('flex-tardies', 'Flex tardies', (user) => user.roster?.flex?.tardies),
+    rosterColumn('flex-last', 'Last Flex credit', (user) => user.roster?.flex?.lastCreditAt, { format: formatRosterDate }),
+    rosterColumn('roster-name', 'Roster name', (user) => `${user.firstName} ${user.lastName}`.trim()),
+    rosterColumn('preferred-name', 'Preferred name', (user) => user.preferredName),
+    rosterColumn('password', 'Password', (user) => user.roster && (user.roster.mustResetPassword ? 'Reset required' : 'Ready'), { field: 'password' }),
+    rosterColumn('developer', 'Developer badge', (user) => user.isDeveloper ? 'Enabled' : '—'),
+    rosterColumn('feedback-reviewer', 'Feedback review', (user) => user.roster && (user.roster.canReviewFeedback ? 'Enabled' : '—')),
+    rosterColumn('created', 'Account created', (user) => user.roster?.createdAt, { format: formatRosterDate }),
+    rosterColumn('updated', 'Account updated', (user) => user.roster?.updatedAt, { format: formatRosterDate }),
     {
       id: 'actions',
       header: () => <span className="sr-only">Actions</span>,
@@ -441,6 +457,12 @@ function UserTableSection({
     manualFiltering: true,
     manualPagination: true,
     enableSorting: false,
+    enableColumnFilters: false,
+    initialState: { columnVisibility: {
+      'flex-excused': false, 'flex-tardies': false, 'flex-last': false,
+      'roster-name': false, 'preferred-name': false, password: false, developer: false,
+      'feedback-reviewer': false, created: false, updated: false,
+    } },
     state: {
       globalFilter: search,
       pagination: { pageIndex, pageSize },
@@ -465,17 +487,23 @@ function UserTableSection({
       label={title}
       table={table}
       loading={isLoading}
-      empty={emptyMessage}
-      searchPlaceholder="Search users…"
-      controls={roleFilter}
+      empty={status === 'CanLoadMore' ? 'No matches on this page. More users are available.' : roster.isFiltered ? 'No users match these filters.' : emptyMessage}
+      searchControl={<UserRosterSearch table={table} search={search} error={roster.searchError} onSearchChange={onSearchChange} />}
+      controls={rosterControls}
       count={countLabel}
-      toolbarBelow={selectionBar}
+      toolbarBelow={
+        <>
+          {roster.searchError ? <p id="user-search-error" role="status" className="text-xs text-destructive">{roster.searchError} Showing the last valid search.</p> : null}
+          <UserFilterBar roster={roster} />
+          {selectionBar}
+        </>
+      }
       footer={
         <DataTablePagination
           table={table}
           pageSizes={[10, 20, 30, 50]}
           continuation={{
-            totalRows: search.trim()
+            totalRows: roster.isFiltered
               ? status === 'Exhausted' && pageIndex === 0 && !isSearchPending ? users.length : null
               : totalCount ?? null,
             canAdvance: status === 'CanLoadMore' && !isSearchPending,
@@ -493,7 +521,7 @@ function UserTableSection({
             {[0, 1, 2, 3].map((index) => <Skeleton key={index} className="h-16 w-full" />)}
           </div>
         ) : users.length === 0 ? (
-          <AdminNotice message={emptyMessage} />
+          <AdminNotice message={status === 'CanLoadMore' ? 'No matches on this page. More users are available.' : roster.isFiltered ? 'No users match these filters.' : emptyMessage} />
         ) : (
           <CardGroup border="none" corners="compact">
             {users.map((user) => (
@@ -511,7 +539,7 @@ function UserTableSection({
                     </span>
                   </CardTitle>
                   <CardDescription className="truncate">
-                    {[user.gradeLevel ? `Grade ${user.gradeLevel}` : null, (user.roles ?? []).map(formatRoleLabel).join(', ')]
+                    {[user.gradeLevel ? `Grade ${user.gradeLevel}` : null, (user.roles ?? []).map(formatRoleLabel).join(', '), user.roster?.flex ? `${user.roster.flex.earned} Flex credits` : null]
                       .filter(Boolean)
                       .join(' · ')}
                   </CardDescription>
@@ -538,40 +566,5 @@ export function AdminUsersTab() {
 function AdminUsersTabContent({ initialSearch, initialUserId }: { initialSearch: string; initialUserId: string }) {
   const users = useAdminUsers(initialSearch, initialUserId);
 
-  return (
-    <UserTableSection
-      key={`${users.userRoleGroup}:${users.pageIndex}:${users.pageSize}`}
-      title={users.selectedUserRoleMeta.label}
-      emptyMessage={users.selectedUserRoleMeta.emptyMessage}
-      users={users.users}
-      totalCount={users.totalCount}
-      isLoading={users.isUsersLoading}
-      search={users.search}
-      onSearchChange={users.setSearch}
-      userRoleGroup={users.userRoleGroup}
-      onUserRoleGroupChange={users.setUserRoleGroup}
-      currentUserId={users.currentUserId}
-      isSuperAdmin={users.isSuperAdmin}
-      canManage={users.canManage}
-      canDeleteUsers={users.canDeleteUsers}
-      onDeactivate={users.onDeactivate}
-      onActivate={users.onActivate}
-      onResetPassword={users.onResetPassword}
-      onDeleteUsers={users.onDeleteUsers}
-      isDeleteUsersPending={users.isDeleteUsersPending}
-      isResetPasswordPending={users.isResetPasswordPending}
-      isAssignRolesPending={users.isAssignRolesPending}
-      onSetDeveloper={users.onSetDeveloper}
-      onAssignRoles={users.onAssignRoles}
-      status={users.status}
-      canLoadPrevious={users.canLoadPrevious}
-      pageIndex={users.pageIndex}
-      pageSize={users.pageSize}
-      onPageSizeChange={users.setPageSize}
-      pendingPageDirection={users.pendingPageDirection}
-      isSearchPending={users.isSearchPending}
-      loadNextPage={users.loadNextPage}
-      loadPreviousPage={users.loadPreviousPage}
-    />
-  );
+  return <UserTableSection roster={users} />;
 }

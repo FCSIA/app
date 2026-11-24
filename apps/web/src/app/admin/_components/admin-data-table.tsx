@@ -28,6 +28,7 @@ export function AdminDataTable<T>({
   loading,
   empty,
   searchPlaceholder,
+  searchControl,
   controls,
   count,
   toolbarBelow,
@@ -40,6 +41,7 @@ export function AdminDataTable<T>({
   loading?: boolean;
   empty?: string;
   searchPlaceholder?: string;
+  searchControl?: ReactNode;
   /** Tab-specific controls placed between search and column options. */
   controls?: ReactNode;
   count?: ReactNode;
@@ -62,7 +64,7 @@ export function AdminDataTable<T>({
   const toolbar = (
     <>
       <SearchToolbarRow className="flex-row flex-wrap items-center gap-2">
-        <DataTableSearch table={table} placeholder={searchPlaceholder} collapsible={false} />
+        {searchControl ?? <DataTableSearch table={table} placeholder={searchPlaceholder} collapsible={false} />}
         {/* Trailing controls sit at the row's end, as in the audit log. */}
         <div className="ml-auto flex shrink-0 items-center gap-2">
           {controls}

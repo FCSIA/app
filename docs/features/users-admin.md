@@ -22,6 +22,17 @@ tabs and user-table columns scroll horizontally within their own areas. Filters
 and selection controls wrap to the available width; pagination stays outside
 the scrolling records so it remains reachable.
 
+The Users toolbar has searchable filters for grade, pathways, role, account
+status, password reset, and Flex Friday progress. Select multiple values in
+one filter to match any of them. Different filters apply together. Search by
+name, school ID, or email, or open Search help for field-specific queries.
+Filters and roster scope are shareable through the URL.
+
+Use **Columns** to reveal attendance and account fields, and the column header
+menu to freeze columns while scrolling. Flex Friday totals cover the current
+school year and use the same credit rules as the student dashboard. Staff
+accounts have no Flex Friday totals.
+
 ## Profile settings
 
 `/profile` uses one identity/navigation card beside unframed account, notification,

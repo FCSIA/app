@@ -37,6 +37,9 @@ export interface Runtime {
   secrets: SecretStore | null;
   // Opens a URL in the default browser. Resolves false when it can't.
   openUrl(url: string): Promise<boolean>;
+  // Opens a file in the person's editor and waits for it to close. Resolves
+  // false when no editor could be started or it exited with an error.
+  editFile(path: string): Promise<boolean>;
   // True when running as a `bun build --compile` executable rather than from
   // source through `bun src/main.ts`.
   compiled: boolean;
@@ -99,6 +102,25 @@ function openUrl(url: string) {
   });
 }
 
+// $VISUAL, then $EDITOR, then the platform's usual fallback. The editor value
+// may carry flags (`code --wait`), so it runs through the shell with the path
+// passed as a separate, quoted argument.
+function editFile(path: string) {
+  const editor = process.env.VISUAL || process.env.EDITOR || (process.platform === "win32" ? "notepad" : "vi");
+  return new Promise<boolean>((resolve) => {
+    try {
+      const child =
+        process.platform === "win32"
+          ? spawn("cmd", ["/c", editor, path], { stdio: "inherit" })
+          : spawn("/bin/sh", ["-c", `${editor} "$1"`, "sh", path], { stdio: "inherit" });
+      child.once("error", () => resolve(false));
+      child.once("exit", (code) => resolve(code === 0));
+    } catch {
+      resolve(false);
+    }
+  });
+}
+
 async function readStdin() {
   const chunks: Buffer[] = [];
   for await (const chunk of process.stdin) chunks.push(Buffer.from(chunk));
@@ -150,6 +172,7 @@ export function processRuntime(signal: AbortSignal = new AbortController().signa
     // CI where a keyring prompt would hang.
     secrets: process.env.FCSIA_CREDENTIAL_STORE === "file" ? null : systemSecrets(),
     openUrl,
+    editFile,
     compiled: isCompiledEntry(process.argv[1]),
   };
 }

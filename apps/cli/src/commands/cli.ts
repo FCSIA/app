@@ -1,6 +1,7 @@
 import { aliasNameProblem, applyAlias, planAlias, removeAliasLink } from "../core/alias";
-import { configDirectory, readConfig, updateConfig } from "../core/config";
-import { usageError } from "../core/errors";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { configDirectory, configPath, readConfig, updateConfig } from "../core/config";
+import { CliError, usageError } from "../core/errors";
 import type { CommandContext, CommandSpec, GroupSpec } from "../registry/types";
 
 function settingsDirectory(context: CommandContext) {
@@ -159,7 +160,57 @@ const inspectAlias: CommandSpec = {
   },
 };
 
+const showConfigPath: CommandSpec = {
+  kind: "command",
+  name: "path",
+  summary: "Print where this CLI keeps its settings",
+  json: true,
+  examples: [{ description: "Show the settings file", argv: ["cli", "config", "path"] }],
+  run(context) {
+    const path = configPath(settingsDirectory(context));
+    if (context.globals.json) {
+      context.out.document({ path, exists: existsSync(path) });
+      return;
+    }
+    context.out.print(path);
+  },
+};
+
+const editConfig: CommandSpec = {
+  kind: "command",
+  name: "edit",
+  summary: "Open this CLI's settings in your editor",
+  examples: [{ description: "Edit the settings file", argv: ["cli", "config", "edit"] }],
+  notes: [
+    "Uses $VISUAL, then $EDITOR, then vi (notepad on Windows).",
+    "The file is checked when the editor closes; a broken file is reported, never reset.",
+  ],
+  async run(context) {
+    const directory = settingsDirectory(context);
+    const path = configPath(directory);
+    if (!context.modes.interactive) {
+      throw new CliError("missing_input", "editor_needs_terminal", `Editing needs a terminal. The settings file is ${path}.`, {
+        data: { path },
+      });
+    }
+    if (!existsSync(path)) {
+      mkdirSync(directory, { recursive: true });
+      writeFileSync(path, "{}\n", { mode: 0o600 });
+    }
+    const closedCleanly = await context.runtime.editFile(path);
+    if (!closedCleanly) {
+      throw new CliError("platform", "editor_failed", "The editor didn't start or exited with an error.", {
+        data: { path },
+      });
+    }
+    // Reads it back so a typo is reported now rather than on the next command.
+    readConfig(directory);
+    context.out.success("Saved", path);
+  },
+};
+
 export const cliGroup: GroupSpec = {
+  access: "public",
   kind: "group",
   name: "cli",
   summary: "Manage this CLI",
@@ -170,6 +221,12 @@ export const cliGroup: GroupSpec = {
       name: "alias",
       summary: "Give this command another name, such as ia",
       children: [setAlias, removeAlias, inspectAlias],
+    },
+    {
+      kind: "group",
+      name: "config",
+      summary: "See or edit this CLI's settings file",
+      children: [editConfig, showConfigPath],
     },
   ],
 };

@@ -2,6 +2,437 @@
   "channel": "alpha",
   "releases": [
     {
+      "version": "0.8.48",
+      "date": "2026-11-24",
+      "commit": "1e6878d1",
+      "changes": [
+        {
+          "category": "Added",
+          "scope": "admin",
+          "summary": "Add roster columns and audit-style filters.",
+          "commit": "d92b9b20"
+        },
+        {
+          "category": "Improved",
+          "scope": "admin",
+          "summary": "Use role filters for the full user roster.",
+          "commit": "cbcffb3d"
+        },
+        {
+          "category": "Improved",
+          "scope": "admin",
+          "summary": "Stabilize roster headers and search transitions.",
+          "commit": "26a26c69"
+        },
+        {
+          "category": "Improved",
+          "scope": "admin",
+          "summary": "Provide filtered roster and Flex Friday totals.",
+          "commit": "0c12c1ca"
+        },
+        {
+          "category": "Improved",
+          "scope": "audit",
+          "summary": "Give actions and records separate columns.",
+          "commit": "e607cfc7"
+        },
+        {
+          "category": "Improved",
+          "scope": "audit",
+          "summary": "Show a compact activity timeline and workshop shortcut.",
+          "commit": "742513b7"
+        },
+        {
+          "category": "Improved",
+          "scope": "audit",
+          "summary": "Recover older signups from scoped cancellations.",
+          "commit": "dfdb10ec"
+        },
+        {
+          "category": "Improved",
+          "scope": "audit",
+          "summary": "Scope Flex Friday events by workshop.",
+          "commit": "b606d23b"
+        },
+        {
+          "category": "Improved",
+          "scope": "audit",
+          "summary": "Use the theme foreground for detail values.",
+          "commit": "4f71f448"
+        },
+        {
+          "category": "Improved",
+          "scope": "avatars",
+          "summary": "Your account avatar stays steady on hover, and audit avatars stay fully visible.",
+          "commit": "10b10daf"
+        },
+        {
+          "category": "Improved",
+          "scope": "audit",
+          "summary": "Remove IDs beside actor names.",
+          "commit": "e921d8a2"
+        },
+        {
+          "category": "Improved",
+          "scope": "audit",
+          "summary": "Let Fluid size the record column.",
+          "commit": "c543ab52"
+        },
+        {
+          "category": "Improved",
+          "scope": "users",
+          "summary": "Share the admin pagination controls.",
+          "commit": "122e09d4"
+        },
+        {
+          "category": "Improved",
+          "scope": "audit",
+          "summary": "Load older activity from the pagination arrow.",
+          "commit": "1acd6179"
+        },
+        {
+          "category": "Improved",
+          "scope": "audit",
+          "summary": "Give expanded details a quieter text hierarchy.",
+          "commit": "8a14ea10"
+        },
+        {
+          "category": "Improved",
+          "scope": "audit",
+          "summary": "Ease the stored JSON disclosure open and closed.",
+          "commit": "1e60a441"
+        },
+        {
+          "category": "Improved",
+          "scope": "code-block",
+          "summary": "Animate copy feedback in place.",
+          "commit": "f0c1e02a"
+        },
+        {
+          "category": "Improved",
+          "scope": "admin",
+          "summary": "Use Fluid sticky headers and tighten pagination spacing.",
+          "commit": "e314c6d5"
+        },
+        {
+          "category": "Improved",
+          "scope": "admin",
+          "summary": "Pin table pagination and hint at hidden rows.",
+          "commit": "7377fb36"
+        },
+        {
+          "category": "Improved",
+          "scope": "palette",
+          "summary": "Keep semantic colors readable across themes.",
+          "commit": "434d3185"
+        },
+        {
+          "category": "Improved",
+          "scope": "audit",
+          "summary": "Match the selected filter to button corners.",
+          "commit": "e9c2660b"
+        },
+        {
+          "category": "Improved",
+          "scope": "audit",
+          "summary": "Balance column widths at the existing row density.",
+          "commit": "ce9b0b96"
+        },
+        {
+          "category": "Improved",
+          "scope": "audit",
+          "summary": "Keep expanded events on the table surface.",
+          "commit": "b1b26899"
+        },
+        {
+          "category": "Improved",
+          "scope": "audit",
+          "summary": "Give filters and daily groups more room.",
+          "commit": "83f85320"
+        },
+        {
+          "category": "Improved",
+          "scope": "audit",
+          "summary": "Match the filter search strip to its menu.",
+          "commit": "64151983"
+        },
+        {
+          "category": "Improved",
+          "scope": "badge",
+          "summary": "Keep labels distinct on hovered and selected rows.",
+          "commit": "0d8fc035"
+        },
+        {
+          "category": "Improved",
+          "scope": "audit",
+          "summary": "Keep expanded details in view at narrow widths.",
+          "commit": "4c36e098"
+        },
+        {
+          "category": "Improved",
+          "scope": "admin",
+          "summary": "Size pinned actions to their controls.",
+          "commit": "81503c57"
+        },
+        {
+          "category": "Improved",
+          "scope": "admin",
+          "summary": "Keep feedback actions visible and allow browser swipes.",
+          "commit": "7f3b8c14"
+        },
+        {
+          "category": "Improved",
+          "scope": "audit",
+          "summary": "Show and copy stored events on expansion.",
+          "commit": "11e667f9"
+        },
+        {
+          "category": "Improved",
+          "scope": "data-table",
+          "summary": "Match the admin surface and restore history gestures.",
+          "commit": "07117804"
+        },
+        {
+          "category": "Improved",
+          "scope": "agents",
+          "summary": "Rename `.impeccable.md` to `agent-notes/design-context.md`.",
+          "commit": "9f04a783"
+        },
+        {
+          "category": "Improved",
+          "scope": "tooling",
+          "summary": "Remove stray root scripts.",
+          "commit": "53a64167"
+        },
+        {
+          "category": "Improved",
+          "scope": "admin",
+          "summary": "Admin tables open a column menu from the header and size columns to their content.",
+          "commit": "10db6775"
+        },
+        {
+          "category": "Improved",
+          "scope": "ui",
+          "summary": "Menus, tooltips, tabs and lists pick up the latest refinements from the UI library.",
+          "commit": "2974e89d"
+        },
+        {
+          "category": "Improved",
+          "summary": "Take Fluid 1f716642 for primitives IA never changed.",
+          "commit": "d924ccf8"
+        },
+        {
+          "category": "Improved",
+          "summary": "Draw the top-edge highlight from the dark theme class.",
+          "commit": "9ab1d346"
+        },
+        {
+          "category": "Improved",
+          "summary": "Animate DataTable row detail without a stray highlight.",
+          "commit": "fdc895a2"
+        },
+        {
+          "category": "Improved",
+          "scope": "ui",
+          "summary": "Profile pictures and names react when you point at them.",
+          "commit": "ee5145bd"
+        },
+        {
+          "category": "Improved",
+          "summary": "Add a raised CodeBlock primitive.",
+          "commit": "945e5a4e"
+        },
+        {
+          "category": "Improved",
+          "summary": "Add meaning tones and a raised surface to the theme.",
+          "commit": "b0763277"
+        },
+        {
+          "category": "Improved",
+          "summary": "Drop the tint behind DataTable row detail.",
+          "commit": "3e663a08"
+        },
+        {
+          "category": "Improved",
+          "summary": "Let DataTable group rows and open detail beneath one.",
+          "commit": "b589541e"
+        },
+        {
+          "category": "Improved",
+          "scope": "ui",
+          "summary": "Buttons and fields have a subtle highlight along their top edge.",
+          "commit": "dc5c412a"
+        },
+        {
+          "category": "Improved",
+          "scope": "audit",
+          "summary": "Classify every action by what it did.",
+          "commit": "e81a411a"
+        },
+        {
+          "category": "Improved",
+          "scope": "audit",
+          "summary": "Name feedback reports by their issue number.",
+          "commit": "9d04f012"
+        },
+        {
+          "category": "Improved",
+          "scope": "audit",
+          "summary": "Record command-line provenance on events.",
+          "commit": "5817c7c2"
+        },
+        {
+          "category": "Improved",
+          "scope": "convex",
+          "summary": "Drop a removed module from generated API types.",
+          "commit": "7ae0cd0e"
+        },
+        {
+          "category": "Improved",
+          "scope": "admin",
+          "summary": "Align table toolbars with the audit log.",
+          "commit": "78145b11"
+        },
+        {
+          "category": "Improved",
+          "summary": "Keep upstream device approval and workshop meter compiling.",
+          "commit": "4ff4371b"
+        },
+        {
+          "category": "Improved",
+          "summary": "Admin tables keep filters open while you select options, restore search suggestions, and show report outcomes directly.",
+          "commit": "446190e9"
+        },
+        {
+          "category": "Improved",
+          "summary": "The app uses Work Sans consistently again, including tables and menus.",
+          "commit": "8cd2fd87"
+        },
+        {
+          "category": "Improved",
+          "scope": "admin",
+          "summary": "Admin tables use Fluid search and column controls while keeping contextual audit filters.",
+          "commit": "c866d912"
+        },
+        {
+          "category": "Improved",
+          "summary": "Tables and menus now share consistent hover and selection shapes.",
+          "commit": "6789f1a9"
+        },
+        {
+          "category": "Improved",
+          "summary": "Restored the original table controls before rebuilding the admin tables with Fluid DataTable.",
+          "commit": "cb6c3912"
+        },
+        {
+          "category": "Improved",
+          "summary": "Audit log action buttons no longer add extra height to each row.",
+          "commit": "7a83ec36"
+        },
+        {
+          "category": "Improved",
+          "summary": "Updated shared table and form controls while preserving existing admin actions and accessibility features.",
+          "commit": "28b8e6cb"
+        },
+        {
+          "category": "Improved",
+          "summary": "Compare your schedule picture beside recognized classes on desktop, and see workshop availability and individual attendance actions more clearly.",
+          "commit": "0bb70170"
+        },
+        {
+          "category": "Improved",
+          "scope": "clubs",
+          "summary": "Find unread club channels, review volunteer submission history, repair imports, and see why channel alerts are paused.",
+          "commit": "8be9b7ed"
+        },
+        {
+          "category": "Improved",
+          "scope": "wrapped",
+          "summary": "Wrapped can show daily message activity and highlights from dates recorded in your snapshot.",
+          "commit": "6abd64a6"
+        },
+        {
+          "category": "Improved",
+          "summary": "Date controls reset with forms, and file previews clean up abandoned work.",
+          "commit": "d54ce6b2"
+        },
+        {
+          "category": "Improved",
+          "scope": "wrapped",
+          "summary": "IA Wrapped highlights your recorded participation without repeating empty chat statistics.",
+          "commit": "bfabe497"
+        },
+        {
+          "category": "Improved",
+          "scope": "flex",
+          "summary": "Workshop registration shows loading on the workshop you selected, with steadier capacity counts.",
+          "commit": "0e34394b"
+        },
+        {
+          "category": "Improved",
+          "scope": "schedule",
+          "summary": "Compare recognized classes with your original schedule picture before applying an import.",
+          "commit": "5071a35d"
+        },
+        {
+          "category": "Improved",
+          "scope": "clubs",
+          "summary": "Channel files and media can load older shared content and jump to its original conversation.",
+          "commit": "dfc9a02f"
+        },
+        {
+          "category": "Improved",
+          "summary": "Disabled date fields stay out of form submissions, and replaced PDF previews stop their background work.",
+          "commit": "31898b7f"
+        },
+        {
+          "category": "Improved",
+          "summary": "Remove unused component dependencies.",
+          "commit": "ef962853"
+        },
+        {
+          "category": "Security",
+          "summary": "Added security protections against malicious file patterns.",
+          "commit": "5976ca23"
+        },
+        {
+          "category": "Internal",
+          "summary": "Record the Fluid 1f716642 sync decisions.",
+          "commit": "04a517c9"
+        },
+        {
+          "category": "Internal",
+          "summary": "Refresh lockfile on current main.",
+          "commit": "15707cde"
+        },
+        {
+          "category": "Internal",
+          "summary": "Record working full-stack preview.",
+          "commit": "a6dca0b0"
+        },
+        {
+          "category": "Internal",
+          "summary": "Record Fluid preview backend limitation.",
+          "commit": "72cd83d2"
+        },
+        {
+          "category": "Internal",
+          "summary": "Package Fluid patches and record UI validation.",
+          "commit": "45ad111c"
+        },
+        {
+          "category": "Internal",
+          "summary": "Record UI reliability fixes and remaining proposals.",
+          "commit": "c32f32e1"
+        },
+        {
+          "category": "Internal",
+          "summary": "Inventory UI libraries and contribution opportunities.",
+          "commit": "0e4a34fb"
+        }
+      ]
+    },
+    {
       "version": "0.8.47",
       "date": "2026-11-17",
       "commit": "edd1bc7c",

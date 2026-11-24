@@ -12,6 +12,95 @@ capability bumps the minor version, and a fix-only release bumps the patch.
 Entries marked **Internal** are tooling, dependency, and documentation work. They
 are recorded here for maintainers and hidden from the in-app devlog.
 
+## v0.8.48 — 2026-11-24 (alpha)
+
+### Added
+
+- **admin** — Add roster columns and audit-style filters. ([`d92b9b20`](https://github.com/FCSIA/ia-app/commit/d92b9b20))
+
+### Improved
+
+- **admin** — Use role filters for the full user roster. ([`cbcffb3d`](https://github.com/FCSIA/ia-app/commit/cbcffb3d))
+- **admin** — Stabilize roster headers and search transitions. ([`26a26c69`](https://github.com/FCSIA/ia-app/commit/26a26c69))
+- **admin** — Provide filtered roster and Flex Friday totals. ([`0c12c1ca`](https://github.com/FCSIA/ia-app/commit/0c12c1ca))
+- **audit** — Give actions and records separate columns. ([`e607cfc7`](https://github.com/FCSIA/ia-app/commit/e607cfc7))
+- **audit** — Show a compact activity timeline and workshop shortcut. ([`742513b7`](https://github.com/FCSIA/ia-app/commit/742513b7))
+- **audit** — Recover older signups from scoped cancellations. ([`dfdb10ec`](https://github.com/FCSIA/ia-app/commit/dfdb10ec))
+- **audit** — Scope Flex Friday events by workshop. ([`b606d23b`](https://github.com/FCSIA/ia-app/commit/b606d23b))
+- **audit** — Use the theme foreground for detail values. ([`4f71f448`](https://github.com/FCSIA/ia-app/commit/4f71f448))
+- **avatars** — Your account avatar stays steady on hover, and audit avatars stay fully visible. ([`10b10daf`](https://github.com/FCSIA/ia-app/commit/10b10daf))
+- **audit** — Remove IDs beside actor names. ([`e921d8a2`](https://github.com/FCSIA/ia-app/commit/e921d8a2))
+- **audit** — Let Fluid size the record column. ([`c543ab52`](https://github.com/FCSIA/ia-app/commit/c543ab52))
+- **users** — Share the admin pagination controls. ([`122e09d4`](https://github.com/FCSIA/ia-app/commit/122e09d4))
+- **audit** — Load older activity from the pagination arrow. ([`1acd6179`](https://github.com/FCSIA/ia-app/commit/1acd6179))
+- **audit** — Give expanded details a quieter text hierarchy. ([`8a14ea10`](https://github.com/FCSIA/ia-app/commit/8a14ea10))
+- **audit** — Ease the stored JSON disclosure open and closed. ([`1e60a441`](https://github.com/FCSIA/ia-app/commit/1e60a441))
+- **code-block** — Animate copy feedback in place. ([`f0c1e02a`](https://github.com/FCSIA/ia-app/commit/f0c1e02a))
+- **admin** — Use Fluid sticky headers and tighten pagination spacing. ([`e314c6d5`](https://github.com/FCSIA/ia-app/commit/e314c6d5))
+- **admin** — Pin table pagination and hint at hidden rows. ([`7377fb36`](https://github.com/FCSIA/ia-app/commit/7377fb36))
+- **palette** — Keep semantic colors readable across themes. ([`434d3185`](https://github.com/FCSIA/ia-app/commit/434d3185))
+- **audit** — Match the selected filter to button corners. ([`e9c2660b`](https://github.com/FCSIA/ia-app/commit/e9c2660b))
+- **audit** — Balance column widths at the existing row density. ([`ce9b0b96`](https://github.com/FCSIA/ia-app/commit/ce9b0b96))
+- **audit** — Keep expanded events on the table surface. ([`b1b26899`](https://github.com/FCSIA/ia-app/commit/b1b26899))
+- **audit** — Give filters and daily groups more room. ([`83f85320`](https://github.com/FCSIA/ia-app/commit/83f85320))
+- **audit** — Match the filter search strip to its menu. ([`64151983`](https://github.com/FCSIA/ia-app/commit/64151983))
+- **badge** — Keep labels distinct on hovered and selected rows. ([`0d8fc035`](https://github.com/FCSIA/ia-app/commit/0d8fc035))
+- **audit** — Keep expanded details in view at narrow widths. ([`4c36e098`](https://github.com/FCSIA/ia-app/commit/4c36e098))
+- **admin** — Size pinned actions to their controls. ([`81503c57`](https://github.com/FCSIA/ia-app/commit/81503c57))
+- **admin** — Keep feedback actions visible and allow browser swipes. ([`7f3b8c14`](https://github.com/FCSIA/ia-app/commit/7f3b8c14))
+- **audit** — Show and copy stored events on expansion. ([`11e667f9`](https://github.com/FCSIA/ia-app/commit/11e667f9))
+- **data-table** — Match the admin surface and restore history gestures. ([`07117804`](https://github.com/FCSIA/ia-app/commit/07117804))
+- **agents** — Rename `.impeccable.md` to `agent-notes/design-context.md`. ([`9f04a783`](https://github.com/FCSIA/ia-app/commit/9f04a783))
+- **tooling** — Remove stray root scripts. ([`53a64167`](https://github.com/FCSIA/ia-app/commit/53a64167))
+- **admin** — Admin tables open a column menu from the header and size columns to their content. ([`10db6775`](https://github.com/FCSIA/ia-app/commit/10db6775))
+- **ui** — Menus, tooltips, tabs and lists pick up the latest refinements from the UI library. ([`2974e89d`](https://github.com/FCSIA/ia-app/commit/2974e89d))
+- Take Fluid 1f716642 for primitives IA never changed. ([`d924ccf8`](https://github.com/FCSIA/ia-app/commit/d924ccf8))
+- Draw the top-edge highlight from the dark theme class. ([`9ab1d346`](https://github.com/FCSIA/ia-app/commit/9ab1d346))
+- Animate DataTable row detail without a stray highlight. ([`fdc895a2`](https://github.com/FCSIA/ia-app/commit/fdc895a2))
+- **ui** — Profile pictures and names react when you point at them. ([`ee5145bd`](https://github.com/FCSIA/ia-app/commit/ee5145bd))
+- Add a raised CodeBlock primitive. ([`945e5a4e`](https://github.com/FCSIA/ia-app/commit/945e5a4e))
+- Add meaning tones and a raised surface to the theme. ([`b0763277`](https://github.com/FCSIA/ia-app/commit/b0763277))
+- Drop the tint behind DataTable row detail. ([`3e663a08`](https://github.com/FCSIA/ia-app/commit/3e663a08))
+- Let DataTable group rows and open detail beneath one. ([`b589541e`](https://github.com/FCSIA/ia-app/commit/b589541e))
+- **ui** — Buttons and fields have a subtle highlight along their top edge. ([`dc5c412a`](https://github.com/FCSIA/ia-app/commit/dc5c412a))
+- **audit** — Classify every action by what it did. ([`e81a411a`](https://github.com/FCSIA/ia-app/commit/e81a411a))
+- **audit** — Name feedback reports by their issue number. ([`9d04f012`](https://github.com/FCSIA/ia-app/commit/9d04f012))
+- **audit** — Record command-line provenance on events. ([`5817c7c2`](https://github.com/FCSIA/ia-app/commit/5817c7c2))
+- **convex** — Drop a removed module from generated API types. ([`7ae0cd0e`](https://github.com/FCSIA/ia-app/commit/7ae0cd0e))
+- **admin** — Align table toolbars with the audit log. ([`78145b11`](https://github.com/FCSIA/ia-app/commit/78145b11))
+- Keep upstream device approval and workshop meter compiling. ([`4ff4371b`](https://github.com/FCSIA/ia-app/commit/4ff4371b))
+- Admin tables keep filters open while you select options, restore search suggestions, and show report outcomes directly. ([`446190e9`](https://github.com/FCSIA/ia-app/commit/446190e9))
+- The app uses Work Sans consistently again, including tables and menus. ([`8cd2fd87`](https://github.com/FCSIA/ia-app/commit/8cd2fd87))
+- **admin** — Admin tables use Fluid search and column controls while keeping contextual audit filters. ([`c866d912`](https://github.com/FCSIA/ia-app/commit/c866d912))
+- Tables and menus now share consistent hover and selection shapes. ([`6789f1a9`](https://github.com/FCSIA/ia-app/commit/6789f1a9))
+- Restored the original table controls before rebuilding the admin tables with Fluid DataTable. ([`cb6c3912`](https://github.com/FCSIA/ia-app/commit/cb6c3912))
+- Audit log action buttons no longer add extra height to each row. ([`7a83ec36`](https://github.com/FCSIA/ia-app/commit/7a83ec36))
+- Updated shared table and form controls while preserving existing admin actions and accessibility features. ([`28b8e6cb`](https://github.com/FCSIA/ia-app/commit/28b8e6cb))
+- Compare your schedule picture beside recognized classes on desktop, and see workshop availability and individual attendance actions more clearly. ([`0bb70170`](https://github.com/FCSIA/ia-app/commit/0bb70170))
+- **clubs** — Find unread club channels, review volunteer submission history, repair imports, and see why channel alerts are paused. ([`8be9b7ed`](https://github.com/FCSIA/ia-app/commit/8be9b7ed))
+- **wrapped** — Wrapped can show daily message activity and highlights from dates recorded in your snapshot. ([`6abd64a6`](https://github.com/FCSIA/ia-app/commit/6abd64a6))
+- Date controls reset with forms, and file previews clean up abandoned work. ([`d54ce6b2`](https://github.com/FCSIA/ia-app/commit/d54ce6b2))
+- **wrapped** — IA Wrapped highlights your recorded participation without repeating empty chat statistics. ([`bfabe497`](https://github.com/FCSIA/ia-app/commit/bfabe497))
+- **flex** — Workshop registration shows loading on the workshop you selected, with steadier capacity counts. ([`0e34394b`](https://github.com/FCSIA/ia-app/commit/0e34394b))
+- **schedule** — Compare recognized classes with your original schedule picture before applying an import. ([`5071a35d`](https://github.com/FCSIA/ia-app/commit/5071a35d))
+- **clubs** — Channel files and media can load older shared content and jump to its original conversation. ([`dfc9a02f`](https://github.com/FCSIA/ia-app/commit/dfc9a02f))
+- Disabled date fields stay out of form submissions, and replaced PDF previews stop their background work. ([`31898b7f`](https://github.com/FCSIA/ia-app/commit/31898b7f))
+- Remove unused component dependencies. ([`ef962853`](https://github.com/FCSIA/ia-app/commit/ef962853))
+
+### Security
+
+- Added security protections against malicious file patterns. ([`5976ca23`](https://github.com/FCSIA/ia-app/commit/5976ca23))
+
+### Internal
+
+- Record the Fluid 1f716642 sync decisions. ([`04a517c9`](https://github.com/FCSIA/ia-app/commit/04a517c9))
+- Refresh lockfile on current main. ([`15707cde`](https://github.com/FCSIA/ia-app/commit/15707cde))
+- Record working full-stack preview. ([`a6dca0b0`](https://github.com/FCSIA/ia-app/commit/a6dca0b0))
+- Record Fluid preview backend limitation. ([`72cd83d2`](https://github.com/FCSIA/ia-app/commit/72cd83d2))
+- Package Fluid patches and record UI validation. ([`45ad111c`](https://github.com/FCSIA/ia-app/commit/45ad111c))
+- Record UI reliability fixes and remaining proposals. ([`c32f32e1`](https://github.com/FCSIA/ia-app/commit/c32f32e1))
+- Inventory UI libraries and contribution opportunities. ([`0e4a34fb`](https://github.com/FCSIA/ia-app/commit/0e4a34fb))
+
 ## v0.8.47 — 2026-11-17 (alpha)
 
 ### Added

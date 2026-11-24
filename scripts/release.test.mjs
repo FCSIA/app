@@ -95,7 +95,7 @@ else process.stdout.write("https://github.com/example/fixture/pull/1\\n");
   git("tag", "v0.1.0");
   writeFileSync(path.join(checkout, "feature.txt"), "New announcement previews\n");
   git("add", ".");
-  git("commit", "-m", "announcements: add previews", "-m", "Devlog: Show {clearer} previews.");
+  git("commit", "-m", "announcements: add previews", "-m", "Devlog: Show {clearer} previews.\nDevlog-category: Changed");
   git("init", "--bare", "--initial-branch=main", origin);
   git("remote", "add", "origin", origin);
   git("push", "--set-upstream", "origin", "main");
@@ -262,6 +262,7 @@ describe("release CLI", () => {
     expect(release.version).toBe("0.1.1");
     expect(release.title).toBe("Release {preview}");
     expect(release.summary).toBe("Notes with } and { braces");
+    expect(release.changes[0].category).toBe("Improved");
     expect(release.changes[0].summary).toBe("Show {clearer} previews.");
     expect(JSON.parse(node("scripts/devlog.mjs", "cut", "--dry-run", ...flags, "--json"))).toEqual(release);
     expect(git("status", "--porcelain")).toBe("");

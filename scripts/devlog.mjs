@@ -339,9 +339,11 @@ function toChange(commit) {
   if (trailers["devlog-scope"]) scope = trailers["devlog-scope"];
   if (trailers["devlog-category"]) {
     const override = trailers["devlog-category"];
-    const resolved = CHANGE_CATEGORIES.find(
-      (candidate) => candidate.toLowerCase() === override.toLowerCase(),
-    );
+    const normalized = override.toLowerCase();
+    // Published commits used the Keep a Changelog label for improvements.
+    const resolved = normalized === "changed"
+      ? "Improved"
+      : CHANGE_CATEGORIES.find((candidate) => candidate.toLowerCase() === normalized);
     if (!resolved) fail(`commit ${commit.short}: unknown Devlog-category "${override}"`);
     category = resolved;
   }

@@ -6,7 +6,8 @@ import type { UserFilter } from '~/apps/shared/admin-user-filters';
 import { SCHOOL_TIME_ZONE } from '~/apps/shared/school-time';
 import { displayName } from '~/apps/shared/user-name';
 
-import { forwardRef, useState } from 'react';
+import { createContext, forwardRef, useContext, useState } from 'react';
+import type { HeaderContext } from '@tanstack/react-table';
 import { useSearchParams } from 'next/navigation';
 import { KeyRound, Trash2, UserCheck, UserX } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -216,6 +217,48 @@ function BulkDeleteUsersAction({
   );
 }
 
+const UserHeaderContext = createContext<ReturnType<typeof useAdminUsers> | null>(null);
+const rosterHeaderFilters: Record<string, UserFilter> = {
+  grade: 'grade', major: 'major', minor: 'minor', roles: 'role', status: 'status',
+  'flex-credits': 'flex', password: 'password',
+};
+
+function RosterColumnHeader({ column }: HeaderContext<AdminUserRecord, unknown>) {
+  const roster = useContext(UserHeaderContext);
+  const label = column.columnDef.meta?.label ?? column.id;
+  const field = rosterHeaderFilters[column.id];
+  if (!roster || !field) return <DataTableColumnHeader column={column} title={label} />;
+  return (
+    <DataTableColumnHeader column={column} title={label}>
+      <DataTableColumnHeaderLabel />
+      <DataTableControls><UserHeaderFilter field={field} roster={roster} /></DataTableControls>
+    </DataTableColumnHeader>
+  );
+}
+
+function rosterColumn(
+  id: string,
+  label: string,
+  accessorFn: (user: AdminUserRecord) => string | number | undefined | null,
+  { format = String, minWidth }: {
+    format?: (value: number | string) => string;
+    minWidth?: string;
+  } = {},
+): ColumnDef<AdminUserRecord> {
+  return {
+    id,
+    accessorFn,
+    header: RosterColumnHeader,
+    cell: ({ getValue }) => {
+      const value = getValue<number | string | null | undefined>();
+      if (value == null || value === '') return <span className="text-muted-foreground" aria-label="Not available">—</span>;
+      const text = format(value);
+      return <span className="block truncate tabular-nums" title={text}>{text}</span>;
+    },
+    meta: { label, className: minWidth },
+  };
+}
+
 function UserTableSection({ roster }: { roster: ReturnType<typeof useAdminUsers> }) {
   const {
     selectedUserRoleMeta: { label: title, emptyMessage },
@@ -357,41 +400,12 @@ function UserTableSection({ roster }: { roster: ReturnType<typeof useAdminUsers>
         </div>
   ) : null;
 
-  function rosterColumn(
-    id: string,
-    label: string,
-    accessorFn: (user: AdminUserRecord) => string | number | undefined | null,
-    { field, format = String, minWidth }: {
-      field?: UserFilter;
-      format?: (value: number | string) => string;
-      minWidth?: string;
-    } = {},
-  ): ColumnDef<AdminUserRecord> {
-    return {
-      id,
-      accessorFn,
-      header: ({ column }) => field ? (
-        <DataTableColumnHeader column={column} title={label}>
-          <DataTableColumnHeaderLabel />
-          <DataTableControls><UserHeaderFilter field={field} roster={roster} /></DataTableControls>
-        </DataTableColumnHeader>
-      ) : <DataTableColumnHeader column={column} title={label} />,
-      cell: ({ getValue }) => {
-        const value = getValue<number | string | null | undefined>();
-        if (value == null || value === '') return <span className="text-muted-foreground" aria-label="Not available">—</span>;
-        const text = format(value);
-        return <span className="block truncate tabular-nums" title={text}>{text}</span>;
-      },
-      meta: { label, className: minWidth },
-    };
-  }
-
   const columns: ColumnDef<AdminUserRecord>[] = [
     selectColumn<AdminUserRecord>(),
     {
       id: 'name',
       accessorFn: (user) => displayName(user),
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+      header: RosterColumnHeader,
       cell: ({ row }) => (
         <span className="flex min-w-0 items-center gap-1 font-medium leading-tight">
           <span className="min-w-0 truncate" title={displayName(row.original)}>{displayName(row.original)}</span>
@@ -400,21 +414,21 @@ function UserTableSection({ roster }: { roster: ReturnType<typeof useAdminUsers>
       ),
       meta: { label: 'Name', className: 'min-w-36' },
     },
-    rosterColumn('grade', 'Grade', (user) => user.gradeLevel, { field: 'grade' }),
+    rosterColumn('grade', 'Grade', (user) => user.gradeLevel),
     {
-      ...rosterColumn('major', 'Major', (user) => user.major, { field: 'major' }),
+      ...rosterColumn('major', 'Major', (user) => user.major),
       cell: ({ row }) => <PathwayCell value={row.original.major} />,
     },
     {
-      ...rosterColumn('minor', 'Minor', (user) => user.minor, { field: 'minor' }),
+      ...rosterColumn('minor', 'Minor', (user) => user.minor),
       cell: ({ row }) => <PathwayCell value={row.original.minor} />,
     },
     {
-      ...rosterColumn('roles', 'Roles', (user) => (user.roles ?? []).join(', '), { field: 'role' }),
+      ...rosterColumn('roles', 'Roles', (user) => (user.roles ?? []).join(', ')),
       cell: ({ row }) => <RoleSummary roles={row.original.roles ?? []} />,
     },
     {
-      ...rosterColumn('status', 'Status', (user) => (user.isActive ? 'Active' : 'Inactive'), { field: 'status' }),
+      ...rosterColumn('status', 'Status', (user) => (user.isActive ? 'Active' : 'Inactive')),
       cell: ({ row }) => (
         <Badge variant="solid" color={row.original.isActive ? 'emerald' : 'red'} size="sm">
           {row.original.isActive ? 'Active' : 'Inactive'}
@@ -423,7 +437,7 @@ function UserTableSection({ roster }: { roster: ReturnType<typeof useAdminUsers>
     },
     rosterColumn('school-id', 'School ID', (user) => user.uniqueId, { minWidth: 'min-w-28' }),
     rosterColumn('email', 'Email', (user) => user.email, { minWidth: 'min-w-52' }),
-    rosterColumn('flex-credits', 'Flex credits', (user) => user.roster?.flex?.earned, { field: 'flex', minWidth: 'min-w-32' }),
+    rosterColumn('flex-credits', 'Flex credits', (user) => user.roster?.flex?.earned, { minWidth: 'min-w-32' }),
     rosterColumn('flex-remaining', 'Flex credits left', (user) => user.roster?.flex?.remaining, { minWidth: 'min-w-32' }),
     rosterColumn('flex-fall', 'Fall Flex credits', (user) => user.roster?.flex?.fall),
     rosterColumn('flex-spring', 'Spring Flex credits', (user) => user.roster?.flex?.spring),
@@ -433,7 +447,7 @@ function UserTableSection({ roster }: { roster: ReturnType<typeof useAdminUsers>
     rosterColumn('flex-last', 'Last Flex credit', (user) => user.roster?.flex?.lastCreditAt, { format: formatRosterDate }),
     rosterColumn('roster-name', 'Roster name', (user) => `${user.firstName} ${user.lastName}`.trim()),
     rosterColumn('preferred-name', 'Preferred name', (user) => user.preferredName),
-    rosterColumn('password', 'Password', (user) => user.roster && (user.roster.mustResetPassword ? 'Reset required' : 'Ready'), { field: 'password' }),
+    rosterColumn('password', 'Password', (user) => user.roster && (user.roster.mustResetPassword ? 'Reset required' : 'Ready')),
     rosterColumn('developer', 'Developer badge', (user) => user.isDeveloper ? 'Enabled' : '—'),
     rosterColumn('feedback-reviewer', 'Feedback review', (user) => user.roster && (user.roster.canReviewFeedback ? 'Enabled' : '—')),
     rosterColumn('created', 'Account created', (user) => user.roster?.createdAt, { format: formatRosterDate }),
@@ -566,5 +580,5 @@ export function AdminUsersTab() {
 function AdminUsersTabContent({ initialSearch, initialUserId }: { initialSearch: string; initialUserId: string }) {
   const users = useAdminUsers(initialSearch, initialUserId);
 
-  return <UserTableSection roster={users} />;
+  return <UserHeaderContext.Provider value={users}><UserTableSection roster={users} /></UserHeaderContext.Provider>;
 }

@@ -132,7 +132,7 @@ export function UserFilterTools({ roster }: { roster: RosterFilters }) {
         <PopoverContent align="end" className="w-80 text-sm">
           <p className="font-medium">Search users</p>
           <p className="mt-2 text-muted-foreground">
-            Search by name or ID, or combine filters such as <code>grade:11 status:active</code>.
+            Search by name, ID, or email, or combine filters such as <code>grade:11 status:active</code>.
             Quote phrases and use <code>-</code> to exclude a term.
           </p>
           <p className="mt-2 text-muted-foreground">
@@ -188,7 +188,7 @@ export function UserRosterSearch({ table, search, error, onSearchChange }: {
     <Popover open={open} onOpenChange={setActive}>
       <Command surface="inherit" shouldFilter={false} loop className="h-auto min-w-0 flex-1 overflow-visible">
         <PopoverAnchor asChild>
-          <DataTableSearch table={table} placeholder="Search users by name or ID…" collapsible={false}>
+          <DataTableSearch table={table} placeholder="Search by name, ID, or email…" collapsible={false}>
             <CommandInputSlot asChild value={search}>
               <DataTableSearchInput
                 outlined

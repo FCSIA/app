@@ -31,6 +31,7 @@ type UsersPageStatus = 'LoadingFirstPage' | 'CanLoadMore' | 'LoadingMore' | 'Exh
 type DisplayedUsersPageState = {
   viewerId: string | undefined;
   search: string;
+  filters: UserFilters;
   userRoleGroup: AdminUserRoleGroup;
   pageSize: number;
   pageIndex: number;
@@ -55,7 +56,9 @@ export function useAdminUsers(initialSearch = '', initialUserId = '') {
   const deferredSearch = useDeferredValue(appliedSearch);
   const searchError = parseUserSearch(search).error;
   const parsed = parseUserSearch(deferredSearch);
-  const plainSearch = parsed.terms.length > 0 && parsed.terms.every((term) => term.field === 'text' && !term.exclude && !/\s/.test(term.value)) && !deferredSearch.includes('"');
+  const plainSearch = parsed.terms.length > 0 &&
+    parsed.terms.every((term) => term.field === 'text' && !term.exclude && !/[\s@]/.test(term.value)) &&
+    !deferredSearch.includes('"');
   const hasFilters = USER_FILTER_KEYS.some((key) => !!filters[key]?.length);
   const [schoolYear] = useState(() => schoolYearStart(new Date()));
   const exactUserId = initialUserId && deferredSearch === initialUserId ? initialUserId : undefined;
@@ -71,6 +74,7 @@ export function useAdminUsers(initialSearch = '', initialUserId = '') {
   const [displayedPageState, setDisplayedPageState] = useState<DisplayedUsersPageState>({
     viewerId: user?._id,
     search: deferredSearch,
+    filters,
     userRoleGroup,
     pageSize,
     pageIndex: 0,
@@ -98,21 +102,22 @@ export function useAdminUsers(initialSearch = '', initialUserId = '') {
   const pageScopeChanged =
     displayedPageState.viewerId !== user?._id ||
     displayedPageState.userRoleGroup !== userRoleGroup ||
-    displayedPageState.pageSize !== pageSize;
-  const searchChanged = displayedPageState.search !== deferredSearch;
+    displayedPageState.pageSize !== pageSize ||
+    displayedPageState.search !== deferredSearch ||
+    displayedPageState.filters !== filters;
   const displayedPage = usersPage ?? (pageScopeChanged ? undefined : displayedPageState.page);
   const pageIndex = usersPage
     ? requestedPageIndex
-    : pageScopeChanged || searchChanged ? 0 : displayedPageState.pageIndex;
+    : pageScopeChanged ? 0 : displayedPageState.pageIndex;
 
   if (
     pageScopeChanged ||
-    searchChanged ||
     (usersPage && (displayedPageState.page !== usersPage || displayedPageState.pageIndex !== pageIndex))
   ) {
     setDisplayedPageState({
       viewerId: user?._id,
       search: deferredSearch,
+      filters,
       userRoleGroup,
       pageSize,
       pageIndex,

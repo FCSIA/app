@@ -195,6 +195,7 @@ const respond: CommandSpec = {
 };
 
 export const feedbackGroup: GroupSpec = {
+  access: { feedbackReview: true },
   kind: "group",
   name: "feedback",
   summary: "Review and answer what people send the school",

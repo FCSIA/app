@@ -22,6 +22,7 @@ function unsupported(runtime: Pick<Runtime, "platform" | "arch">) {
 }
 
 const upgrade: CommandSpec = {
+  access: "public",
   kind: "command",
   name: "upgrade",
   summary: "Update fcsia to the latest release",

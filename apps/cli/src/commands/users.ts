@@ -14,6 +14,7 @@ import { limitOption } from "./announcements";
 import { personName } from "./format";
 import { appendOption, readFileOrStdin } from "./input";
 import { pathwayInput } from "./pathways";
+import { ADMIN_ROLES, STAFF_ROLES, SUPER_ADMIN_ROLES } from "../../../shared/roles";
 
 type AdminUser = FunctionReturnType<typeof api.users.admin.list>["page"][number];
 
@@ -244,6 +245,7 @@ const inspect: CommandSpec = {
 };
 
 const activate: CommandSpec = {
+  access: { roles: ADMIN_ROLES },
   kind: "command",
   name: "activate",
   summary: "Let a deactivated person sign in again",
@@ -270,6 +272,7 @@ const activate: CommandSpec = {
 };
 
 const deactivate: CommandSpec = {
+  access: { roles: ADMIN_ROLES },
   kind: "command",
   name: "deactivate",
   summary: "Sign a person out and block new sign-ins",
@@ -301,6 +304,7 @@ const deactivate: CommandSpec = {
 };
 
 const remove: CommandSpec = {
+  access: { roles: SUPER_ADMIN_ROLES },
   kind: "command",
   name: "delete",
   summary: "Permanently delete accounts",
@@ -338,6 +342,7 @@ const remove: CommandSpec = {
 };
 
 const exportStudents: CommandSpec = {
+  access: { roles: SUPER_ADMIN_ROLES },
   kind: "command",
   name: "export",
   summary: "Print the student roster as CSV",
@@ -430,6 +435,7 @@ function parseImportCsv(text: string) {
 }
 
 const importStudents: CommandSpec = {
+  access: { roles: ADMIN_ROLES },
   kind: "command",
   name: "import",
   summary: "Create student accounts from CSV",
@@ -504,6 +510,7 @@ const importStudents: CommandSpec = {
 const ROLE_NAMES = APP_ROLES.map((role) => role.toLowerCase());
 
 const setRoles: CommandSpec = {
+  access: { roles: ADMIN_ROLES },
   kind: "command",
   name: "set",
   summary: "Replace a person's roles",
@@ -614,6 +621,7 @@ const passwordsGroup: GroupSpec = {
 };
 
 export const usersGroup: GroupSpec = {
+  access: { roles: STAFF_ROLES },
   kind: "group",
   name: "users",
   summary: "Find people, manage accounts, and move rosters",

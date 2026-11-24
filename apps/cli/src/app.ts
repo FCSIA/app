@@ -61,7 +61,7 @@ export async function runCli(runtime: Runtime, root: GroupSpec = createRootComma
     return 0;
   }
   if (invocation.mode === "help") {
-    printHelp(context, invocation.node, invocation.path);
+    await printHelp(context, invocation.node, invocation.path);
     return 0;
   }
 

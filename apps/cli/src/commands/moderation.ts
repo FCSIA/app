@@ -8,6 +8,7 @@ import { sanitizeRemoteText } from "../core/theme";
 import type { CommandSpec, GroupSpec } from "../registry/types";
 import { limitOption } from "./announcements";
 import { localTimestamp, personName, preview } from "./format";
+import { MODERATION_READER_ROLES } from "../../../shared/roles";
 
 type Report = FunctionReturnType<typeof api.moderation.reports.list>[number];
 
@@ -228,6 +229,7 @@ const update: CommandSpec = {
 };
 
 export const moderationGroup: GroupSpec = {
+  access: { roles: MODERATION_READER_ROLES },
   kind: "group",
   name: "reports",
   summary: "Review reports about content and messages",

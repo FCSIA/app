@@ -8,6 +8,7 @@ import { CliError } from "../core/errors";
 import type { CommandSpec, GroupSpec } from "../registry/types";
 import { limitOption } from "./announcements";
 import { localTimestamp, parseDateInput, personName } from "./format";
+import { STAFF_ROLES } from "../../../shared/roles";
 
 type AuditEvent = FunctionReturnType<typeof api.audit.events.list>[number];
 type AuditDetail = NonNullable<FunctionReturnType<typeof api.audit.events.get>>;
@@ -143,6 +144,7 @@ const inspect: CommandSpec = {
 };
 
 export const auditGroup: GroupSpec = {
+  access: { roles: STAFF_ROLES },
   kind: "group",
   name: "audit",
   summary: "Read who changed what",

@@ -64,6 +64,7 @@ function rememberSignIn(context: CommandContext, host: string, user: SignedInUse
 
 
 const login: CommandSpec = {
+  access: "public",
   kind: "command",
   name: "login",
   summary: "Sign in with your IA App account",
@@ -166,6 +167,7 @@ const login: CommandSpec = {
 };
 
 const logout: CommandSpec = {
+  access: "public",
   kind: "command",
   name: "logout",
   summary: "Sign out and remove the saved sign-in",
@@ -214,6 +216,7 @@ const logout: CommandSpec = {
 };
 
 const whoami: CommandSpec = {
+  access: "public",
   kind: "command",
   name: "whoami",
   summary: "Show who you're signed in as",

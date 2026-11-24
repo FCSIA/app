@@ -17,10 +17,11 @@ sections use a grouped sidebar on desktop, an icon rail at intermediate widths,
 and a section picker on smaller screens. Audit filters remain in the URL when
 switching sections.
 
-The table separates When, Person, and Activity. Activity combines the action
-with the specific target and location when available, with message excerpts on
-a second line. Day headings group events and each row shows the time to the
-minute. The expanded row shows seconds, the time-zone offset, and stored JSON.
+The table separates When, Person, Action, and Record. The Record column shows
+what the action affected, with related context such as a club and channel on a
+second line when available. Day headings group events and each row shows the
+time to the minute. The expanded row shows seconds, the time-zone offset, and
+stored JSON.
 Neutral category icons identify six domains: People & access, Clubs & chat,
 Announcements, Moderation, Schedules, and Flex & events. Destructive action text
 uses the destructive token. Selecting a row or its keyboard-accessible Details

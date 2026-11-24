@@ -112,16 +112,12 @@ function auditPlaces(event: AuditEventRecord) {
     )
     .slice(0, 2);
 }
-function ActivityLink({ href, name }: { href?: string | null; name: string }) {
+function AuditRecordLink({ href, name }: { href?: string | null; name: string }) {
   return href ? (
     <Link href={href} className="underline-offset-2 hover:underline focus-visible:underline" title={name}>
       {name}
     </Link>
   ) : <span title={name}>{name}</span>;
-}
-
-function hasSpecificRecord(event: AuditEventRecord) {
-  return auditRecordTitle(event) !== auditRecordLabel(event.entityType);
 }
 
 // Meaning tones from the theme palette: most rows stay neutral so the few
@@ -151,68 +147,57 @@ const actionKinds: Record<AuditActionKind, [LucideIcon, string]> = {
   failure: [CircleAlert, tone.negative],
 };
 
-function AuditActivity({ event }: { event: AuditEventRecord }) {
+function AuditAction({ event }: { event: AuditEventRecord }) {
   const category = auditCategory(event.entityType, event.action);
   const kind = auditActionKind(event.action);
   const [Icon, color] = kind ? actionKinds[kind] : [icons[category], tone.neutral];
-  const actionLabel = auditActionLabel(event.action);
-  const recordLabel = auditRecordLabel(event.entityType);
-  const recordTitle = auditRecordTitle(event);
+  const label = auditActionLabel(event.action);
+  return (
+    <span className="flex min-w-0 items-start gap-2">
+      <Icon size={14} className={`mt-0.5 shrink-0 ${color}`} aria-hidden />
+      <span
+        title={label}
+        className={`line-clamp-2 whitespace-normal ${auditActionInfo(event.action)?.destructive ? 'text-tone-negative' : 'text-foreground'}`}
+      >
+        {label}
+      </span>
+    </span>
+  );
+}
+
+function AuditRecord({ event }: { event: AuditEventRecord }) {
   const links = event.context?.links ?? [];
   const record = links.find((link) => link.id === event.entityId);
   const places = auditPlaces(event);
   const workshop = places.find((place) => place.label === 'Workshop');
-  const student = links.find((link) => link.label === 'Student');
-  const assignedStudent = event.action === 'FLEX_WORKSHOP_ASSIGNED' ? student : null;
-  const workshopAction = event.action === 'FLEX_WORKSHOP_REGISTERED' ? 'Signed up for '
-    : event.action === 'FLEX_REGISTRATION_REMOVED' ? 'Cancelled signup for '
-    : assignedStudent ? 'Assigned ' : null;
-  const specificRecord = hasSpecificRecord(event);
-  const preview = specificRecord && (recordLabel === 'Message' || recordLabel === 'Comment');
-  const recordName = event.context?.deleted && !/^(Deleted|Removed)\b/.test(actionLabel)
-    ? `${recordTitle} (deleted)`
-    : recordTitle;
+  const recordTitle = auditRecordTitle(event);
+  const isGeneric = recordTitle === auditRecordLabel(event.entityType);
+  const namedWorkshop = isGeneric ? workshop : undefined;
+  const primary = namedWorkshop ?? record;
+  const title = namedWorkshop?.name ?? recordTitle;
+  const deleted = !namedWorkshop && event.context?.deleted &&
+    !/^(Deleted|Removed)\b/.test(auditActionLabel(event.action));
+  const context = places.filter((place) => place !== primary);
+  const student = event.action === 'FLEX_WORKSHOP_ASSIGNED'
+    ? links.find((link) => link.label === 'Student')
+    : undefined;
+  if (student) context.push(student);
 
   return (
-    <span className="flex min-w-0 items-start gap-2">
-      <Icon size={14} className={`mt-0.5 shrink-0 ${color}`} aria-hidden />
-      <span className="min-w-0">
-        <span className="line-clamp-2 whitespace-normal [overflow-wrap:anywhere]">
-          <span className={auditActionInfo(event.action)?.destructive ? 'text-tone-negative' : 'text-foreground'}>
-            {(workshop && workshopAction) || actionLabel}
-          </span>
-          {workshop && workshopAction ? (
-            <>
-              {assignedStudent ? (
-                <><ActivityLink href={assignedStudent.href} name={assignedStudent.name} /> to{' '}</>
-              ) : null}
-              <ActivityLink href={workshop.href} name={workshop.name} />
-            </>
-          ) : (
-            <>
-              {specificRecord && !preview ? (
-                <> · <ActivityLink href={record?.href} name={recordName} /></>
-              ) : null}
-              {places.length ? (
-                <span className="text-muted-foreground">
-                  {' · '}
-                  {places.map((place, index) => (
-                    <Fragment key={`${place.label}:${place.id}`}>
-                      {index ? ' / ' : null}
-                      <ActivityLink href={place.href} name={place.label === 'Channel' ? `#${place.name}` : place.name} />
-                    </Fragment>
-                  ))}
-                </span>
-              ) : null}
-            </>
-          )}
-        </span>
-        {preview ? (
-          <span className="block truncate text-muted-foreground">
-            <ActivityLink href={record?.href} name={recordName} />
-          </span>
-        ) : null}
+    <span className="block min-w-0">
+      <span className={isGeneric && !namedWorkshop ? 'block truncate text-muted-foreground' : 'block truncate text-foreground'}>
+        <AuditRecordLink href={primary?.href} name={deleted ? `${title} (deleted)` : title} />
       </span>
+      {context.length ? (
+        <span className="block truncate text-xs text-muted-foreground">
+          {context.map((item, index) => (
+            <Fragment key={`${item.label}:${item.id}`}>
+              {index ? ' / ' : null}
+              <AuditRecordLink href={item.href} name={item.label === 'Channel' ? `#${item.name}` : item.name} />
+            </Fragment>
+          ))}
+        </span>
+      ) : null}
     </span>
   );
 }
@@ -291,12 +276,13 @@ function AuditColumnHeader({
 }
 
 export function useAuditDataTable(audit: AuditState) {
+  // Preserve scan positions on wide panes, including when filters return no rows.
   const columns = useMemo<ColumnDef<AuditEventRecord>[]>(
     () => [
       {
         accessorKey: 'createdAt',
         header: ({ column }) => <AuditColumnHeader column={column} title="When" />,
-        meta: { label: 'When' },
+        meta: { label: 'When', className: '@min-[48rem]/audit:w-[13%]!' },
         enableHiding: false,
         cell: ({ row }) => <AuditTime event={row.original} />,
       },
@@ -304,16 +290,23 @@ export function useAuditDataTable(audit: AuditState) {
         id: 'person',
         accessorFn: auditPersonName,
         header: ({ column }) => <AuditColumnHeader column={column} title="Person" />,
-        meta: { label: 'Person', className: 'overflow-visible' },
+        meta: { label: 'Person', className: 'overflow-visible @min-[48rem]/audit:w-[22%]!' },
         cell: ({ row }) => <AuditPersonCell event={row.original} />,
       },
       {
-        id: 'activity',
+        id: 'action',
         accessorFn: (event) => auditActionLabel(event.action),
-        header: 'Activity',
-        meta: { label: 'Activity', className: 'w-full' },
+        header: ({ column }) => <AuditColumnHeader column={column} title="Action" />,
+        meta: { label: 'Action', className: '@min-[48rem]/audit:w-[32%]!' },
         enableHiding: false,
-        cell: ({ row }) => <AuditActivity event={row.original} />,
+        cell: ({ row }) => <AuditAction event={row.original} />,
+      },
+      {
+        id: 'record',
+        accessorFn: auditRecordTitle,
+        header: ({ column }) => <AuditColumnHeader column={column} title="Record" />,
+        meta: { label: 'Record' },
+        cell: ({ row }) => <AuditRecord event={row.original} />,
       },
     ],
     [],
@@ -417,7 +410,7 @@ export function AuditTable({
     if (viewport) viewport.scrollTop = 0;
   }, [pageIndex, pageSize, audit.filterKey]);
   return (
-    <div ref={contentRef} className="flex min-h-0 min-w-0 flex-1 flex-col" aria-busy={audit.isStale}>
+    <div ref={contentRef} className="@container/audit flex min-h-0 min-w-0 flex-1 flex-col" aria-busy={audit.isStale}>
       <AuditTableContext.Provider value={audit}>
       <DataTable
         table={table}
@@ -434,7 +427,7 @@ export function AuditTable({
         }}
         onRowClick={(row) => audit.setSelectedAuditEventId(row.id === audit.selectedAuditEventId ? null : row.id)}
         rowDetail={(row) => row.id === audit.selectedAuditEventId
-          ? <AuditEventContent event={row.original} showRecordLink={!hasSpecificRecord(row.original)} />
+          ? <AuditEventContent event={row.original} />
           : null}
       />
       </AuditTableContext.Provider>

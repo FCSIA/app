@@ -47,7 +47,7 @@ function Detail({ label, children, wide = false }: { label: string; children: Re
   );
 }
 
-export function AuditEventContent({ event, showRecordLink }: { event: AuditEventRecord; showRecordLink: boolean }) {
+export function AuditEventContent({ event }: { event: AuditEventRecord }) {
   const detail = useQuery(api.audit.events.get, { auditEventId: event.id });
   const snapshot = whiteboardSnapshotTarget(event);
   const preview = detail?.entityPreview;
@@ -57,7 +57,7 @@ export function AuditEventContent({ event, showRecordLink }: { event: AuditEvent
   );
   const recordLink = links.find((ref) => ref.id === event.entityId);
   const previewHref = recordLink?.href ? null : preview?.href;
-  const related = links.filter((ref) => ref !== recordLink || (showRecordLink && ref.href));
+  const related = links.filter((ref) => ref !== recordLink);
   const fields = auditMetaFields(event);
 
   return (

@@ -9,8 +9,7 @@ import { useCurrentUser } from '@/lib/auth';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '~/apps/convex/src/_generated/api';
 import type { Id } from '~/apps/convex/src/_generated/dataModel';
-import { USER_ROLE_GROUP_META } from '../_lib/admin-utils';
-import type { AdminUserRecord, AdminUserRoleGroup } from '../_lib/types';
+import type { AdminUserRecord } from '../_lib/types';
 import {
   type AppRole,
   canManageUser,
@@ -32,7 +31,6 @@ type DisplayedUsersPageState = {
   viewerId: string | undefined;
   search: string;
   filters: UserFilters;
-  userRoleGroup: AdminUserRoleGroup;
   pageSize: number;
   pageIndex: number;
   page: UsersPage | undefined;
@@ -62,11 +60,6 @@ export function useAdminUsers(initialSearch = '', initialUserId = '') {
   const hasFilters = USER_FILTER_KEYS.some((key) => !!filters[key]?.length);
   const [schoolYear] = useState(() => schoolYearStart(new Date()));
   const exactUserId = initialUserId && deferredSearch === initialUserId ? initialUserId : undefined;
-  const [userRoleGroup, setUserRoleGroup] = useState<AdminUserRoleGroup>(() => {
-    if (initialUserId) return 'all';
-    const group = params?.get('users_group');
-    return group && Object.hasOwn(USER_ROLE_GROUP_META, group) ? group as AdminUserRoleGroup : 'students';
-  });
   const [isUserMutationPending, setIsUserMutationPending] = useState(false);
   const [pageSize, setPageSize] = useState(USERS_PAGE_SIZE);
   const [currentCursor, setCurrentCursor] = useState<string | null>(null);
@@ -75,7 +68,6 @@ export function useAdminUsers(initialSearch = '', initialUserId = '') {
     viewerId: user?._id,
     search: deferredSearch,
     filters,
-    userRoleGroup,
     pageSize,
     pageIndex: 0,
     page: undefined,
@@ -92,7 +84,6 @@ export function useAdminUsers(initialSearch = '', initialUserId = '') {
       search: plainSearch && !hasFilters ? undefined : deferredSearch.trim() || undefined,
     },
     userId: exactUserId,
-    roleGroup: userRoleGroup === 'all' ? undefined : userRoleGroup,
     paginationOpts: {
       numItems: pageSize,
       cursor: currentCursor,
@@ -101,7 +92,6 @@ export function useAdminUsers(initialSearch = '', initialUserId = '') {
 
   const pageScopeChanged =
     displayedPageState.viewerId !== user?._id ||
-    displayedPageState.userRoleGroup !== userRoleGroup ||
     displayedPageState.pageSize !== pageSize ||
     displayedPageState.search !== deferredSearch ||
     displayedPageState.filters !== filters;
@@ -118,17 +108,16 @@ export function useAdminUsers(initialSearch = '', initialUserId = '') {
       viewerId: user?._id,
       search: deferredSearch,
       filters,
-      userRoleGroup,
       pageSize,
       pageIndex,
       page: displayedPage,
     });
   }
 
-  // Actual total count for the selected role group (shown in the header badge).
+  // Show the full roster count when there is no active search or filter.
   const totalCount = useQuery(
     api.users.admin.count,
-    exactUserId || hasFilters || !!deferredSearch.trim() ? 'skip' : { roleGroup: userRoleGroup === 'all' ? undefined : userRoleGroup },
+    exactUserId || hasFilters || !!deferredSearch.trim() ? 'skip' : {},
   );
 
   const deactivateUser = useMutation(api.users.admin.deactivate);
@@ -160,7 +149,6 @@ export function useAdminUsers(initialSearch = '', initialUserId = '') {
     }
   };
 
-  const selectedUserRoleMeta = USER_ROLE_GROUP_META[userRoleGroup];
   const isSuperAdmin = hasAnyRole(user, SUPER_ADMIN_ROLES);
   const status: UsersPageStatus = usersPage
     ? usersPage.isDone ? 'Exhausted' : 'CanLoadMore'
@@ -176,12 +164,11 @@ export function useAdminUsers(initialSearch = '', initialUserId = '') {
     setPreviousCursors([]);
   };
 
-  const saveQuery = (query: string, nextFilters: UserFilters, group = userRoleGroup) => {
+  const saveQuery = (query: string, nextFilters: UserFilters) => {
     const url = new URL(window.location.href);
     url.searchParams.delete('user');
     url.searchParams.delete('search');
-    if (group === 'students') url.searchParams.delete('users_group');
-    else url.searchParams.set('users_group', group);
+    url.searchParams.delete('users_group');
     if (query) url.searchParams.set('users_q', query);
     else url.searchParams.delete('users_q');
     for (const key of USER_FILTER_KEYS) {
@@ -237,16 +224,6 @@ export function useAdminUsers(initialSearch = '', initialUserId = '') {
       saveQuery('', {});
       resetPage();
     },
-    userRoleGroup,
-    setUserRoleGroup: (value: AdminUserRoleGroup) => {
-      if (exactUserId) {
-        setAppliedSearch('');
-        setDraft('');
-      }
-      saveQuery(exactUserId ? '' : appliedSearch, filters, value);
-      setUserRoleGroup(value);
-      resetPage();
-    },
     users: displayedPage?.page ?? [],
     totalCount: exactUserId ? usersPage?.page.length : totalCount ?? undefined,
     status,
@@ -272,7 +249,6 @@ export function useAdminUsers(initialSearch = '', initialUserId = '') {
       setPreviousCursors((cursors) => cursors.slice(0, -1));
     },
     isUsersLoading: !displayedPage && !usersPage,
-    selectedUserRoleMeta,
     currentUserId: user?._id,
     canManage,
     canDeleteUsers: isSuperAdmin,

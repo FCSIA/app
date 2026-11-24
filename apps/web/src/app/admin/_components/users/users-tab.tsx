@@ -24,7 +24,6 @@ import {
 } from '@/components/ui/data-table';
 import { AdminDataTable } from '../admin-data-table';
 import { Card, CardDescription, CardFooter, CardGroup, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { Tooltip } from '@/components/ui/tooltip';
 import {
   AlertDialog,
@@ -38,7 +37,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { formatPathwayLabel, formatRoleLabel } from '../../_lib/admin-utils';
-import type { AdminUserRecord, AdminUserRoleGroup } from '../../_lib/types';
+import type { AdminUserRecord } from '../../_lib/types';
 import { useAdminUsers } from '../../_hooks/use-admin-users';
 import { AdminNotice } from '../admin-ui';
 import { UserPermissionsPopover } from './user-permissions-popover';
@@ -261,14 +260,11 @@ function rosterColumn(
 
 function UserTableSection({ roster }: { roster: ReturnType<typeof useAdminUsers> }) {
   const {
-    selectedUserRoleMeta: { label: title, emptyMessage },
     users,
     totalCount,
     isUsersLoading: isLoading,
     search,
     setSearch: onSearchChange,
-    userRoleGroup,
-    setUserRoleGroup: onUserRoleGroupChange,
     currentUserId,
     isSuperAdmin,
     canManage,
@@ -293,7 +289,7 @@ function UserTableSection({ roster }: { roster: ReturnType<typeof useAdminUsers>
     loadPreviousPage,
   } = roster;
   // Keep the Fluid table mounted so frozen/visible columns survive paging.
-  const scope = JSON.stringify([roster.selectionScope, userRoleGroup, pageIndex, pageSize]);
+  const scope = JSON.stringify([roster.selectionScope, pageIndex, pageSize]);
   const [selectionScope, setSelectionScope] = useState(scope);
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(() => new Set());
   if (selectionScope !== scope) {
@@ -363,21 +359,9 @@ function UserTableSection({ roster }: { roster: ReturnType<typeof useAdminUsers>
       : typeof totalCount === 'number'
         ? `${users.length.toLocaleString()}/${totalCount.toLocaleString()} ${totalCount === 1 ? 'user' : 'users'}`
         : `${users.length} ${users.length === 1 ? 'user' : 'users'}`;
-  const rosterControls = (
-    <>
-      <Select value={userRoleGroup} onValueChange={(value) => onUserRoleGroupChange(value as AdminUserRoleGroup)}>
-        <SelectTrigger className="min-w-28 shrink-0 sm:min-w-36" placeholder="User group" aria-label="User group" />
-        <SelectContent>
-          <SelectItem index={0} value="students">Students</SelectItem>
-          <SelectItem index={1} value="teachers">Teachers</SelectItem>
-          <SelectItem index={2} value="student-admin">Student Admins</SelectItem>
-          <SelectItem index={3} value="other">Other Roles</SelectItem>
-          <SelectItem index={4} value="all">All Users</SelectItem>
-        </SelectContent>
-      </Select>
-      <UserFilterTools roster={roster} />
-    </>
-  );
+  const emptyMessage = status === 'CanLoadMore'
+    ? 'No matches on this page. More users are available.'
+    : roster.isFiltered ? 'No users match these filters.' : 'No users found.';
   const selectionBar = canDeleteUsers && selectedCount > 0 ? (
         <div className="flex flex-wrap items-center gap-2">
           <span className="whitespace-nowrap text-xs text-muted-foreground">
@@ -498,12 +482,12 @@ function UserTableSection({ roster }: { roster: ReturnType<typeof useAdminUsers>
 
   return (
     <AdminDataTable
-      label={title}
+      label="All Users"
       table={table}
       loading={isLoading}
-      empty={status === 'CanLoadMore' ? 'No matches on this page. More users are available.' : roster.isFiltered ? 'No users match these filters.' : emptyMessage}
+      empty={emptyMessage}
       searchControl={<UserRosterSearch table={table} search={search} error={roster.searchError} onSearchChange={onSearchChange} />}
-      controls={rosterControls}
+      controls={<UserFilterTools roster={roster} />}
       count={countLabel}
       toolbarBelow={
         <>
@@ -535,7 +519,7 @@ function UserTableSection({ roster }: { roster: ReturnType<typeof useAdminUsers>
             {[0, 1, 2, 3].map((index) => <Skeleton key={index} className="h-16 w-full" />)}
           </div>
         ) : users.length === 0 ? (
-          <AdminNotice message={status === 'CanLoadMore' ? 'No matches on this page. More users are available.' : roster.isFiltered ? 'No users match these filters.' : emptyMessage} />
+          <AdminNotice message={emptyMessage} />
         ) : (
           <CardGroup border="none" corners="compact">
             {users.map((user) => (

@@ -76,5 +76,3 @@ export type AdminUserRecord = {
   isActive?: boolean;
   isDeveloper?: boolean;
 } & Pick<FunctionReturnType<typeof api.users.admin.list>['page'][number], 'roster'>;
-
-export type AdminUserRoleGroup = 'students' | 'teachers' | 'other' | 'student-admin' | 'all';

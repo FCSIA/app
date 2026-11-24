@@ -1,30 +1,6 @@
 import { format } from 'date-fns';
-import type { AdminUserRoleGroup } from './types';
 
 export const AUDIT_FETCH_LIMIT = 50;
-
-export const USER_ROLE_GROUP_META: Record<AdminUserRoleGroup, { label: string; emptyMessage: string }> = {
-  students: {
-    label: 'Students',
-    emptyMessage: 'No students found.',
-  },
-  teachers: {
-    label: 'Teachers',
-    emptyMessage: 'No teachers found.',
-  },
-  other: {
-    label: 'Other Roles',
-    emptyMessage: 'No admin or staff accounts found.',
-  },
-  'student-admin': {
-    label: 'Student Admins',
-    emptyMessage: 'No student admins found.',
-  },
-  all: {
-    label: 'All Users',
-    emptyMessage: 'No users found.',
-  },
-};
 
 export function formatRoleLabel(role: string) {
   return role.replace(/_/g, ' ');

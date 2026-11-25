@@ -163,8 +163,9 @@ Rollout, one release apart:
 Every row exported from production on 2026-11-25 (2,253) passed the target
 validator after this migration in a local dry run; IDs were checked as
 strings there, so the staged validation is the check that each names the
-right table. Rows written before previews still keep the full message text
-in `meta.body`/`previousBody`; the target allows it rather than deleting it.
+right table. Rows written before previews stored the whole message text in
+`meta.body`/`previousBody`; the migration keeps a 240-character preview and
+the lengths, as newer rows do, and removes the full text.
 
 ## Source and API
 

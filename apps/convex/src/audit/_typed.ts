@@ -38,8 +38,9 @@ export function typedAuditPatch(row: Doc<'auditEvents'>, lookups: TypedAuditLook
   const original = record(row.meta);
   const { auditSource, impersonatedByUserId, originalMeta: _originalMeta, ...meta } = original;
   if (row.action === 'schedule.updated' && meta.userId === undefined && lookups.scheduleOwner) meta.userId = lookups.scheduleOwner;
-  // Message rows written before previews stored the whole text; their counts
-  // follow from it exactly.
+  // Message rows written before previews stored the whole text. The log keeps
+  // what newer rows keep, a preview and the lengths, and drops the rest; the
+  // message itself lives in clubChannelMessages.
   if (MESSAGE_ACTIONS.has(row.action)) {
     const text = (key: string) => (typeof meta[key] === 'string' ? meta[key] as string : null);
     const body = text('body');
@@ -54,6 +55,7 @@ export function typedAuditPatch(row: Doc<'auditEvents'>, lookups: TypedAuditLook
       meta.previousBodyLength ??= previous.length;
       meta.previousMarkdownLength ??= text('previousBodyMarkdown')?.length ?? 0;
     }
+    for (const key of ['body', 'bodyMarkdown', 'previousBody', 'previousBodyMarkdown']) delete meta[key];
   }
   if (ROLE_ACTIONS.has(row.action) && meta.roleName === undefined && lookups.roleName) meta.roleName = lookups.roleName;
 

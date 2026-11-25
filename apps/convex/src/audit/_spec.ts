@@ -43,9 +43,6 @@ const message = {
   markdownLength: v.number(),
   attachmentCount: v.number(),
   hasPoll: v.boolean(),
-  /** Rows written before previews replaced them stored the whole message. */
-  body: v.optional(v.string()),
-  bodyMarkdown: v.optional(v.union(v.string(), v.null())),
 };
 const reaction = {
   clubId: v.id('clubs'),
@@ -112,8 +109,6 @@ export const AUDIT_EVENT_SPECS = {
     previousBodyPreview: v.string(),
     previousBodyLength: v.number(),
     previousMarkdownLength: v.number(),
-    previousBody: v.optional(v.string()),
-    previousBodyMarkdown: v.optional(v.union(v.string(), v.null())),
   }),
   CLUB_CHANNEL_WHITEBOARDS_DISABLED: spec('ClubChannel', { clubId: v.id('clubs'), channelId: v.id('clubChannels'), channelName: v.string(), enabled: v.boolean() }),
   CLUB_CHANNEL_WHITEBOARDS_ENABLED: spec('ClubChannel', { clubId: v.id('clubs'), channelId: v.id('clubChannels'), channelName: v.string(), enabled: v.boolean() }),

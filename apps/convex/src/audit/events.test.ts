@@ -322,8 +322,13 @@ describe('audit history and context', () => {
       const updated = await ctx.db.insert('auditEvents', { actorId: f.student, action: 'schedule.updated', entityType: 'studentSchedule', entityId: schedule, meta: { isPublic: true, entryCount: 7 }, createdAt: 4 });
       const locked = await ctx.db.insert('auditEvents', { action: 'auth.login_locked', entityType: 'authAccount', entityId: 'identifier:nobody', meta: { auditSource: 'system', failureCount: 5, lockedUntil: 9 }, createdAt: 5 });
       const reported = await ctx.db.insert('auditEvents', { actorId: f.student, action: 'REPORT_SUBMITTED', entityType: 'Report', meta: { contentType: 'GENERAL', impersonatedByUserId: f.admin }, createdAt: 6 });
+      const channel = await ctx.db.insert('clubChannels', { clubId: f.club, name: 'general', visibility: 'PUBLIC', createdById: f.admin, createdAt: 0, updatedAt: 0 });
+      const edited = await ctx.db.insert('auditEvents', { actorId: f.student, action: 'CLUB_CHANNEL_MESSAGE_UPDATED', entityType: 'ClubChannelMessage', meta: {
+        clubId: f.club, channelId: channel, parentMessageId: null, replyToMessageId: null, attachmentCount: 0, hasPoll: false,
+        body: 'Meet at **six**', bodyMarkdown: 'Meet at **six**', previousBody: 'Meet at five', previousBodyMarkdown: null,
+      }, createdAt: 7 });
       const patches = [];
-      for (const id of [assigned, updated, locked, reported]) {
+      for (const id of [assigned, updated, locked, reported, edited]) {
         const row = (await ctx.db.get(id))!;
         const patch = typedAuditPatch(row, await typedAuditLookups(ctx, row));
         patches.push(patch);
@@ -338,6 +343,12 @@ describe('audit history and context', () => {
       { category: 'schedules', entityType: 'StudentSchedule', meta: { isPublic: true, entryCount: 7, userId: f.student } },
       { category: 'people-access', entityType: 'AuthAccount', source: 'system', meta: { failureCount: 5, lockedUntil: 9 } },
       { category: 'moderation', impersonatedByUserId: f.admin, meta: { contentType: 'GENERAL' } },
+      // Whole message text gives way to the preview and lengths newer rows keep.
+      { category: 'clubs-chat', meta: {
+        clubId: f.club, channelId: expect.any(String), parentMessageId: null, replyToMessageId: null, attachmentCount: 0, hasPoll: false,
+        bodyPreview: 'Meet at **six**', bodyLength: 15, markdownLength: 15,
+        previousBodyPreview: 'Meet at five', previousBodyLength: 12, previousMarkdownLength: 0,
+      } },
     ]);
   });
 

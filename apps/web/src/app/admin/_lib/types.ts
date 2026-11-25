@@ -27,6 +27,8 @@ export type AuditActorScope = 'ALL' | 'USER' | 'SYSTEM';
 
 export type AuditEventRecord = {
   client?: "cli";
+  source?: "system";
+  impersonatedByUserId?: Id<"users">;
   workshopId?: Id<"flexWorkshops">;
   actorId?: string | null;
   context?: { title: string; subtitle: string | null; references: Array<{ id: string; label: string; name: string }>; links?: Array<{ id: string; label: string; name: string; href: string | null }>; deleted?: boolean; person?: { id: Id<'users'>; firstName: string; lastName: string; preferredName?: string; uniqueId: string; avatarUrl?: string } } | null;

@@ -29,4 +29,15 @@ describe('auditRecordView', () => {
     expect(auditRecordView(event({}))).toEqual({ kind: 'named', text: 'Robotics' });
     expect(auditRecordView(event({ entityType: 'studentScheduleGroup', context: { title: 'Schedule group', subtitle: null, references: [] } }))).toEqual({ kind: 'generic', text: 'Schedule group' });
   });
+  test('membership, schedules and roles name the person or role they are about', () => {
+    const role = { id: 'r1', label: 'Role', name: 'Treasurer', href: null };
+    expect(auditRecordView(event({ action: 'CLUB_MEMBER_ROLE_SET', meta: { memberId: 'u2', roleId: 'r1' }, context: { title: 'Robotics', subtitle: null, references: [], links: [role], person } })))
+      .toEqual({ kind: 'member', group: 'Treasurer', club: 'Robotics' });
+    expect(auditRecordView(event({ action: 'CLUB_UNIT_MEMBER_SET', entityType: 'ClubUnit', context: { title: 'Officers', subtitle: null, references: [], links: [], person } })))
+      .toEqual({ kind: 'member', group: 'Officers', club: null });
+    expect(auditRecordView(event({ action: 'schedule.updated', entityType: 'StudentSchedule', actorId: 'u2', context: { title: 'Student schedule', subtitle: null, references: [], person } })))
+      .toEqual({ kind: 'schedule', own: true });
+    expect(auditRecordView(event({ action: 'CLUB_ROLE_PERMISSIONS_UPDATED', meta: { roleId: 'r1', permissions: ['createPolls', 'pinMessages'], enabled: false }, context: { title: 'Robotics', subtitle: null, references: [], links: [role] } })))
+      .toEqual({ kind: 'role', name: 'Treasurer', change: 'Removed 2 permissions', club: 'Robotics' });
+  });
 });

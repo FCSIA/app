@@ -39,6 +39,19 @@ function RecordLink({ href, name, children }: { href?: string | null; name: stri
   ) : <span title={name}>{children ?? name}</span>;
 }
 
+/**
+ * The club a membership or role row is in, styled like the place that follows
+ * other records. It takes only the room left over, so the person and role
+ * stay whole first.
+ */
+function ClubPlace({ href, name }: { href?: string | null; name: string }) {
+  return (
+    <span className="hidden min-w-0 flex-1 truncate text-xs text-muted-foreground @min-[48rem]/audit:block">
+      <RecordLink href={href} name={name} />
+    </span>
+  );
+}
+
 // A status reads in the palette's meaning tones: a decision stands out, an
 // open state stays quiet.
 const statusTone: Record<FeedbackStatus, string> = {
@@ -104,6 +117,29 @@ export function AuditRecord({ event }: { event: AuditEventRecord }) {
         <>
           {person ? <RecordPerson person={person} /> : <span className="shrink-0 text-muted-foreground">Unknown account</span>}
           {view.failures ? <span className="shrink-0 text-xs text-muted-foreground">{view.failures} failed sign-ins</span> : null}
+        </>
+      );
+      break;
+    case 'member':
+      lead = (
+        <>
+          {person ? <span className="flex min-w-0 max-w-[55%] shrink-0"><RecordPerson person={person} /></span> : null}
+          {view.group ? <span className="max-w-[40%] shrink-0 truncate text-muted-foreground">→ <span className="text-foreground">{view.group}</span></span> : null}
+          {view.club ? <ClubPlace href={record?.href} name={view.club} /> : null}
+        </>
+      );
+      break;
+    case 'schedule':
+      lead = view.own || !person
+        ? <span className="truncate text-muted-foreground">Own schedule</span>
+        : <><RecordPerson person={person} /><span className="shrink-0 text-muted-foreground">schedule</span></>;
+      break;
+    case 'role':
+      lead = (
+        <>
+          <span className="min-w-0 truncate text-foreground" title={view.name}>{view.name}</span>
+          {view.change ? <span className="shrink-0 text-xs text-muted-foreground">{view.change}</span> : null}
+          {view.club ? <ClubPlace href={record?.href} name={view.club} /> : null}
         </>
       );
       break;

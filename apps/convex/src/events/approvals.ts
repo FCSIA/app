@@ -99,7 +99,6 @@ export async function settlePendingEvent(
     actorId: "system",
     action: "EVENT_CANCELLED",
     entityId: eventId,
-    entityType: "EVENT",
     meta: { reason: "NO_ACTIVE_SPONSOR" },
   });
   return false;
@@ -125,7 +124,6 @@ export async function settleSponsorApprovals(
         actorId: "system",
         action: "EVENT_PUBLISHED",
         entityId: eventId,
-        entityType: "EVENT",
         meta: { reason: "REMAINING_SPONSORS_APPROVED" },
       });
     }
@@ -197,7 +195,6 @@ export const approveEvent = mutation({
       actorId: user._id,
       action: "EVENT_APPROVED",
       entityId: args.eventId,
-      entityType: "EVENT",
     });
     return null;
   },
@@ -242,7 +239,6 @@ export const rejectEvent = mutation({
       actorId: user._id,
       action: "EVENT_REJECTED",
       entityId: args.eventId,
-      entityType: "EVENT",
     });
     return null;
   },

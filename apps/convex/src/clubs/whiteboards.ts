@@ -230,7 +230,6 @@ export async function setChannelWhiteboardsEnabled(
     action: enabled
       ? "CLUB_CHANNEL_WHITEBOARDS_ENABLED"
       : "CLUB_CHANNEL_WHITEBOARDS_DISABLED",
-    entityType: "ClubChannel",
     entityId: channelId,
     meta: { clubId: channel.clubId, channelId, channelName: channel.name, enabled },
   });
@@ -323,7 +322,6 @@ export async function createWhiteboard(
   await logAuditEvent(ctx, {
     actorId: user._id,
     action: "CLUB_WHITEBOARD_CREATED",
-    entityType: "ClubWhiteboard",
     entityId: boardId,
     meta: {
       clubId: resolved.channel.clubId,
@@ -349,7 +347,6 @@ export async function renameWhiteboard(
   await logAuditEvent(ctx, {
     actorId: user._id,
     action: "CLUB_WHITEBOARD_RENAMED",
-    entityType: "ClubWhiteboard",
     entityId: board._id,
     meta: {
       clubId: board.clubId,
@@ -386,7 +383,6 @@ export async function setWhiteboardArchived(
   await logAuditEvent(ctx, {
     actorId: user._id,
     action: archived ? "CLUB_WHITEBOARD_ARCHIVED" : "CLUB_WHITEBOARD_UNARCHIVED",
-    entityType: "ClubWhiteboard",
     entityId: board._id,
     meta: {
       clubId: board.clubId,
@@ -584,7 +580,6 @@ async function applyElementWrites(
     const createdAuditId = await logAuditEvent(ctx, {
       actorId: user._id,
       action: kind === "RESTORE" ? "CLUB_WHITEBOARD_RESTORED" : "CLUB_WHITEBOARD_EDITED",
-      entityType: "ClubWhiteboard",
       entityId: board._id,
       meta: {
         ...meta,

@@ -169,7 +169,6 @@ export const markAttendance = mutation({
       actorId: user._id,
       action: "FLEX_ATTENDANCE_MARKED",
       entityId: attendanceId,
-      entityType: "FLEX_ATTENDANCE",
     });
 
     return attendanceId;
@@ -205,7 +204,6 @@ export const clearAttendance = mutation({
       actorId: user._id,
       action: "FLEX_ATTENDANCE_CLEARED",
       entityId: existing._id,
-      entityType: "FLEX_ATTENDANCE",
     });
 
     return { success: true };

@@ -283,9 +283,9 @@ export const save = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "schedule.updated",
-      entityType: "studentSchedule",
       entityId: scheduleId,
       meta: {
+        userId: user._id,
         isPublic: args.isPublic,
         lunchPeriod,
         entryCount: entries.length,

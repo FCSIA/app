@@ -178,7 +178,6 @@ export const archive = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "ANNOUNCEMENT_ARCHIVED",
-      entityType: "Announcement",
       entityId: args.announcementId,
     });
 

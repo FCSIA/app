@@ -62,7 +62,6 @@ export const add = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "ANNOUNCEMENT_COMMENT_ADDED",
-      entityType: "Comment",
       entityId: id,
       meta: { announcementId: ann._id, title: ann.title },
     });
@@ -90,7 +89,6 @@ export const remove = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "ANNOUNCEMENT_COMMENT_DELETED",
-      entityType: "Comment",
       entityId: args.commentId,
       meta: {
         announcementId: comment.announcementId,

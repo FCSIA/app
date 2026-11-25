@@ -219,7 +219,6 @@ export const create = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "schedule.group_created",
-      entityType: "studentScheduleGroup",
       entityId: id,
     });
     return { id };
@@ -319,7 +318,6 @@ export const remove = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "schedule.group_deleted",
-      entityType: "studentScheduleGroup",
       entityId: group._id,
     });
     return { success: true };

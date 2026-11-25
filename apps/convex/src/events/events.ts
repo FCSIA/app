@@ -176,7 +176,6 @@ export const create = mutation({
       actorId: user._id,
       action: "EVENT_CREATED",
       entityId: eventId,
-      entityType: "EVENT",
     });
 
     return eventId;
@@ -217,7 +216,6 @@ export const cancel = mutation({
       actorId: user._id,
       action: "EVENT_CANCELLED",
       entityId: args.eventId,
-      entityType: "EVENT",
     });
     return null;
   },

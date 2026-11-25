@@ -1,3 +1,4 @@
+import { AUDIT_MESSAGE_PREVIEW_CHARACTERS } from "../audit/_spec";
 import { clubChannelHref } from "../../../shared/routes";
 import { ConvexError, v, type Infer } from "convex/values";
 import {
@@ -110,7 +111,6 @@ const MAX_SUMMARY_POLL_VOTES = 500;
 const MAX_THREAD_PARENT_DEPTH = 8;
 const MAX_MENTION_GROUP_ROWS = MAX_CHANNEL_MENTION_RECIPIENTS + 1;
 const MAX_CLIENT_MESSAGE_ID_CHARACTERS = 128;
-const AUDIT_MESSAGE_PREVIEW_CHARACTERS = 240;
 const MAX_CHANNEL_MENTION_CONTEXT_MEMBERS = 60;
 
 function channelMessageAuditMeta(input: {
@@ -679,7 +679,6 @@ export const create = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_CHANNEL_CREATED",
-      entityType: "ClubChannel",
       entityId: channelId,
     });
 
@@ -702,7 +701,6 @@ export const setAutoCreateUnitChannels = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "club.unit_channel_defaults_updated",
-      entityType: "club",
       entityId: args.clubId,
       meta: { enabled: args.enabled },
     });
@@ -766,7 +764,6 @@ export const createMissingUnitChannels = mutation({
       await logAuditEvent(ctx, {
         actorId: user._id,
         action: "club.unit_channels_created",
-        entityType: "club",
         entityId: args.clubId,
         meta: { created },
       });
@@ -940,7 +937,6 @@ export const postMessage = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_CHANNEL_MESSAGE_POSTED",
-      entityType: "ClubChannelMessage",
       entityId: messageId,
       meta: channelMessageAuditMeta({
         clubId: channel.clubId,
@@ -2346,7 +2342,6 @@ export const updateMessage = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_CHANNEL_MESSAGE_UPDATED",
-      entityType: "ClubChannelMessage",
       entityId: message._id,
       meta: {
         ...channelMessageAuditMeta({
@@ -2399,7 +2394,6 @@ export const deleteMessage = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_CHANNEL_MESSAGE_DELETED",
-      entityType: "ClubChannelMessage",
       entityId: message._id,
       meta: channelMessageAuditMeta({
         clubId: channel.clubId,
@@ -2459,7 +2453,6 @@ export const toggleReaction = mutation({
       await logAuditEvent(ctx, {
         actorId: user._id,
         action: "CLUB_CHANNEL_MESSAGE_REACTION_REMOVED",
-        entityType: "ClubChannelMessage",
         entityId: message._id,
         meta: channelMessageReactionAuditMeta({
           clubId: channel.clubId,
@@ -2479,7 +2472,6 @@ export const toggleReaction = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_CHANNEL_MESSAGE_REACTION_ADDED",
-      entityType: "ClubChannelMessage",
       entityId: message._id,
       meta: channelMessageReactionAuditMeta({
         clubId: channel.clubId,

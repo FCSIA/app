@@ -103,7 +103,6 @@ export const create = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_CREATED",
-      entityType: "Club",
       entityId: clubId,
     });
 
@@ -170,7 +169,6 @@ export const update = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_UPDATED",
-      entityType: "Club",
       entityId: clubId,
     });
     return null;
@@ -194,7 +192,6 @@ export const setVolunteerTrackingEnabled = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_UPDATED",
-      entityType: "Club",
       entityId: args.clubId,
       meta: { volunteerTrackingEnabled: args.enabled },
     });
@@ -214,7 +211,6 @@ export const deactivate = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_DEACTIVATED",
-      entityType: "Club",
       entityId: args.clubId,
     });
     return null;
@@ -243,7 +239,6 @@ export const deletePermanently = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_DELETION_STARTED",
-      entityType: "Club",
       entityId: club._id,
       meta: { name: club.name },
     });
@@ -271,7 +266,7 @@ export const setMemberRole = mutation({
       throw new ConvexError("You do not have permission to assign club roles");
     }
 
-    await requireClubRole(ctx, args.clubId, args.roleId);
+    const role = await requireClubRole(ctx, args.clubId, args.roleId);
 
     const member = await ctx.db
       .query("clubMembers")
@@ -291,9 +286,8 @@ export const setMemberRole = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_MEMBER_ROLE_SET",
-      entityType: "Club",
       entityId: args.clubId,
-      meta: { memberId: args.memberId, roleId: args.roleId },
+      meta: { memberId: args.memberId, roleId: args.roleId, roleName: role.name },
     });
     return null;
   },
@@ -435,7 +429,6 @@ export const createRole = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_ROLE_CREATED",
-      entityType: "Club",
       entityId: args.clubId,
       meta: { roleId, name },
     });
@@ -461,7 +454,6 @@ export const renameRole = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_ROLE_RENAMED",
-      entityType: "Club",
       entityId: args.clubId,
       meta: { roleId: role._id, name },
     });
@@ -533,10 +525,10 @@ export const removeRole = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_ROLE_REMOVED",
-      entityType: "Club",
       entityId: args.clubId,
       meta: {
         roleId: role._id,
+        roleName: role.name,
         reassignedImmediately: cascade.changed,
         reassignedToDefault: !!defaultRole,
         channelAccessRulesUpdated: affectedChannels.length,
@@ -628,9 +620,8 @@ export const setRolePermission = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_ROLE_PERMISSIONS_UPDATED",
-      entityType: "Club",
       entityId: args.clubId,
-      meta: { roleId: role._id },
+      meta: { roleId: role._id, roleName: role.name, permissions: [args.permission], enabled: args.enabled },
     });
     return null;
   },
@@ -663,9 +654,8 @@ export const setRolePermissionGroup = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_ROLE_PERMISSIONS_UPDATED",
-      entityType: "Club",
       entityId: args.clubId,
-      meta: { roleId: role._id, permissions: args.permissions },
+      meta: { roleId: role._id, roleName: role.name, permissions: args.permissions, enabled: args.enabled },
     });
     return null;
   },
@@ -685,9 +675,8 @@ export const setRoleDirectoryVisibility = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_ROLE_DIRECTORY_VISIBILITY_UPDATED",
-      entityType: "Club",
       entityId: args.clubId,
-      meta: { roleId: role._id, showInDirectory: args.showInDirectory },
+      meta: { roleId: role._id, roleName: role.name, showInDirectory: args.showInDirectory },
     });
     return null;
   },
@@ -719,7 +708,6 @@ export const removeMember = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_MEMBER_REMOVED",
-      entityType: "Club",
       entityId: args.clubId,
       meta: { memberId: args.memberId },
     });

@@ -195,7 +195,6 @@ export const register = mutation({
       actorId: user._id,
       action: "FLEX_WORKSHOP_REGISTERED",
       entityId: registrationId,
-      entityType: "FLEX_REGISTRATION",
       workshopId: workshop._id,
       meta: { workshopTitle: workshop.title },
     });
@@ -226,7 +225,6 @@ export const unregister = mutation({
       actorId: user._id,
       action: "FLEX_REGISTRATION_REMOVED",
       entityId: registration._id,
-      entityType: "FLEX_REGISTRATION",
       workshopId: registration.workshopId,
       meta: workshop ? { workshopTitle: workshop.title } : undefined,
     });
@@ -337,7 +335,6 @@ export const assign = mutation({
       actorId: user._id,
       action: "FLEX_WORKSHOP_ASSIGNED",
       entityId: assignmentId,
-      entityType: "FLEX_ASSIGNMENT",
       workshopId: workshop._id,
       meta: { workshopTitle: workshop.title, studentId: student._id },
     });

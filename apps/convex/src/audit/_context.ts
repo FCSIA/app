@@ -39,6 +39,15 @@ const ENTITY_TABLES: Record<string, TableNames> = {
   schooldaytemplate: 'schoolDayTemplates',
   schooldaydateoverride: 'schoolDayDateOverrides',
 };
+/** The meta field naming the person a row is about, when its record is something else. */
+const PERSON_META: Partial<Record<string, string>> = {
+  CLUB_MEMBER_ROLE_SET: 'memberId',
+  CLUB_MEMBER_REMOVED: 'memberId',
+  CLUB_UNIT_MEMBER_SET: 'memberId',
+  CLUB_UNIT_MEMBER_REMOVED: 'memberId',
+  CLUB_MEMBER_ADDED_DIRECTLY: 'userId',
+  'schedule.updated': 'userId',
+};
 const REFERENCE_TABLES: Record<string, TableNames> = {
   userId: 'users',
   studentId: 'users',
@@ -88,11 +97,15 @@ function recordText(table: TableNames, value: Record<string, unknown>): string |
 }
 /** A cancellation can recover scope for a signup logged before workshop IDs were saved. */
 export async function workshopFromCancellation(ctx: QueryCtx, registrationId: string) {
-  const latest = await ctx.db.query('auditEvents')
-    .withIndex('by_entityType_and_entityId_and_createdAt', (q) =>
-      q.eq('entityType', 'FLEX_REGISTRATION').eq('entityId', registrationId),
-    ).order('desc').first();
-  return latest?.action === 'FLEX_REGISTRATION_REMOVED' ? latest.workshopId : undefined;
+  // Rows not yet migrated keep the old spelling of the record type.
+  for (const entityType of ['FlexRegistration', 'FLEX_REGISTRATION']) {
+    const latest = await ctx.db.query('auditEvents')
+      .withIndex('by_entityType_and_entityId_and_createdAt', (q) =>
+        q.eq('entityType', entityType).eq('entityId', registrationId),
+      ).order('desc').first();
+    if (latest) return latest.action === 'FLEX_REGISTRATION_REMOVED' ? latest.workshopId : undefined;
+  }
+  return undefined;
 }
 
 /** Per-page memoization keeps repeated people, clubs, and channels to one read. */
@@ -124,12 +137,19 @@ export function auditContextResolver(ctx: QueryCtx) {
     const deleted = !live && !!table && !!event.entityId && ctx.db.normalizeId(table, event.entityId) !== null;
     // A sign-in lock names its account by auth user ("auth:<id>"). The person
     // behind it is what an admin reading the lock wants to know.
-    const authUserId = event.entityType === 'authAccount' && event.entityId?.startsWith('auth:')
+    const authUserId = type === 'authaccount' && event.entityId?.startsWith('auth:')
       ? event.entityId.slice('auth:'.length) : null;
     const account = authUserId
       ? await ctx.db.query('users').withIndex('by_authUserId', (q) => q.eq('authUserId', authUserId)).first()
       : null;
-    const personDoc = account ?? (table === 'users' && live ? (entity as unknown as Doc<'users'>) : null);
+    // Membership and schedule rows name a club or a schedule, but they are
+    // about a person: whose role changed, whose schedule this is.
+    const personKey = PERSON_META[event.action];
+    const personId = personKey
+      ? (typeof meta[personKey] === 'string' ? meta[personKey] : event.action === 'schedule.updated' ? entity?.userId : null)
+      : null;
+    const subject = typeof personId === 'string' ? await read('users', personId) : null;
+    const personDoc = (account ?? (table === 'users' && live ? entity : subject)) as Doc<'users'> | null;
     const person = personDoc ? {
       id: personDoc._id,
       firstName: personDoc.firstName,
@@ -155,7 +175,8 @@ export function auditContextResolver(ctx: QueryCtx) {
       await Promise.all(
         Object.entries(REFERENCE_TABLES).map(async ([key, refTable]) => {
           const workshop = key === 'workshopId';
-          const id = (workshop ? event.workshopId ?? recoveredWorkshopId : undefined) ?? meta[key] ?? entity?.[key];
+          const id = (workshop ? event.workshopId ?? recoveredWorkshopId : undefined) ?? meta[key] ??
+            (key === 'impersonatedByUserId' ? event.impersonatedByUserId : undefined) ?? entity?.[key];
           if (typeof id !== 'string') return null;
           const snapshot = workshop && typeof meta.workshopTitle === 'string' ? meta.workshopTitle : null;
           const doc = snapshot ? null : await read(refTable, id);
@@ -191,9 +212,14 @@ export function auditContextResolver(ctx: QueryCtx) {
       if (targetTable?.startsWith('club') && clubId) return clubHref(clubId);
       return null;
     };
+    // A role by the name it had then (rows that predate the snapshot use its current name).
+    const role = typeof meta.roleId === 'string'
+      ? { id: meta.roleId, name: typeof meta.roleName === 'string' ? meta.roleName : recordName((await read('clubRoles', meta.roleId)) ?? {}) }
+      : null;
     const links = [
       ...(event.entityId ? [{ id: event.entityId, label: 'Record', name: title, href: account ? adminUserHref(account._id) : live ? href(table, event.entityId) : null }] : []),
       ...references.map((ref) => ({ ...ref, href: href(REFERENCE_TABLES[Object.keys(REFERENCE_TABLES).find((key) => auditLabel(key.replace(/Id$/, '')) === ref.label) ?? ''], ref.id) })),
+      ...(role?.name ? [{ id: role.id, label: 'Role', name: role.name, href: null }] : []),
     ];
     return { title, subtitle, references, links, deleted, ...(person ? { person } : {}) };
   };

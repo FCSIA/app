@@ -126,6 +126,46 @@ fall back to chronological filtering and the UI shows loaded counts. Other lost
 human attribution cannot be reconstructed. This repair did not deploy or invoke
 the migration. Deploy/run only against an explicitly authorized target.
 
+### Typed events
+
+Every action has one spec in `apps/convex/src/audit/_spec.ts`: the record type
+it names and the shape of its `meta`. `logAuditEvent` takes the action and
+derives the rest, so writers no longer pass `entityType`, and a `meta` field
+the spec doesn't declare fails to typecheck. The table's target validator is
+built from the same specs: one variant per action with a literal action,
+record type and category. `AUDIT_RECORD_TYPES` in `apps/shared/audit.ts` is the
+one spelling of each record type; `AUDIT_ENTITY_TYPES` keeps the older
+spellings so filters still match rows not yet migrated. Retired actions
+(`ANNOUNCEMENT_READ`, `ANNOUNCEMENT_UNREAD`) stay in the list so stored rows
+read and validate, and writers can't log them.
+
+The system marker and the impersonating administrator are top-level fields
+(`source`, `impersonatedByUserId`), not `meta`. Role rows record the role's
+name (`roleName`) as it was, permission rows whether permissions were granted
+or removed (`enabled`), and `schedule.updated` whose schedule it is (`userId`).
+The context resolver turns these into `context.person` and a `Role` link, so
+the Record column shows "person → role · club" and "Own schedule".
+
+Rollout, one release apart:
+
+1. Deploy this release. The widened validator is enforced and the target is
+   staged (`schema.ts`), so the deploy doesn't scan the table.
+2. Run `convex run audit/migrations:typeAuditEvents '{"dryRun":true}'`, then
+   without `dryRun`. It is idempotent: canonical record types, provenance out
+   of `meta`, message counts derived from older rows that stored full text,
+   schedule owners, and role names from the role's own create/rename rows.
+3. Redeploy unchanged. Fixing rows doesn't clear a failed stage; a redeploy
+   re-validates. `npx convex deploy --dry-run` should report it validated.
+4. In the next release, replace the enforced validator with
+   `auditEventsTargetValidator()`, drop `.staged()`, and drop the reads that
+   still accept the old spellings and `meta.auditSource`.
+
+Every row exported from production on 2026-11-25 (2,253) passed the target
+validator after this migration in a local dry run; IDs were checked as
+strings there, so the staged validation is the check that each names the
+right table. Rows written before previews still keep the full message text
+in `meta.body`/`previousBody`; the target allows it rather than deleting it.
+
 ## Source and API
 
 - Backend: `apps/convex/src/audit/`

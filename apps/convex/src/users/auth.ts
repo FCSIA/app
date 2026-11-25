@@ -32,7 +32,6 @@ export const changePassword = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "user.password_changed",
-      entityType: "user",
       entityId: user._id,
     });
 

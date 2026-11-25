@@ -42,7 +42,6 @@ export const createBlock = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "schoolDayBlock.created",
-      entityType: "schoolDayBlock",
       entityId: id,
       meta: { weekday: block.weekday, label: block.label },
     });
@@ -81,7 +80,6 @@ export const updateBlock = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "schoolDayBlock.updated",
-      entityType: "schoolDayBlock",
       entityId: block._id,
       meta: { weekday: block.weekday, label: block.label },
     });
@@ -101,7 +99,6 @@ export const deleteBlock = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "schoolDayBlock.deleted",
-      entityType: "schoolDayBlock",
       entityId: args.blockId,
       meta: { weekday: block.weekday, label: block.label },
     });

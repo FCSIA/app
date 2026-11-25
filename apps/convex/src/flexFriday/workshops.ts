@@ -169,7 +169,6 @@ export const create = mutation({
       actorId: user._id,
       action: "FLEX_WORKSHOP_CREATED",
       entityId: workshopId,
-      entityType: "FLEX_WORKSHOP",
     });
 
     return workshopId;
@@ -255,7 +254,6 @@ export const update = mutation({
       actorId: user._id,
       action: "FLEX_WORKSHOP_UPDATED",
       entityId: args.workshopId,
-      entityType: "FLEX_WORKSHOP",
     });
   },
 });
@@ -307,7 +305,6 @@ export const remove = mutation({
       actorId: user._id,
       action: "FLEX_WORKSHOP_DELETED",
       entityId: args.workshopId,
-      entityType: "FLEX_WORKSHOP",
     });
   },
 });

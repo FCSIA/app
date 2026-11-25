@@ -5,6 +5,7 @@ import { describe, expect, test, vi } from 'vitest';
 import schema from '../schema';
 import { api, internal } from '../_generated/api';
 import { logAuditEvent } from './_lib';
+import { typedAuditLookups, typedAuditPatch } from './_typed';
 import type { Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../_generated/server';
 import { listFilteredPage } from './events';
@@ -309,6 +310,37 @@ describe('audit history and context', () => {
       expect(actual).toEqual(expected);
     }
   });
+  test('types legacy rows: one record type, moved provenance, schedule owners and role names', async () => {
+    const f = await fixture();
+    const result = await f.t.run(async (ctx) => {
+      const schedule = await ctx.db.insert('studentSchedules', { userId: f.student, isPublic: true, createdAt: 0, updatedAt: 0 });
+      const role = await ctx.db.insert('clubRoles', { clubId: f.club, name: 'Captain', createdById: f.admin, createdAt: 0, updatedAt: 0 });
+      // The role was called Treasurer when it was assigned, and renamed later.
+      await ctx.db.insert('auditEvents', { actorId: f.admin, action: 'CLUB_ROLE_CREATED', entityType: 'Club', entityId: f.club, meta: { roleId: role, name: 'Treasurer' }, createdAt: 1 });
+      const assigned = await ctx.db.insert('auditEvents', { actorId: f.admin, action: 'CLUB_MEMBER_ROLE_SET', entityType: 'Club', entityId: f.club, meta: { memberId: f.student, roleId: role }, createdAt: 2 });
+      await ctx.db.insert('auditEvents', { actorId: f.admin, action: 'CLUB_ROLE_RENAMED', entityType: 'Club', entityId: f.club, meta: { roleId: role, name: 'Captain' }, createdAt: 3 });
+      const updated = await ctx.db.insert('auditEvents', { actorId: f.student, action: 'schedule.updated', entityType: 'studentSchedule', entityId: schedule, meta: { isPublic: true, entryCount: 7 }, createdAt: 4 });
+      const locked = await ctx.db.insert('auditEvents', { action: 'auth.login_locked', entityType: 'authAccount', entityId: 'identifier:nobody', meta: { auditSource: 'system', failureCount: 5, lockedUntil: 9 }, createdAt: 5 });
+      const reported = await ctx.db.insert('auditEvents', { actorId: f.student, action: 'REPORT_SUBMITTED', entityType: 'Report', meta: { contentType: 'GENERAL', impersonatedByUserId: f.admin }, createdAt: 6 });
+      const patches = [];
+      for (const id of [assigned, updated, locked, reported]) {
+        const row = (await ctx.db.get(id))!;
+        const patch = typedAuditPatch(row, await typedAuditLookups(ctx, row));
+        patches.push(patch);
+        if (patch) await ctx.db.patch(id, patch);
+        expect(typedAuditPatch((await ctx.db.get(id))!, await typedAuditLookups(ctx, (await ctx.db.get(id))!))).toBeNull();
+      }
+      return { patches, schedule };
+    });
+    expect(result.patches).toEqual([
+      // These rows were inserted without a stored category, which the patch fills in.
+      { category: 'clubs-chat', meta: { memberId: f.student, roleId: expect.any(String), roleName: 'Treasurer' } },
+      { category: 'schedules', entityType: 'StudentSchedule', meta: { isPublic: true, entryCount: 7, userId: f.student } },
+      { category: 'people-access', entityType: 'AuthAccount', source: 'system', meta: { failureCount: 5, lockedUntil: 9 } },
+      { category: 'moderation', impersonatedByUserId: f.admin, meta: { contentType: 'GENERAL' } },
+    ]);
+  });
+
   test('names the person a record is: another user, or the account a sign-in lock locked', async () => {
     const f = await fixture();
     const [request, lock, unknown] = await f.t.run(async (ctx) => {
@@ -518,7 +550,7 @@ describe('audit index integrity', () => {
     await f.t.mutation(internal.audit.migrations.backfill, {});
     expect((await f.adminClient.query(api.audit.events.counts, {})).total).toBe(7);
     await f.t.run(async (ctx) => {
-      await logAuditEvent(ctx, { actorId: f.admin, action: 'CLUB_CHANNEL_CREATED', entityType: 'ClubChannel', meta: { title: 'A channel' } });
+      await logAuditEvent(ctx, { actorId: f.admin, action: 'CLUB_CHANNEL_CREATED' });
     });
     expect((await f.adminClient.query(api.audit.events.counts, {})).total).toBe(8);
     const person = await f.adminClient.query(api.audit.events.counts, { actorId: f.admin, category: 'clubs-chat' });
@@ -534,8 +566,8 @@ describe('audit index integrity', () => {
     const adminClient = t.withIdentity({ subject: admin });
     expect(await adminClient.query(api.audit.events.counts, {})).toMatchObject({ total: 0, exact: true });
     await t.run(async (ctx) => {
-      await logAuditEvent(ctx, { actorId: admin, action: 'CLUB_CHANNEL_CREATED', entityType: 'ClubChannel', meta: { title: 'A channel' } });
-      await logAuditEvent(ctx, { actorId: 'system', action: 'KEYWORD_ADDED', entityType: 'KeywordRule', meta: { keyword: 'example' } });
+      await logAuditEvent(ctx, { actorId: admin, action: 'CLUB_CHANNEL_CREATED' });
+      await logAuditEvent(ctx, { actorId: 'system', action: 'KEYWORD_ADDED', meta: { keyword: 'example' } });
     });
     expect(await adminClient.query(api.audit.events.counts, {})).toMatchObject({ total: 2, exact: true });
     expect(await adminClient.query(api.audit.events.counts, { actorId: admin })).toMatchObject({ total: 1, exact: true });
@@ -570,12 +602,12 @@ describe('audit index integrity', () => {
       const channel = await ctx.db.insert('clubChannels', { clubId: f.club, name: 'general', visibility: 'PUBLIC', createdById: f.admin, createdAt: 0, updatedAt: 0 });
       const message = await ctx.db.insert('clubChannelMessages', { channelId: channel, authorId: f.student, body: '  Bring safety goggles on Friday  ', isPinned: false, createdAt: 0, updatedAt: 0 });
       const removed = await ctx.db.insert('clubChannelMessages', { channelId: channel, authorId: f.student, body: 'Removed text', isPinned: false, deletedAt: 5, createdAt: 0, updatedAt: 5 });
-      const react = (entityId: string) => logAuditEvent(ctx, { actorId: f.student, action: 'CLUB_CHANNEL_MESSAGE_REACTION_ADDED', entityType: 'ClubChannelMessage', entityId, meta: { clubId: f.club, channelId: channel, emoji: 'LIKE' } });
+      const react = (entityId: string) => logAuditEvent(ctx, { actorId: f.student, action: 'CLUB_CHANNEL_MESSAGE_REACTION_ADDED', entityId, meta: { clubId: f.club, channelId: channel, emoji: 'LIKE', removedReactionCount: 0 } });
       return {
         channel, message,
         live: await react(message),
         removed: await react(removed),
-        bulk: await logAuditEvent(ctx, { actorId: f.admin, action: 'USER_CSV_BULK_UPDATED', entityType: 'User', entityId: 'bulk', meta: { updated: 2 } }),
+        bulk: await logAuditEvent(ctx, { actorId: f.admin, action: 'USER_CSV_BULK_UPDATED', entityId: 'bulk', meta: { updated: 2, skipped: 0 } }),
       };
     });
     const live = await f.adminClient.query(api.audit.events.get, { auditEventId: ids.live });

@@ -446,7 +446,6 @@ export const create = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "ANNOUNCEMENT_CREATED",
-      entityType: "Announcement",
       entityId: annId,
       meta: { title, imageCount: args.imageUploadIds?.length ?? 0, embedCount: embedUrls.length },
     });
@@ -508,7 +507,6 @@ export const approve = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "ANNOUNCEMENT_APPROVED",
-      entityType: "Announcement",
       entityId: args.announcementId,
     });
   },
@@ -542,7 +540,6 @@ export const reject = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "ANNOUNCEMENT_REJECTED",
-      entityType: "Announcement",
       entityId: args.announcementId,
     });
   },

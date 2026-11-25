@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import type { Id } from "../_generated/dataModel";
 import { MAX_WHITEBOARD_ELEMENTS_PER_SAVE } from "../../../shared/chat/whiteboard-limits";
 import {
   MAX_WHITEBOARD_AUDIT_CHANGES,
@@ -126,9 +127,9 @@ describe("whiteboard audit metadata", () => {
       textPreview: "y".repeat(500),
     }));
     const meta = whiteboardEditAuditMeta({
-      clubId: "club",
-      channelId: "channel",
-      boardId: "board",
+      clubId: "club" as Id<"clubs">,
+      channelId: "channel" as Id<"clubChannels">,
+      boardId: "board" as Id<"clubWhiteboards">,
       fromSeq: 1,
       toSeq: changes.length,
       changes,
@@ -208,9 +209,9 @@ describe("whiteboard titles, previews, and revisions", () => {
   test("folds coalesced saves into one bounded audit row", () => {
     const save = (fromSeq: number, count: number, change: "created" | "deleted" = "created") =>
       whiteboardEditAuditMeta({
-        clubId: "c",
-        channelId: "ch",
-        boardId: "b",
+        clubId: "c" as Id<"clubs">,
+        channelId: "ch" as Id<"clubChannels">,
+        boardId: "b" as Id<"clubWhiteboards">,
         fromSeq,
         toSeq: fromSeq + count - 1,
         changes: Array.from({ length: count }, (_, index) => ({

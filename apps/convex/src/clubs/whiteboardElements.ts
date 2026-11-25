@@ -1,4 +1,5 @@
 import { ConvexError } from "convex/values";
+import type { Id } from "../_generated/dataModel";
 import {
   MAX_WHITEBOARD_ELEMENTS_PER_SAVE,
   MAX_WHITEBOARD_SAVE_BYTES,
@@ -271,9 +272,9 @@ export type WhiteboardAuditChange = {
  * text previews; the complete element data is in `clubWhiteboardHistory`.
  */
 export function whiteboardEditAuditMeta(input: {
-  clubId: string;
-  channelId: string;
-  boardId: string;
+  clubId: Id<"clubs">;
+  channelId: Id<"clubChannels">;
+  boardId: Id<"clubWhiteboards">;
   fromSeq: number;
   toSeq: number;
   changes: WhiteboardAuditChange[];

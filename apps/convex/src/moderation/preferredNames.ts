@@ -62,7 +62,6 @@ export async function moderatePreferredName(
   await logAuditEvent(ctx, {
     actorId: user._id,
     action: "AUTO_MODERATION_FLAGGED",
-    entityType: "Report",
     entityId: reportId,
     meta: { contentType: "PREFERRED_NAME", contentId: user._id, matchedWords: result.matchedWords },
   });

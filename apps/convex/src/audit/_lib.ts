@@ -1,5 +1,6 @@
 import { CLI_CLIENT_ID } from "../../../shared/cli-client";
-import { auditCategory, type AuditAction } from "../../../shared/audit";
+import { AUDIT_ACTIONS } from "../../../shared/audit";
+import { auditRecordTypeOf, type AuditMeta, type WritableAuditAction } from "./_spec";
 import { auditByActor, auditByCategory } from "./_aggregates";
 import { v } from "convex/values";
 import { paginationResultValidator } from "convex/server";
@@ -22,6 +23,8 @@ export const actorValidator = v.union(personValidator, v.null());
 export const auditEventValidator = v.object({
   id: v.id("auditEvents"),
   client: v.optional(v.literal("cli")),
+  source: v.optional(v.literal("system")),
+  impersonatedByUserId: v.optional(v.id("users")),
   action: v.string(),
   entityType: v.string(),
   entityId: v.union(v.string(), v.null()),
@@ -58,6 +61,9 @@ export function auditEventSerializer(ctx: QueryCtx) {
     return {
       id: event._id,
       client: event.client,
+      source: event.source ?? (isRecord(event.meta) && event.meta.auditSource === "system" ? "system" as const : undefined),
+      impersonatedByUserId: event.impersonatedByUserId ??
+        (isRecord(event.meta) && typeof event.meta.impersonatedByUserId === "string" ? event.meta.impersonatedByUserId as Id<"users"> : undefined),
       actorId: event.actorId ?? null,
       workshopId: event.workshopId,
       context,
@@ -84,24 +90,27 @@ export async function toAuditEvents(ctx: QueryCtx, events: Doc<"auditEvents">[])
   return await Promise.all(events.map(auditEventSerializer(ctx)));
 }
 
-export async function logAuditEvent(
+/**
+ * Records one audit event. The action decides the rest of its shape: its
+ * record type and category come from AUDIT_EVENT_SPECS, and `meta` must be
+ * the shape that spec declares, so the table's validator never meets a field
+ * a writer made up.
+ */
+export async function logAuditEvent<A extends WritableAuditAction>(
   ctx: MutationCtx,
   input: {
     actorId: Id<"users"> | "system";
-    action: AuditAction;
-    entityType: string;
+    action: A;
     entityId?: string;
     workshopId?: Id<"flexWorkshops">;
-    meta?: unknown;
+    meta?: AuditMeta<A>;
   },
 ) {
   // Better Auth keeps the original administrator on an impersonated session.
-  // Preserve that provenance on every application audit event while retaining
+  // Record that provenance on every application audit event while retaining
   // the effective user as `actorId`, which reflects the permissions used.
-  let meta = input.actorId === 'system'
-    ? { ...(isRecord(input.meta) ? input.meta : input.meta === undefined ? {} : { originalMeta: input.meta }), auditSource: 'system' }
-    : input.meta;
   let client: "cli" | undefined;
+  let impersonatedByUserId: Id<"users"> | undefined;
   const identity = await ctx.auth.getUserIdentity();
   if (identity?.sessionId) {
     const session = (await ctx.runQuery(components.betterAuth.adapter.findOne, {
@@ -116,23 +125,20 @@ export async function logAuditEvent(
           q.eq("authUserId", session.impersonatedBy!),
         )
         .unique();
-      if (impersonator) {
-        meta = {
-          ...(isRecord(meta) ? meta : meta === undefined ? {} : { originalMeta: meta }),
-          impersonatedByUserId: impersonator._id,
-        };
-      }
+      impersonatedByUserId = impersonator?._id;
     }
   }
   const id = await ctx.db.insert("auditEvents", {
     actorId: input.actorId === "system" ? undefined : input.actorId,
+    source: input.actorId === "system" ? "system" : undefined,
+    impersonatedByUserId,
     client,
-    category: auditCategory(input.entityType, input.action),
+    category: AUDIT_ACTIONS[input.action].category,
     action: input.action,
-    entityType: input.entityType,
+    entityType: auditRecordTypeOf(input.action),
     entityId: input.entityId,
     workshopId: input.workshopId,
-    meta,
+    meta: input.meta,
     createdAt: Date.now(),
   });
   const doc = (await ctx.db.get(id))!;

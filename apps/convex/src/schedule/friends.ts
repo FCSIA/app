@@ -316,7 +316,6 @@ export const sendRequest = mutation({
         await logAuditEvent(ctx, {
           actorId: user._id,
           action: "schedule.friend_accepted",
-          entityType: "user",
           entityId: target._id,
         });
         await deliverNotification(ctx, {
@@ -339,7 +338,6 @@ export const sendRequest = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "schedule.friend_requested",
-      entityType: "user",
       entityId: target._id,
     });
     await deliverNotification(ctx, {
@@ -375,7 +373,6 @@ export const acceptRequest = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "schedule.friend_accepted",
-      entityType: "user",
       entityId: args.requesterId,
     });
     await deliverNotification(ctx, {
@@ -400,7 +397,6 @@ export const remove = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "schedule.friend_removed",
-      entityType: "user",
       entityId: args.otherUserId,
     });
     return { success: true };

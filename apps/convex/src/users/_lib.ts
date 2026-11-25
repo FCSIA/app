@@ -458,7 +458,6 @@ export async function applyRoleChange(
   await logAuditEvent(ctx, {
     actorId: actor._id,
     action: "user.roles_assigned",
-    entityType: "user",
     entityId: target._id,
     meta: { roles: nextRoles },
   });

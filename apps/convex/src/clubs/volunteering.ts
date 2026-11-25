@@ -352,7 +352,6 @@ export const review = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_UPDATED",
-      entityType: "Club",
       entityId: args.clubId,
       meta: { volunteerLogId: log._id, decision: args.decision },
     });

@@ -132,7 +132,6 @@ export const revoke = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "auth.cli_session_revoked",
-      entityType: "authSession",
       entityId: session._id,
     });
     return { outcome: "revoked" as const };
@@ -164,7 +163,6 @@ export const recordSignIn = internalMutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "auth.cli_signed_in",
-      entityType: "authSession",
       entityId: args.sessionId,
       meta: { client: client.label },
     });

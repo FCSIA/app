@@ -276,7 +276,6 @@ export const saveGithubIssue = internalMutation({
     }
     await logAuditEvent(ctx, { actorId: "system",
       action: "FEEDBACK_GITHUB_ISSUE_CREATED",
-      entityType: "Report",
       entityId: args.reportId,
       meta: { issueNumber: args.issueNumber },
     });
@@ -296,7 +295,6 @@ export const saveGithubIssueFailure = internalMutation({
     });
     await logAuditEvent(ctx, { actorId: "system",
       action: "FEEDBACK_GITHUB_ISSUE_FAILED",
-      entityType: "Report",
       entityId: args.reportId,
     });
     return null;
@@ -708,9 +706,8 @@ async function applyGithubStatus(
   }
   await logAuditEvent(ctx, { actorId: "system",
     action: "FEEDBACK_GITHUB_ISSUE_STATE_SYNCED",
-    entityType: "Report",
     entityId: report._id,
-    meta: { issueNumber: change.issueNumber, status: change.status, stateReason: change.stateReason },
+    meta: { issueNumber: change.issueNumber, status: change.status, stateReason: change.stateReason ?? null },
   });
 }
 

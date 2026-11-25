@@ -224,7 +224,6 @@ async function createReport(
   await logAuditEvent(ctx, {
     actorId: user._id,
     action: "REPORT_SUBMITTED",
-    entityType: "Report",
     entityId: reportId,
     meta: { contentType: input.contentType, contentId: input.contentId },
   });
@@ -532,7 +531,6 @@ export const update = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "REPORT_UPDATED",
-      entityType: "Report",
       entityId: args.reportId,
       meta: { status: args.status, previousStatus: report.status },
     });
@@ -571,7 +569,6 @@ export const retryGithubIssueSync = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "FEEDBACK_GITHUB_ISSUE_RETRY_QUEUED",
-      entityType: "Report",
       entityId: report._id,
     });
     return { success: true };
@@ -624,7 +621,6 @@ export const addFeedbackResponse = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "FEEDBACK_RESPONSE_ADDED",
-      entityType: "Report",
       entityId: report._id,
       meta: { responseId },
     });

@@ -41,8 +41,29 @@ export const AUDIT_CATEGORIES = {
 } as const;
 export type AuditCategory = keyof typeof AUDIT_CATEGORIES;
 export const auditEntityKey = (type: string) => type.replace(/[_\s]/g, '').toLowerCase();
+/**
+ * Every kind of record an audit event can name, in its one canonical
+ * spelling. Writers no longer choose it: each action has exactly one record
+ * type (see AUDIT_EVENT_SPECS in the backend), and the 2026-11 migration
+ * rewrote older rows from the spellings in AUDIT_ENTITY_TYPES.
+ */
+export const AUDIT_RECORD_TYPES = [
+  'User', 'AuthAccount', 'AuthSession',
+  'Club', 'ClubChannel', 'ClubChannelMessage', 'ClubWhiteboard', 'ClubUnit', 'ClubPeopleGroup', 'ClubJoinRequest',
+  'Announcement', 'Comment', 'Report', 'KeywordRule',
+  'StudentSchedule', 'StudentScheduleGroup', 'StudentFriendShareLink',
+  'SchoolDayBlock', 'SchoolDayTemplate', 'SchoolDayDateOverride', 'SchoolScheduleSettings',
+  'FlexFriday', 'FlexSession', 'FlexWorkshop', 'FlexRegistration', 'FlexAssignment', 'FlexAttendance',
+  'Event',
+] as const;
+export type AuditRecordType = (typeof AUDIT_RECORD_TYPES)[number];
+const RECORD_TYPE_BY_KEY = new Map<string, AuditRecordType>(AUDIT_RECORD_TYPES.map((type) => [auditEntityKey(type), type]));
+/** The canonical spelling of a stored record type, or null for one no action writes. */
+export function auditRecordType(stored: string): AuditRecordType | null {
+  return RECORD_TYPE_BY_KEY.get(auditEntityKey(stored)) ?? null;
+}
 /** Known stored spellings share one semantic filter without rewriting history. */
-export const AUDIT_ENTITY_TYPES = ['User', 'authAccount', 'authSession', 'Club', 'ClubChannel', 'ClubChannelMessage', 'ClubWhiteboard', 'ClubUnit', 'ClubPeopleGroup', 'ClubJoinRequest', 'Announcement', 'Comment', 'Report', 'KeywordRule', 'StudentSchedule', 'StudentScheduleGroup', 'StudentFriendShareLink', 'SchoolDayBlock', 'SchoolDayTemplate', 'SchoolDayDateOverride', 'SchoolScheduleSettings', 'FlexFriday', 'FlexSession', 'FlexWorkshop', 'FlexRegistration', 'FlexAssignment', 'FlexAttendance', 'Event', 'user', 'club', 'studentSchedule', 'studentScheduleGroup', 'studentFriendShareLink', 'schoolDayBlock', 'schoolDayTemplate', 'schoolDayDateOverride', 'schoolScheduleSettings', 'FLEX_FRIDAY', 'FLEX_SESSION', 'FLEX_WORKSHOP', 'FLEX_REGISTRATION', 'FLEX_ASSIGNMENT', 'FLEX_ATTENDANCE', 'EVENT'] as const;
+export const AUDIT_ENTITY_TYPES = ['User', 'AuthAccount', 'AuthSession', 'authAccount', 'authSession', 'Club', 'ClubChannel', 'ClubChannelMessage', 'ClubWhiteboard', 'ClubUnit', 'ClubPeopleGroup', 'ClubJoinRequest', 'Announcement', 'Comment', 'Report', 'KeywordRule', 'StudentSchedule', 'StudentScheduleGroup', 'StudentFriendShareLink', 'SchoolDayBlock', 'SchoolDayTemplate', 'SchoolDayDateOverride', 'SchoolScheduleSettings', 'FlexFriday', 'FlexSession', 'FlexWorkshop', 'FlexRegistration', 'FlexAssignment', 'FlexAttendance', 'Event', 'user', 'club', 'studentSchedule', 'studentScheduleGroup', 'studentFriendShareLink', 'schoolDayBlock', 'schoolDayTemplate', 'schoolDayDateOverride', 'schoolScheduleSettings', 'FLEX_FRIDAY', 'FLEX_SESSION', 'FLEX_WORKSHOP', 'FLEX_REGISTRATION', 'FLEX_ASSIGNMENT', 'FLEX_ATTENDANCE', 'EVENT'] as const;
 /**
  * What an action did, independent of where it happened. The category says
  * which part of the product; the kind picks the row's icon and tint.
@@ -62,6 +83,8 @@ type AuditActionInfo = {
   destructive?: boolean;
   /** Written by the system itself, so an event without an actor is not "unknown". */
   system?: boolean;
+  /** No longer written; kept so stored rows still read and validate. */
+  retired?: boolean;
 };
 /** Every action the backend writes; `logAuditEvent` accepts only these keys. */
 export const AUDIT_ACTIONS = {
@@ -71,6 +94,8 @@ export const AUDIT_ACTIONS = {
   "ANNOUNCEMENT_COMMENT_ADDED": { kind: "message", label: "Added announcement comment", category: "announcements" },
   "ANNOUNCEMENT_COMMENT_DELETED": { label: "Deleted announcement comment", category: "announcements", destructive: true },
   "ANNOUNCEMENT_CREATED": { label: "Created announcement", category: "announcements" },
+  "ANNOUNCEMENT_READ": { kind: "toggle", label: "Read announcement", category: "announcements", retired: true },
+  "ANNOUNCEMENT_UNREAD": { kind: "toggle", label: "Marked announcement unread", category: "announcements", retired: true },
   "ANNOUNCEMENT_REJECTED": { label: "Rejected announcement", category: "announcements", destructive: true },
   "AUTO_MODERATION_FLAGGED": { label: "Flagged content for moderation", category: "moderation" },
   "CLUB_BULK_STRUCTURE_ASSIGNMENTS_APPLIED": { label: "Assigned club structure in bulk", category: "clubs-chat" },
@@ -150,7 +175,6 @@ export const AUDIT_ACTIONS = {
   "KEYWORD_REMOVED": { kind: "rule", label: "Removed keyword", category: "moderation", destructive: true },
   "REPORT_SUBMITTED": { kind: "report", label: "Submitted report", category: "moderation" },
   "REPORT_UPDATED": { kind: "edit", label: "Updated report", category: "moderation" },
-  "RESTORE": { label: "Restore", category: "people-access" },
   "USER_CSV_BULK_UPDATED": { label: "Updated people from CSV", category: "people-access" },
   "USER_CSV_IMPORT": { label: "Imported people from CSV", category: "people-access" },
   "USER_DEVELOPER_STATUS_UPDATED": { kind: "access", label: "Updated user developer status", category: "people-access" },
@@ -195,6 +219,10 @@ export const AUDIT_ACTIONS = {
   "user.roles_assigned": { kind: "access", label: "Assigned user roles", category: "people-access" },
 } satisfies Record<string, AuditActionInfo>;
 export type AuditAction = keyof typeof AUDIT_ACTIONS;
+/** Actions a writer may still log: every action that is not retired. */
+export type WritableAuditAction = {
+  [A in AuditAction]: (typeof AUDIT_ACTIONS)[A] extends { retired: true } ? never : A
+}[AuditAction];
 const AUDIT_ACTION_INFO: Partial<Record<string, AuditActionInfo>> = AUDIT_ACTIONS;
 /** Stored rows may carry retired actions, so lookups take any string. */
 export function auditActionInfo(action: string): AuditActionInfo | undefined {
@@ -324,6 +352,8 @@ export type SearchableAuditEvent = {
   entityType: string;
   entityId?: string | null;
   actorId?: string | null;
+  /** Written by the system (older rows said so in `meta.auditSource`). */
+  source?: 'system' | null;
   createdAt: string;
   meta?: unknown;
   actor?: {
@@ -348,7 +378,7 @@ function auditMeta(event: SearchableAuditEvent): Record<string, unknown> {
     : {};
 }
 export function isAuditSystem(event: SearchableAuditEvent): boolean {
-  return !event.actorId && !event.actor && (auditMeta(event).auditSource === 'system' || auditActionInfo(event.action)?.system === true);
+  return !event.actorId && !event.actor && (event.source === 'system' || auditMeta(event).auditSource === 'system' || auditActionInfo(event.action)?.system === true);
 }
 export function auditPersonName(event: SearchableAuditEvent): string {
   return event.actor

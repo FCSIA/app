@@ -233,7 +233,6 @@ export const joinOpenClub = mutation({
       await logAuditEvent(ctx, {
       actorId: user._id,
         action: "CLUB_JOINED",
-        entityType: "Club",
         entityId: args.clubId,
         meta: { userId: user._id },
       });
@@ -350,7 +349,6 @@ export const respondToJoinRequest = mutation({
       action: args.accept
         ? "CLUB_JOIN_REQUEST_APPROVED"
         : "CLUB_JOIN_REQUEST_DECLINED",
-      entityType: "ClubJoinRequest",
       entityId: args.requestId,
     });
     return args.accept
@@ -443,7 +441,6 @@ export const addMemberDirectly = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_MEMBER_ADDED_DIRECTLY",
-      entityType: "Club",
       entityId: args.clubId,
       meta: { userId: recipient._id },
     });
@@ -641,7 +638,6 @@ export const logBulkDirectMemberImport = internalMutation({
     await logAuditEvent(ctx, {
       actorId: args.actorId,
       action: "CLUB_MEMBERS_BULK_ADDED_DIRECTLY",
-      entityType: "Club",
       entityId: args.clubId,
       meta: {
         added: args.added,
@@ -710,7 +706,6 @@ export const bulkInvite = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_INVITES_BULK_IMPORTED",
-      entityType: "Club",
       entityId: args.clubId,
       meta: { invited: results.invited, skipped: results.skipped },
     });
@@ -768,7 +763,6 @@ export const generateJoinCode = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_JOIN_CODE_GENERATED",
-      entityType: "Club",
       entityId: args.clubId,
     });
     return code;
@@ -801,7 +795,6 @@ export const redeemJoinCode = mutation({
       await logAuditEvent(ctx, {
         actorId: user._id,
         action: "CLUB_JOIN_CODE_REDEEMED",
-        entityType: "Club",
         entityId: args.clubId,
       });
     return memberResult;

@@ -244,7 +244,6 @@ export const create = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_PEOPLE_GROUP_CREATED",
-      entityType: "ClubPeopleGroup",
       entityId: groupId,
       meta: { clubId: args.clubId, ruleCount: insertedRuleCount },
     });
@@ -294,7 +293,6 @@ export const update = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_PEOPLE_GROUP_UPDATED",
-      entityType: "ClubPeopleGroup",
       entityId: group._id,
       meta: { clubId: args.clubId, ruleCount: insertedRuleCount },
     });
@@ -314,7 +312,6 @@ export const remove = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_PEOPLE_GROUP_DELETED",
-      entityType: "ClubPeopleGroup",
       entityId: group._id,
       meta: { clubId: args.clubId, name: group.name },
     });

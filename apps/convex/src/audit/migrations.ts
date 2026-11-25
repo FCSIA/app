@@ -1,6 +1,9 @@
+import { Migrations } from '@convex-dev/migrations';
 import { v } from 'convex/values';
 import { internalMutation } from '../_generated/server';
-import { internal } from '../_generated/api';
+import { components, internal } from '../_generated/api';
+import type { DataModel } from '../_generated/dataModel';
+import { typedAuditLookups, typedAuditPatch } from './_typed';
 import { auditCategory } from '../../../shared/audit';
 import { auditByActor, auditByCategory } from './_aggregates';
 
@@ -37,5 +40,31 @@ export const backfill = internalMutation({
       else await ctx.db.insert('auditIndexState', { key: 'v1', ready: true });
     }
     return null;
+  },
+});
+
+const migrations = new Migrations<DataModel>(components.migrations);
+
+/**
+ * Brings every stored row to the typed shape staged in schema.ts: one
+ * canonical record type, the system marker and impersonating admin out of
+ * `meta`, and the details older writers left out (whose schedule, which
+ * role by name). Idempotent; rows already typed are skipped. The actor and
+ * the derived category never change here, so the audit aggregates stay as
+ * they are.
+ *
+ *   convex run audit/migrations:typeAuditEvents '{"dryRun":true}'
+ *   convex run audit/migrations:typeAuditEvents
+ */
+export const typeAuditEvents = migrations.define({
+  table: 'auditEvents',
+  batchSize: 100,
+  migrateOne: async (ctx, row) => {
+    const patch = typedAuditPatch(row, await typedAuditLookups(ctx, row));
+    // The aggregates key rows by the category derived from action and record
+    // type (not the stored field); a canonical spelling must not move a row.
+    if (patch?.entityType && auditCategory(patch.entityType, row.action) !== auditCategory(row.entityType, row.action))
+      throw new Error(`Audit row ${row._id} would move between categories; update the aggregates first.`);
+    return patch ?? undefined;
   },
 });

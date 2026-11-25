@@ -1,3 +1,4 @@
+import { auditEventsTargetValidator } from "./audit/_spec";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { feedbackMetadataValidator } from "./moderation/feedbackMetadata";
@@ -162,9 +163,17 @@ export const schema = defineSchema({
       ],
     }),
 
+  // Stage 1 of typing the audit log: the enforced validator only widens
+  // (the system marker and impersonating admin move out of `meta`), and the
+  // per-action target from audit/_spec.ts is staged so the deploy doesn't
+  // block on a scan. Once `audit.migrations.typeAuditEvents` has rewritten
+  // older rows and a redeploy reports the stage as validated, the target
+  // replaces this validator (docs/features/audit-log.md, "Typed events").
   auditEvents: defineTable({
     client: v.optional(v.literal("cli")),
     actorId: v.optional(v.id("users")),
+    source: v.optional(v.literal("system")),
+    impersonatedByUserId: v.optional(v.id("users")),
     category: v.optional(v.string()),
     workshopId: v.optional(v.id("flexWorkshops")),
     action: v.string(),
@@ -173,6 +182,7 @@ export const schema = defineSchema({
     meta: v.optional(v.any()),
     createdAt: v.number(),
   })
+    .staged(auditEventsTargetValidator())
     .index("by_createdAt", ["createdAt"])
     .index("by_actorId_and_createdAt", ["actorId", "createdAt"])
     .index("by_category_and_createdAt", ["category", "createdAt"])

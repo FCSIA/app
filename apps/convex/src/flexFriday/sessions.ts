@@ -53,7 +53,6 @@ export const create = mutation({
       actorId: user._id,
       action: "FLEX_SESSION_CREATED",
       entityId: sessionId,
-      entityType: "FLEX_SESSION",
     });
 
     return sessionId;
@@ -91,7 +90,6 @@ export const update = mutation({
       actorId: user._id,
       action: "FLEX_SESSION_UPDATED",
       entityId: args.sessionId,
-      entityType: "FLEX_SESSION",
     });
   },
 });
@@ -121,7 +119,6 @@ export const remove = mutation({
       actorId: user._id,
       action: "FLEX_SESSION_DELETED",
       entityId: args.sessionId,
-      entityType: "FLEX_SESSION",
     });
   },
 });

@@ -270,7 +270,6 @@ export const create = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_UNIT_CREATED",
-      entityType: "ClubUnit",
       entityId: unitId,
       meta: { clubId: args.clubId, parentUnitId: args.parentUnitId ?? null },
     });
@@ -408,7 +407,6 @@ export const bulkCreate = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_UNITS_BULK_CREATED",
-      entityType: "Club",
       entityId: args.clubId,
       meta: { clubId: args.clubId, created, existing },
     });
@@ -462,7 +460,6 @@ export const update = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_UNIT_UPDATED",
-      entityType: "ClubUnit",
       entityId: unit._id,
       meta: { clubId: args.clubId },
     });
@@ -516,7 +513,6 @@ export const archive = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_UNIT_ARCHIVED",
-      entityType: "ClubUnit",
       entityId: unit._id,
       meta: { clubId: args.clubId },
     });
@@ -648,7 +644,6 @@ export const setMember = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_UNIT_MEMBER_SET",
-      entityType: "ClubUnit",
       entityId: args.unitId,
       meta: { clubId: args.clubId, memberId: args.memberId },
     });
@@ -793,7 +788,6 @@ export const bulkImportMembers = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_BULK_STRUCTURE_ASSIGNMENTS_APPLIED",
-      entityType: "Club",
       entityId: args.clubId,
       meta: {
         clubId: args.clubId,
@@ -835,7 +829,6 @@ export const removeMember = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_UNIT_MEMBER_REMOVED",
-      entityType: "ClubUnit",
       entityId: args.unitId,
       meta: { clubId: args.clubId, memberId: args.memberId },
     });
@@ -860,7 +853,6 @@ export const generateJoinCode = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "CLUB_UNIT_JOIN_CODE_ROTATED",
-      entityType: "ClubUnit",
       entityId: unit._id,
       meta: { clubId: args.clubId },
     });
@@ -909,7 +901,6 @@ export const join = mutation({
       await logAuditEvent(ctx, {
         actorId: user._id,
         action: "CLUB_UNIT_JOINED",
-        entityType: "ClubUnit",
         entityId: unit._id,
         meta: { clubId: args.clubId },
       });

@@ -235,7 +235,8 @@ describe("event approvals when sponsors change", () => {
     const audit = await t.run((ctx) => ctx.db.query("auditEvents").collect());
     expect(audit.find((row) => row.action === "EVENT_CANCELLED")).toMatchObject({
       entityId: eventId,
-      meta: { reason: "NO_ACTIVE_SPONSOR", auditSource: "system" },
+      source: "system",
+      meta: { reason: "NO_ACTIVE_SPONSOR" },
     });
   });
 });

@@ -36,7 +36,6 @@ export const performImpersonationChecks = internalMutation({
     await logAuditEvent(ctx, {
       actorId: actor._id,
       action: "impersonation.requested",
-      entityType: "user",
       entityId: target._id,
       meta: { reason },
     });

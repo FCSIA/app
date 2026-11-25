@@ -43,6 +43,7 @@ Staged now, each waiting on its migration in production:
 | --- | --- | --- |
 | `events` | drop `isInactive`, `deactivatedAt`, `DRAFT`, `APPROVED` | `events/migrations:dropUnusedLifecycleFields` |
 | `notificationPreferences` | drop `enabled` (use `level`) | `notifications/migrations:foldPreferenceEnabledIntoLevel` |
+| `auditEvents` | one typed variant per action (`audit/_spec.ts`): canonical record type, fixed category, per-action `meta` | `audit/migrations:typeAuditEvents` |
 
 When a table reports validated, apply the staged change: move the staged
 fields into `defineTable`, drop `.staged()`, and delete the finished migration
@@ -62,6 +63,11 @@ event and `enabled: level !== "OFF"` on every preference, and unset
 `githubIssueSyncQueuedAt` and `githubIssuePushingSince` on every report. The
 later `githubIssueDecidedAt` field needs the same before deploying a tag
 without it.
+
+`auditEvents` adds top-level `source` and `impersonatedByUserId`, which the
+migration also moves out of older rows' `meta`. Before deploying a tag from
+before them, move both back into `meta` (`auditSource: "system"`,
+`impersonatedByUserId`) and unset them.
 
 ## Running Backfills
 

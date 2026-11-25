@@ -286,7 +286,6 @@ export const createUser = mutation({
     await logAuditEvent(ctx, {
       actorId: actor._id,
       action: "user.created",
-      entityType: "user",
       entityId: result.user._id,
       meta: { roles: requestedRoles },
     });
@@ -473,7 +472,6 @@ export const logStudentImportAudit = internalMutation({
     await logAuditEvent(ctx, {
       actorId: args.actorId,
       action: "USER_CSV_IMPORT",
-      entityType: "User",
       meta: {
         created: args.created,
         skipped: args.skipped,
@@ -495,7 +493,6 @@ export const logStudentBulkUpdateAudit = internalMutation({
     await logAuditEvent(ctx, {
       actorId: args.actorId,
       action: "USER_CSV_BULK_UPDATED",
-      entityType: "User",
       entityId: "bulk",
       meta: { updated: args.updated, skipped: args.skipped },
     });
@@ -660,7 +657,6 @@ export const logAdministratorImportAudit = internalMutation({
     await logAuditEvent(ctx, {
       actorId: args.actorId,
       action: "ADMINISTRATOR_CSV_IMPORT",
-      entityType: "User",
       meta: {
         created: args.created,
         skipped: args.skipped,
@@ -760,7 +756,6 @@ export const setFeedbackReviewer = mutation({
     await logAuditEvent(ctx, {
       actorId: actor._id,
       action: "USER_FEEDBACK_REVIEW_ACCESS_UPDATED",
-      entityType: "User",
       entityId: target._id,
       meta: { enabled: args.enabled },
     });
@@ -796,7 +791,6 @@ export const setDeveloper = mutation({
     await logAuditEvent(ctx, {
       actorId: actor._id,
       action: "USER_DEVELOPER_STATUS_UPDATED",
-      entityType: "User",
       entityId: target._id,
       meta: { enabled: args.enabled },
     });
@@ -838,7 +832,6 @@ export const activate = mutation({
     await logAuditEvent(ctx, {
       actorId: actor._id,
       action: "user.activated",
-      entityType: "user",
       entityId: target._id,
     });
 
@@ -893,7 +886,6 @@ export const deactivate = mutation({
     await logAuditEvent(ctx, {
       actorId: actor._id,
       action: "user.deactivated",
-      entityType: "user",
       entityId: target._id,
     });
 
@@ -966,7 +958,6 @@ export const deleteUsers = mutation({
     await logAuditEvent(ctx, {
       actorId: actor._id,
       action: "user.bulk_deleted",
-      entityType: "user",
       entityId: "bulk",
       meta: {
         count: targets.length,
@@ -1078,7 +1069,6 @@ export const resetPassword = mutation({
     await logAuditEvent(ctx, {
       actorId: actor._id,
       action: "user.password_reset",
-      entityType: "user",
       entityId: target._id,
     });
 
@@ -1176,7 +1166,6 @@ export const rotateAllCredentialAccountsBatch = internalMutation({
       });
       await logAuditEvent(ctx, { actorId: "system",
         action: "user.legacy_credential_rotated",
-        entityType: "user",
         entityId: user._id,
       });
       credentials.push({

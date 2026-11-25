@@ -500,7 +500,6 @@ export const configureAcademicYear = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "schoolScheduleSettings.academic_year_configured",
-      entityType: "schoolScheduleSettings",
       entityId: settingsId,
       meta: { startDateKey, endDateKey, regularTemplateId: template._id },
     });
@@ -556,7 +555,6 @@ export const saveTemplate = mutation({
       action: args.templateId
         ? "schoolDayTemplate.updated"
         : "schoolDayTemplate.created",
-      entityType: "schoolDayTemplate",
       entityId: templateId,
       meta: { name, kind: args.kind, blockCount: normalizedBlocks.length },
     });
@@ -599,7 +597,6 @@ export const setRegularTemplate = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "schoolDayTemplate.set_regular",
-      entityType: "schoolDayTemplate",
       entityId: template._id,
     });
     return { success: true };
@@ -651,7 +648,6 @@ export const applyTemplateToDate = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "schoolDayDateOverride.applied_template",
-      entityType: "schoolDayDateOverride",
       entityId: overrideId,
       meta: { dateKey, templateId: template._id },
     });
@@ -721,7 +717,6 @@ export const saveDateOverride = mutation({
       action: args.overrideId
         ? "schoolDayDateOverride.updated"
         : "schoolDayDateOverride.created",
-      entityType: "schoolDayDateOverride",
       entityId: overrideId,
       meta: { dateKey, name, blockCount: normalizedBlocks.length },
     });
@@ -772,7 +767,6 @@ export const unlinkDateTemplate = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "schoolDayDateOverride.unlinked_template",
-      entityType: "schoolDayDateOverride",
       entityId: override._id,
       meta: { dateKey, templateId: template._id },
     });
@@ -797,7 +791,6 @@ export const resetDateOverride = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "schoolDayDateOverride.reset",
-      entityType: "schoolDayDateOverride",
       entityId: override._id,
       meta: { dateKey },
     });
@@ -837,7 +830,6 @@ export const deleteTemplate = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "schoolDayTemplate.deleted",
-      entityType: "schoolDayTemplate",
       entityId: template._id,
       meta: { name: template.name },
     });

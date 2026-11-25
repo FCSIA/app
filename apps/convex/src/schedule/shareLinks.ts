@@ -109,7 +109,6 @@ export const create = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "schedule.friend_link_created",
-      entityType: "studentFriendShareLink",
       entityId: id,
       meta: { mode: args.mode },
     });
@@ -130,7 +129,6 @@ export const revoke = mutation({
       await logAuditEvent(ctx, {
         actorId: user._id,
         action: "schedule.friend_link_revoked",
-        entityType: "studentFriendShareLink",
         entityId: link._id,
       });
     }
@@ -248,7 +246,6 @@ export const redeem = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: accepted ? "schedule.friend_link_auto_accepted" : "schedule.friend_link_requested",
-      entityType: "studentFriendShareLink",
       entityId: link._id,
       meta: { ownerId: owner._id },
     });

@@ -101,7 +101,6 @@ export const create = mutation({
       actorId: user._id,
       action: "FLEX_FRIDAY_CREATED",
       entityId: fridayId,
-      entityType: "FLEX_FRIDAY",
     });
 
     const friday = await ctx.db.get(fridayId);

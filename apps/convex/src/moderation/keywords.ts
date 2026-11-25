@@ -58,7 +58,6 @@ export const add = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "KEYWORD_ADDED",
-      entityType: "KeywordRule",
       entityId: ruleId,
       meta: { keyword },
     });
@@ -82,7 +81,6 @@ export const remove = mutation({
     await logAuditEvent(ctx, {
       actorId: user._id,
       action: "KEYWORD_REMOVED",
-      entityType: "KeywordRule",
       entityId: args.ruleId,
     });
 

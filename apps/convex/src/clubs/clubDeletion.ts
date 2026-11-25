@@ -297,7 +297,6 @@ export const cleanupDeletedClub = internalMutation({
     await logAuditEvent(ctx, {
       actorId: args.actorId,
       action: "CLUB_DELETED",
-      entityType: "Club",
       entityId: args.clubId,
       meta: { name: args.clubName },
     });

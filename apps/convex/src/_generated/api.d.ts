@@ -25,6 +25,8 @@ import type * as audit__aggregates from "../audit/_aggregates.js";
 import type * as audit__context from "../audit/_context.js";
 import type * as audit__filters from "../audit/_filters.js";
 import type * as audit__lib from "../audit/_lib.js";
+import type * as audit__spec from "../audit/_spec.js";
+import type * as audit__typed from "../audit/_typed.js";
 import type * as audit_events from "../audit/events.js";
 import type * as audit_migrations from "../audit/migrations.js";
 import type * as auth from "../auth.js";
@@ -194,6 +196,8 @@ declare const fullApi: ApiFromModules<{
   "audit/_context": typeof audit__context;
   "audit/_filters": typeof audit__filters;
   "audit/_lib": typeof audit__lib;
+  "audit/_spec": typeof audit__spec;
+  "audit/_typed": typeof audit__typed;
   "audit/events": typeof audit_events;
   "audit/migrations": typeof audit_migrations;
   auth: typeof auth;

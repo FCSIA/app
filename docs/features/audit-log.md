@@ -17,9 +17,18 @@ sections use a grouped sidebar on desktop, an icon rail at intermediate widths,
 and a section picker on smaller screens. Audit filters remain in the URL when
 switching sections.
 
-The table separates When, Person, Action, and Record. The Record column shows
-what the action affected, with related context such as a club and channel on a
-second line when available. Day headings group events and each row shows the
+The table separates When, Person, Action, and Record. Every row is one line.
+The Record column shows what the action affected, and each kind of record has
+its own shape (`auditRecordView` in `apps/shared/audit-record.ts`) so rows sort
+by eye before they are read: another person shows their avatar and opens the
+profile preview; the actor's own account reads "Own account"; a message is
+quoted behind a rule, after its reaction emoji or a reply mark; feedback shows
+its issue number and the status it moved to; a sign-in lock names the locked
+account (resolved from its `auth:` key) and the failure count; a named record
+is plain text; a record known only by its type is muted. Club and channel
+context follow in muted type on wide panes and stay in the opened event.
+Columns never widen the table past the pane: long text cuts short instead.
+Day headings group events and each row shows the
 time to the minute. The expanded row shows seconds, the time-zone offset, and
 stored JSON.
 Neutral category icons identify six domains: People & access, Clubs & chat,

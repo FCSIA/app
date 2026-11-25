@@ -1,7 +1,6 @@
 'use client';
 
-import Link from 'next/link';
-import { Fragment, createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Column, Table } from '@tanstack/react-table';
 import {
   useDataTable,
@@ -76,10 +75,10 @@ import {
   type AuditActionKind,
   auditCategory,
   auditPersonName,
-  auditRecordLabel,
   auditRecordTitle,
 } from '~/apps/shared/audit';
 import { AuditPerson } from './audit-person';
+import { AuditRecord } from './audit-record';
 
 type AuditState = ReturnType<typeof useAdminAudit>;
 const AuditTableContext = createContext<AuditState | null>(null);
@@ -91,35 +90,6 @@ const icons = {
   schedules: FileText,
   'flex-events': CalendarDays,
 };
-/** Where a record lives (club, then channel, workshop, …); people are not places. */
-const PLACE_LABELS = new Set([
-  'Club',
-  'Channel',
-  'Workshop',
-  'Session',
-  'Board',
-  'Announcement',
-  'Event',
-  'Unit',
-  'Group',
-  'Template',
-  'Course',
-]);
-function auditPlaces(event: AuditEventRecord) {
-  return (event.context?.links ?? [])
-    .filter(
-      (link) => link.id !== event.entityId && PLACE_LABELS.has(link.label),
-    )
-    .slice(0, 2);
-}
-function AuditRecordLink({ href, name }: { href?: string | null; name: string }) {
-  return href ? (
-    <Link href={href} className="underline-offset-2 hover:underline focus-visible:underline" title={name}>
-      {name}
-    </Link>
-  ) : <span title={name}>{name}</span>;
-}
-
 // Meaning tones from the theme palette: most rows stay neutral so the few
 // approvals, removals, security changes and conversations stand out.
 const tone = {
@@ -153,51 +123,14 @@ function AuditAction({ event }: { event: AuditEventRecord }) {
   const [Icon, color] = kind ? actionKinds[kind] : [icons[category], tone.neutral];
   const label = auditActionLabel(event.action);
   return (
-    <span className="flex min-w-0 items-start gap-2">
-      <Icon size={14} className={`mt-0.5 shrink-0 ${color}`} aria-hidden />
+    <span className="flex min-w-0 items-center gap-2">
+      <Icon size={14} className={`shrink-0 ${color}`} aria-hidden />
       <span
         title={label}
-        className={`line-clamp-2 whitespace-normal ${auditActionInfo(event.action)?.destructive ? 'text-tone-negative' : 'text-foreground'}`}
+        className={`truncate ${auditActionInfo(event.action)?.destructive ? 'text-tone-negative' : 'text-foreground'}`}
       >
         {label}
       </span>
-    </span>
-  );
-}
-
-function AuditRecord({ event }: { event: AuditEventRecord }) {
-  const links = event.context?.links ?? [];
-  const record = links.find((link) => link.id === event.entityId);
-  const places = auditPlaces(event);
-  const workshop = places.find((place) => place.label === 'Workshop');
-  const recordTitle = auditRecordTitle(event);
-  const isGeneric = recordTitle === auditRecordLabel(event.entityType);
-  const namedWorkshop = isGeneric ? workshop : undefined;
-  const primary = namedWorkshop ?? record;
-  const title = namedWorkshop?.name ?? recordTitle;
-  const deleted = !namedWorkshop && event.context?.deleted &&
-    !/^(Deleted|Removed)\b/.test(auditActionLabel(event.action));
-  const context = places.filter((place) => place !== primary);
-  const student = event.action === 'FLEX_WORKSHOP_ASSIGNED'
-    ? links.find((link) => link.label === 'Student')
-    : undefined;
-  if (student) context.push(student);
-
-  return (
-    <span className="block min-w-0">
-      <span className={isGeneric && !namedWorkshop ? 'block truncate text-muted-foreground' : 'block truncate text-foreground'}>
-        <AuditRecordLink href={primary?.href} name={deleted ? `${title} (deleted)` : title} />
-      </span>
-      {context.length ? (
-        <span className="block truncate text-xs text-muted-foreground">
-          {context.map((item, index) => (
-            <Fragment key={`${item.label}:${item.id}`}>
-              {index ? ' / ' : null}
-              <AuditRecordLink href={item.href} name={item.label === 'Channel' ? `#${item.name}` : item.name} />
-            </Fragment>
-          ))}
-        </span>
-      ) : null}
     </span>
   );
 }
@@ -277,12 +210,18 @@ function AuditColumnHeader({
 
 export function useAuditDataTable(audit: AuditState) {
   // Preserve scan positions on wide panes, including when filters return no rows.
+  // DataTable reads each column at its full one-line width and never makes
+  // the table narrower than their sum, so one long message or name widened
+  // the table past the pane and that page alone scrolled sideways. A `size`
+  // replaces the measured width: on a wide pane the shares below decide, and
+  // on a narrow one (under 48rem) names and labels cut short instead.
   const columns = useMemo<ColumnDef<AuditEventRecord>[]>(
     () => [
       {
         accessorKey: 'createdAt',
         header: ({ column }) => <AuditColumnHeader column={column} title="When" />,
-        meta: { label: 'When', className: '@min-[48rem]/audit:w-[13%]!' },
+        size: 112,
+        meta: { label: 'When' },
         enableHiding: false,
         cell: ({ row }) => <AuditTime event={row.original} />,
       },
@@ -290,14 +229,16 @@ export function useAuditDataTable(audit: AuditState) {
         id: 'person',
         accessorFn: auditPersonName,
         header: ({ column }) => <AuditColumnHeader column={column} title="Person" />,
-        meta: { label: 'Person', className: 'overflow-visible @min-[48rem]/audit:w-[22%]!' },
+        size: 180,
+        meta: { label: 'Person', className: 'overflow-visible @min-[48rem]/audit:w-[24%]!' },
         cell: ({ row }) => <AuditPersonCell event={row.original} />,
       },
       {
         id: 'action',
         accessorFn: (event) => auditActionLabel(event.action),
         header: ({ column }) => <AuditColumnHeader column={column} title="Action" />,
-        meta: { label: 'Action', className: '@min-[48rem]/audit:w-[32%]!' },
+        size: 230,
+        meta: { label: 'Action', className: '@min-[48rem]/audit:w-[29%]!' },
         enableHiding: false,
         cell: ({ row }) => <AuditAction event={row.original} />,
       },
@@ -305,6 +246,9 @@ export function useAuditDataTable(audit: AuditState) {
         id: 'record',
         accessorFn: auditRecordTitle,
         header: ({ column }) => <AuditColumnHeader column={column} title="Record" />,
+        // Record takes the rest of the row; its size is only the room it
+        // asks for (a message preview runs to 240 characters).
+        size: 160,
         meta: { label: 'Record' },
         cell: ({ row }) => <AuditRecord event={row.original} />,
       },

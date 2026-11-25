@@ -309,6 +309,28 @@ describe('audit history and context', () => {
       expect(actual).toEqual(expected);
     }
   });
+  test('names the person a record is: another user, or the account a sign-in lock locked', async () => {
+    const f = await fixture();
+    const [request, lock, unknown] = await f.t.run(async (ctx) => {
+      await ctx.db.patch(f.student, { authUserId: 'auth-ada', preferredName: 'Countess Ada' });
+      return await Promise.all([
+        ctx.db.insert('auditEvents', { actorId: f.admin, action: 'schedule.friend_requested', entityType: 'user', entityId: f.student, createdAt: 10 }),
+        ctx.db.insert('auditEvents', { action: 'auth.login_locked', entityType: 'authAccount', entityId: 'auth:auth-ada', meta: { failureCount: 6 }, createdAt: 11 }),
+        ctx.db.insert('auditEvents', { action: 'auth.login_locked', entityType: 'authAccount', entityId: 'identifier:nobody', meta: { failureCount: 5 }, createdAt: 12 }),
+      ]);
+    });
+    const get = (auditEventId: Id<'auditEvents'>) => f.adminClient.query(api.audit.events.get, { auditEventId });
+    const person = { id: f.student, firstName: 'Ada', lastName: 'Famakinwa', preferredName: 'Countess Ada', uniqueId: 'STUDENT' };
+    expect((await get(request))!.context.person).toMatchObject(person);
+    const locked = (await get(lock))!.context;
+    expect(locked.person).toMatchObject(person);
+    expect(locked.title).toBe('Countess Ada');
+    expect(locked.links[0]!.href).toContain(f.student);
+    const missing = (await get(unknown))!.context;
+    expect(missing.person).toBeUndefined();
+    expect(missing.title).toBe('Sign-in account');
+  });
+
   test('displays preferred names while retaining regular-name and structured person searches', async () => {
     const f = await fixture();
     await f.t.run(async (ctx) => {

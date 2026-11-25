@@ -122,9 +122,26 @@ export function auditContextResolver(ctx: QueryCtx) {
     // Only a real record ID can be deleted (bulk rows record e.g. "bulk").
     const live = !!entity && !entity.deletedAt;
     const deleted = !live && !!table && !!event.entityId && ctx.db.normalizeId(table, event.entityId) !== null;
+    // A sign-in lock names its account by auth user ("auth:<id>"). The person
+    // behind it is what an admin reading the lock wants to know.
+    const authUserId = event.entityType === 'authAccount' && event.entityId?.startsWith('auth:')
+      ? event.entityId.slice('auth:'.length) : null;
+    const account = authUserId
+      ? await ctx.db.query('users').withIndex('by_authUserId', (q) => q.eq('authUserId', authUserId)).first()
+      : null;
+    const personDoc = account ?? (table === 'users' && live ? (entity as unknown as Doc<'users'>) : null);
+    const person = personDoc ? {
+      id: personDoc._id,
+      firstName: personDoc.firstName,
+      lastName: personDoc.lastName,
+      preferredName: personDoc.preferredName,
+      uniqueId: personDoc.uniqueId,
+      avatarUrl: personDoc.avatarUrl,
+    } : null;
     // Historical labels take precedence; current names fill in missing context
     // (e.g. a reaction names the message it was added to).
     const title =
+      (account ? displayName(account) : null) ??
       recordName(meta) ??
       (entity ? recordName(entity) : null) ??
       (live && table && entity ? recordText(table, entity) : null) ??
@@ -175,9 +192,9 @@ export function auditContextResolver(ctx: QueryCtx) {
       return null;
     };
     const links = [
-      ...(event.entityId ? [{ id: event.entityId, label: 'Record', name: title, href: live ? href(table, event.entityId) : null }] : []),
+      ...(event.entityId ? [{ id: event.entityId, label: 'Record', name: title, href: account ? adminUserHref(account._id) : live ? href(table, event.entityId) : null }] : []),
       ...references.map((ref) => ({ ...ref, href: href(REFERENCE_TABLES[Object.keys(REFERENCE_TABLES).find((key) => auditLabel(key.replace(/Id$/, '')) === ref.label) ?? ''], ref.id) })),
     ];
-    return { title, subtitle, references, links, deleted };
+    return { title, subtitle, references, links, deleted, ...(person ? { person } : {}) };
   };
 }

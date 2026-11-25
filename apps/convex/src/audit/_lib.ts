@@ -9,17 +9,15 @@ import { components } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 
-export const actorValidator = v.union(
-  v.object({
-    id: v.id("users"),
-    firstName: v.string(),
-    lastName: v.string(),
-    preferredName: v.optional(v.string()),
-    uniqueId: v.string(),
-    avatarUrl: v.optional(v.string()),
-  }),
-  v.null(),
-);
+const personValidator = v.object({
+  id: v.id("users"),
+  firstName: v.string(),
+  lastName: v.string(),
+  preferredName: v.optional(v.string()),
+  uniqueId: v.string(),
+  avatarUrl: v.optional(v.string()),
+});
+export const actorValidator = v.union(personValidator, v.null());
 
 export const auditEventValidator = v.object({
   id: v.id("auditEvents"),
@@ -41,6 +39,8 @@ export const auditEventValidator = v.object({
     ),
     /** The event's own record no longer exists (or was soft-deleted). */
     deleted: v.boolean(),
+    /** The record is a person: a user, or the account a sign-in lock names. */
+    person: v.optional(personValidator),
   }),
 });
 

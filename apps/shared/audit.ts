@@ -338,6 +338,8 @@ export type SearchableAuditEvent = {
     subtitle: string | null;
     references: { id: string; label: string; name: string }[];
     links?: { id: string; label: string; name: string; href: string | null }[];
+    /** Set when the record is a person (see auditRecordView). */
+    person?: { id: string; firstName: string; lastName: string; preferredName?: string | null; uniqueId: string; avatarUrl?: string | null } | null;
   } | null;
 };
 function auditMeta(event: SearchableAuditEvent): Record<string, unknown> {

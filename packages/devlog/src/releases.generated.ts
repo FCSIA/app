@@ -7,6 +7,19 @@ export const RELEASE_CHANNEL: ReleaseChannel = 'alpha';
 
 export const RELEASES: readonly Release[] = [
   {
+    "version": "0.8.50",
+    "date": "2026-11-25",
+    "commit": "965ca666",
+    "changes": [
+      {
+        "category": "Improved",
+        "scope": "admin",
+        "summary": "Authorized reviewers can open each admin tool directly from the Admin menu.",
+        "commit": "965ca666"
+      }
+    ]
+  },
+  {
     "version": "0.8.49",
     "date": "2026-11-25",
     "commit": "1f1d00da",

@@ -12,6 +12,12 @@ capability bumps the minor version, and a fix-only release bumps the patch.
 Entries marked **Internal** are tooling, dependency, and documentation work. They
 are recorded here for maintainers and hidden from the in-app devlog.
 
+## v0.8.50 — 2026-11-25 (alpha)
+
+### Improved
+
+- **admin** — Authorized reviewers can open each admin tool directly from the Admin menu. ([`965ca666`](https://github.com/FCSIA/ia-app/commit/965ca666))
+
 ## v0.8.49 — 2026-11-25 (alpha)
 
 ### Added

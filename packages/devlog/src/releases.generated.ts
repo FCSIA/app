@@ -7,6 +7,43 @@ export const RELEASE_CHANNEL: ReleaseChannel = 'alpha';
 
 export const RELEASES: readonly Release[] = [
   {
+    "version": "0.8.49",
+    "date": "2026-11-25",
+    "commit": "1f1d00da",
+    "changes": [
+      {
+        "category": "Added",
+        "scope": "cli",
+        "summary": "The command-line client can open its settings file in your editor.",
+        "commit": "d10db9cc"
+      },
+      {
+        "category": "Improved",
+        "scope": "admin",
+        "summary": "The admin audit log shows whose role or schedule changed, and to which role.",
+        "commit": "ab280921"
+      },
+      {
+        "category": "Improved",
+        "scope": "admin",
+        "summary": "The admin audit log keeps every event on one line and shows who or what each event touched at a glance.",
+        "commit": "72bbbe8a"
+      },
+      {
+        "category": "Improved",
+        "scope": "cli",
+        "summary": "Command-line help shows only the commands your account can use.",
+        "commit": "721f9412"
+      },
+      {
+        "category": "Improved",
+        "scope": "release",
+        "summary": "Make the CLI install command copyable.",
+        "commit": "741c2f89"
+      }
+    ]
+  },
+  {
     "version": "0.8.48",
     "date": "2026-11-24",
     "commit": "1e6878d1",

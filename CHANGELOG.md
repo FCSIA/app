@@ -12,6 +12,19 @@ capability bumps the minor version, and a fix-only release bumps the patch.
 Entries marked **Internal** are tooling, dependency, and documentation work. They
 are recorded here for maintainers and hidden from the in-app devlog.
 
+## v0.8.49 — 2026-11-25 (alpha)
+
+### Added
+
+- **cli** — The command-line client can open its settings file in your editor. ([`d10db9cc`](https://github.com/FCSIA/ia-app/commit/d10db9cc))
+
+### Improved
+
+- **admin** — The admin audit log shows whose role or schedule changed, and to which role. ([`ab280921`](https://github.com/FCSIA/ia-app/commit/ab280921))
+- **admin** — The admin audit log keeps every event on one line and shows who or what each event touched at a glance. ([`72bbbe8a`](https://github.com/FCSIA/ia-app/commit/72bbbe8a))
+- **cli** — Command-line help shows only the commands your account can use. ([`721f9412`](https://github.com/FCSIA/ia-app/commit/721f9412))
+- **release** — Make the CLI install command copyable. ([`741c2f89`](https://github.com/FCSIA/ia-app/commit/741c2f89))
+
 ## v0.8.48 — 2026-11-24 (alpha)
 
 ### Added

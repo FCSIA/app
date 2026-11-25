@@ -6,7 +6,7 @@ tags: [feature, users, admin]
 
 [Home](../index.md)
 
-User management is handled through Convex functions and the Admin Panel.
+User management is handled through Convex functions and the Users page under Admin.
 
 ## What It Does
 
@@ -17,10 +17,10 @@ User management is handled through Convex functions and the Admin Panel.
 - Lets each user set or clear an optional preferred display name in Profile & Settings on web and native.
 - Stores dashboard widget order and optional desktop column positions for each user.
 
-The Admin Panel title appears in the app header. On narrow screens, section
-tabs and user-table columns scroll horizontally within their own areas. Filters
-and selection controls wrap to the available width; pagination stays outside
-the scrolling records so it remains reachable.
+Each admin page has its own URL and title. Open permitted destinations under
+**Admin** in the main sidebar or in **More** on mobile web. On narrow screens,
+user-table columns scroll horizontally. Filters and selection controls wrap
+to the available width, and pagination stays below the scrolling records.
 
 The Users table opens with all users. The toolbar has searchable filters for grade, pathways, role, account
 status, password reset, and Flex Friday progress. Select multiple values in

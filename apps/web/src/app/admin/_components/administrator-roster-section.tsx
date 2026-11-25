@@ -22,7 +22,7 @@ import {
   RosterImportResult,
 } from './roster-csv-review';
 
-export function AdministratorRosterTab() {
+export function AdministratorRosterSection() {
   const {
     fileInputKey,
     setFile,

@@ -2,7 +2,6 @@
 
 import {
   isAdmin,
-  isStaff,
   isStudent,
   isSuperAdmin,
 } from '~/apps/shared/roles';
@@ -18,7 +17,6 @@ import {
   Megaphone,
   PanelTop,
   Settings,
-  Shield,
   Presentation,
   Ticket,
   Waypoints,
@@ -44,6 +42,7 @@ import {
 } from '@/components/layout/use-global-command-actions';
 import { personalCommandQueryArgs, rankCommandSuggestions } from './command-suggestions';
 import { schoolDateKey } from '~/apps/shared/school-time';
+import { adminAccessFor, adminSectionHref, visibleAdminSections } from '@/lib/admin-sections';
 import { routePath, type AppRouteId } from '@/lib/routes';
 
 const ROUTE_ACTIONS: Array<{ route: AppRouteId; label: string; detail: string; Icon: CommandAction['Icon'] }> = [
@@ -122,7 +121,6 @@ function GlobalCommandPaletteContent({
   const deferredSearch = useDeferredValue(searchValue.trim());
   const shouldLoad = open && isAuthenticated && !!user;
   const shouldLoadMemberships = shouldLoad && !isSuperAdmin(user);
-  const showAdmin = isStaff(user);
   const announcementNow = useAnnouncementFeedClock();
   const minuteNow = useAnnouncementFeedClock(60_000);
   const [openedAt] = useState(() => Date.now());
@@ -186,17 +184,17 @@ function GlobalCommandPaletteContent({
     if (entityGroups.hasStudentBooking) {
       items.push({ id: 'route-pass', label: 'My Pass', detail: 'Your booked Flex Friday workshops', href: '/flex-friday/pass', Icon: PanelTop });
     }
-    if (showAdmin) {
+    for (const section of visibleAdminSections(adminAccessFor(user))) {
       items.push({
-        id: 'route-admin',
-        label: 'Admin Panel',
-        detail: 'Users, moderation, audit, and system controls',
-        href: routePath('admin'),
-        Icon: Shield,
+        id: `route-admin-${section.id}`,
+        label: section.label,
+        detail: 'Admin',
+        href: adminSectionHref(section.id),
+        Icon: section.icon,
       });
     }
     return items;
-  }, [showAdmin, entityGroups.hasStudentBooking]);
+  }, [user, entityGroups.hasStudentBooking]);
   const run = useCallback((href: string) => {
     navigationLoading?.startNavigation(href);
     router.push(href);

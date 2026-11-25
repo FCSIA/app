@@ -5,27 +5,26 @@ import { AppShell } from '@/components/layout/AppShell';
 import { FLUSH_MAIN_CLASS } from '@/components/layout/app-main';
 
 type AdminPageLayoutProps = {
+  title: string;
   children: ReactNode;
-  headerNavigation?: ReactNode;
 };
 
-/** Viewport-height admin workspace; tab bodies own their own scrolling. */
-export function AdminPageLayout({ children, headerNavigation }: AdminPageLayoutProps) {
+/** Viewport-height admin workspace; each page owns its own scrolling. */
+export function AdminPageLayout({ title, children }: AdminPageLayoutProps) {
   return (
     <AppShell
       headerSlot={
-        <div className="flex min-w-0 items-center gap-2">
-          {headerNavigation}
-          <h1 className="truncate text-lg font-semibold tracking-tight text-foreground">
-            Admin Panel
-          </h1>
-        </div>
+        <h1 className="truncate text-lg font-semibold tracking-tight text-foreground">
+          {title}
+        </h1>
       }
       viewportMode="visual"
       mainClassName={FLUSH_MAIN_CLASS}
       pageTransitionClassName="flex min-h-0 min-w-0 flex-1 flex-col"
     >
-      {children}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col p-4 pt-1 md:p-6 md:pt-2 lg:p-8 lg:pt-2 has-[[data-slot=table-footer]]:pb-0">
+        {children}
+      </div>
     </AppShell>
   );
 }

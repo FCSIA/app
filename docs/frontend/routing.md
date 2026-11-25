@@ -81,7 +81,10 @@ The backend must still reject unauthorized queries or mutations.
 | `/flex-friday/pass` | Student Flex Friday pass |
 | `/notifications` | Inbox and notification preferences |
 | `/profile` | Profile and password settings |
-| `/admin` | Admin panel |
+| `/admin` | Redirects to the first permitted admin page or resolves an older admin bookmark |
+| `/admin/users`, `/admin/schedule`, `/admin/administrator-roster` | Users, Student roster, and Admin roster |
+| `/admin/moderation`, `/admin/feedback` | Reports and Feedback |
+| `/admin/wrapped`, `/admin/analytics`, `/admin/audit` | Wrapped, Analytics, and Audit log |
 | `/schedule` | Student schedule and admin blocks |
 | `/wrapped` | Yearly student summary |
 

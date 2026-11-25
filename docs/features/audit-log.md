@@ -13,9 +13,8 @@ Admin-facing reads require ADMIN, SUPER_ADMIN, or SUPPORT_STAFF.
 ## Review activity
 
 `/admin/audit` opens the log. Legacy `/admin?tab=audit` links still work. Admin
-sections use a grouped sidebar on desktop, an icon rail at intermediate widths,
-and a section picker on smaller screens. Audit filters remain in the URL when
-switching sections.
+pages appear under **Admin** in the main desktop sidebar and in **More** on
+mobile web. Audit filters are shareable through the Audit log URL.
 
 The table separates When, Person, Action, and Record. Every row is one line.
 The Record column shows what the action affected, and each kind of record has

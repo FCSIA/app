@@ -13,8 +13,8 @@ export const PINNED_TABLE_HEADER =
 
 /**
  * The admin data-table anatomy, taken from the audit log: a toolbar pinned to
- * the top of the tab's scroll viewport, then the table (or list) on the main
- * surface with no card frame. Place it directly in an `AdminScrollTabPanel`;
+ * the top of the page's scroll viewport, then the table (or list) on the main
+ * surface with no card frame. Place it directly in an `AdminScrollPanel`;
  * the toolbar pulls up into that viewport's top padding so rows never show
  * above it. A footer fills short lists to the viewport height and stays
  * below the visible rows while a long list scrolls.

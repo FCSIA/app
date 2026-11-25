@@ -29,7 +29,7 @@ import {
   RosterUpdateResult,
 } from './roster-csv-review';
 
-export function AdminScheduleTab() {
+export function StudentRosterSection() {
   const {
     studentCsvInputKey,
     setStudentCsvFile,

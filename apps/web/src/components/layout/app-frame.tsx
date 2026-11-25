@@ -3,7 +3,6 @@
 import {
   hasAnyRole,
   isAdmin,
-  isStaff,
   SCHEDULE_ROLES,
 } from "~/apps/shared/roles";
 import {
@@ -18,6 +17,9 @@ import { usePathname } from "next/navigation";
 import { useQuery } from "@/lib/convex-react";
 import { api } from "~/apps/convex/src/_generated/api";
 import { useCurrentUser } from "@/lib/auth";
+import { adminAccessFor } from "@/lib/admin-sections";
+import { isUnderPath, routePath } from "@/lib/routes";
+import { useAdminModerationPending } from "@/hooks/use-admin-moderation-pending";
 import { wrappedAvailability } from "~/apps/shared/wrapped-window";
 import { GlobalCommandPalette } from "@/components/layout/GlobalCommandPalette";
 import { CommandMenuDialogRoot } from "@/components/ui/command-menu";
@@ -193,8 +195,9 @@ function PersistentAppFrame({ children, defaultSidebarOpen }: {
 
   const unreadData = useQuery(api.notifications.inbox.unreadCount);
 
-  const showAdmin = Boolean(
-    user && (isStaff(user) || user.canReviewFeedback),
+  const adminAccess = user ? adminAccessFor(user) : undefined;
+  const pendingReports = useAdminModerationPending(
+    Boolean(adminAccess?.hasStaffAccess) && isUnderPath(safePathname, routePath("admin")),
   );
   const showSchedule = Boolean(
     user && hasAnyRole(user, SCHEDULE_ROLES),
@@ -210,7 +213,8 @@ function PersistentAppFrame({ children, defaultSidebarOpen }: {
   const navigationProps = {
     pathname: safePathname,
     unreadBadge,
-    showAdmin,
+    adminAccess,
+    pendingReports,
     showSchedule,
     showFriends: hasAnyRole(user, ["STUDENT"]),
     showDayPlans: isAdmin(user),

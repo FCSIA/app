@@ -1,6 +1,6 @@
 import { FRIDAY_PROTOTYPE_ENABLED } from '@/lib/friday-prototype';
 
-export type NavSection = 'primary' | 'social' | 'account' | 'admin';
+export type NavSection = 'primary' | 'social' | 'account';
 
 /**
  * Every top-level destination of the signed-in app. Navigation, mobile tab
@@ -27,7 +27,7 @@ export const APP_ROUTES = [
   { id: 'notifications', path: '/notifications', label: 'Notifications', nav: 'account' },
   { id: 'report', path: '/report', label: 'Feedback', nav: 'account' },
   { id: 'profile', path: '/profile', label: 'Profile & Settings', nav: 'account' },
-  { id: 'admin', path: '/admin', label: 'Admin Panel', nav: 'admin' },
+  { id: 'admin', path: '/admin' },
   { id: 'courses', path: '/courses' },
   { id: 'change-password', path: '/change-password' },
   { id: 'device', path: '/device' },

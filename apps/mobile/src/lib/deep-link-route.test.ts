@@ -7,8 +7,14 @@ describe("mobile notification routes", () => {
   });
 
   it("maps web-only destinations to their native equivalents", () => {
-    expect(resolveAppHref("/admin?tab=moderation")).toBe("/admin/moderation");
     expect(resolveAppHref("/clubs/club-1/people")).toBe("/clubs/club-1/people");
+  });
+
+  it("opens canonical and legacy moderation notifications in the native Reports screen", () => {
+    expect(resolveAppHref("/admin/moderation")).toBe("/admin/moderation");
+    expect(resolveAppHref("/admin?tab=moderation")).toBe("/admin/moderation");
+    expect(resolveAppHref("/admin?tab=reports")).toBe("/admin/moderation");
+    expect(resolveAppHref("/admin/feedback/report-1")).toBe("/admin");
   });
 
   it("preserves supported detail routes", () => {

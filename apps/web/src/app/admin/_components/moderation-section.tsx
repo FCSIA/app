@@ -43,7 +43,7 @@ import {
 import { ReportStatusBadge } from '@/components/moderation/report-status-badge';
 import { formatDateTime, formatShortDate } from '../_lib/admin-utils';
 import { useAdminModeration } from '../_hooks/use-admin-moderation';
-import { useAdminModerationPending } from '../_hooks/use-admin-moderation-pending';
+import { useAdminModerationPending } from '@/hooks/use-admin-moderation-pending';
 import { AdminNotice } from './admin-ui';
 
 type ModerationReport = Doc<'moderationReports'> & {
@@ -95,7 +95,7 @@ const CONTENT_TYPE_LABELS: Record<string, string> = {
   CLUB_CHANNEL_MESSAGE: 'Club message',
 };
 
-export function ModerationTab() {
+export function ModerationSection() {
   const {
     keyword,
     setKeyword,

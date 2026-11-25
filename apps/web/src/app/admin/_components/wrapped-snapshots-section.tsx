@@ -25,7 +25,7 @@ import { schoolYearLabel } from '~/apps/shared/school-time';
 import { formatDateTime } from '../_lib/admin-utils';
 import { AdminNotice, AdminPanel } from './admin-ui';
 
-export function WrappedSnapshotsTab() {
+export function WrappedSnapshotsSection() {
   const {
     wrappedSchoolYear,
     setWrappedSchoolYear,

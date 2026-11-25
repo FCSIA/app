@@ -486,12 +486,6 @@
     backdrop-filter: blur(var(--custom-wallpaper-blur, 0px));
   }
 
-  .custom[data-custom-wallpaper] .admin-shell {
-    background-color: hsl(var(--card) / 0.52);
-    outline: 1px solid hsl(var(--border) / 0.7);
-    outline-offset: -1px;
-  }
-
   .dark {
     color-scheme: dark;
     /* Cool ink surfaces give the warm accent a clear role and retain depth. */

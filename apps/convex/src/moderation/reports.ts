@@ -1,5 +1,5 @@
 import { clubSummary, userSummary } from "../summaries";
-import { ADMIN_MODERATION_TAB_HREF, REPORT_HREF, adminFeedbackHref } from "../../../shared/routes";
+import { ADMIN_MODERATION_HREF, REPORT_HREF, adminFeedbackHref } from "../../../shared/routes";
 import {
   isSuperAdmin,
   MODERATION_READER_ROLES,
@@ -216,7 +216,7 @@ async function createReport(
       category: isFeedback ? "FEEDBACK" : "CONTENT_MODERATED",
       title: isFeedback ? "Feedback submitted" : "Moderation report submitted",
       body: `${displayName(user)} submitted ${isFeedback ? "feedback" : "a moderation report"}.`,
-      href: isFeedback ? adminFeedbackHref(reportId) : ADMIN_MODERATION_TAB_HREF,
+      href: isFeedback ? adminFeedbackHref(reportId) : ADMIN_MODERATION_HREF,
       subject: { kind: "moderationReport", reportId },
     },
   );

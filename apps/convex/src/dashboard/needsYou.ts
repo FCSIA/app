@@ -1,4 +1,4 @@
-import { CALENDAR_HREF, adminFeedbackHref, announcementHref, clubHref, eventHref } from "../../../shared/routes";
+import { ADMIN_MODERATION_HREF, CALENDAR_HREF, adminFeedbackHref, announcementHref, clubHref, eventHref } from "../../../shared/routes";
 import { isAdmin } from "../../../shared/roles";
 import { v, type Infer } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
@@ -179,7 +179,7 @@ export const list = query({
           title: feedback ? issueTitle(report.reason) : report.reason,
           href: feedback
             ? adminFeedbackHref(report._id)
-            : "/admin?tab=reports",
+            : ADMIN_MODERATION_HREF,
           createdAt: report.createdAt,
         });
       }

@@ -52,7 +52,7 @@ function auditCountLabel(audit: ReturnType<typeof useAdminAudit>) {
     : `${shown.toLocaleString()}+ ${unit(shown)}`;
 }
 
-export function AuditTab() {
+export function AuditSection() {
   const audit = useAdminAudit();
   const table = useAuditDataTable(audit);
   const total = audit.auditCounts?.total;

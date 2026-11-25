@@ -554,14 +554,14 @@ function UserTableSection({ roster }: { roster: ReturnType<typeof useAdminUsers>
   );
 }
 
-export function AdminUsersTab() {
+export function UsersSection() {
   const searchParams = useSearchParams();
   const initialSearch = searchParams?.get('search') ?? '';
   const initialUserId = searchParams?.get('user') ?? '';
-  return <AdminUsersTabContent key={`${initialSearch}:${initialUserId}`} initialSearch={initialSearch} initialUserId={initialUserId} />;
+  return <UsersSectionContent key={`${initialSearch}:${initialUserId}`} initialSearch={initialSearch} initialUserId={initialUserId} />;
 }
 
-function AdminUsersTabContent({ initialSearch, initialUserId }: { initialSearch: string; initialUserId: string }) {
+function UsersSectionContent({ initialSearch, initialUserId }: { initialSearch: string; initialUserId: string }) {
   const users = useAdminUsers(initialSearch, initialUserId);
 
   return <UserHeaderContext.Provider value={users}><UserTableSection roster={users} /></UserHeaderContext.Provider>;

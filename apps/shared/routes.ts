@@ -12,7 +12,6 @@ export const FLEX_FRIDAY_HREF = "/flex-friday";
 export const SCHEDULE_HREF = "/schedule";
 export const CLUBS_HREF = "/clubs";
 export const CLUBS_DISCOVER_HREF = "/clubs/discover";
-export const ADMIN_MODERATION_TAB_HREF = "/admin?tab=moderation";
 export const ADMIN_MODERATION_HREF = "/admin/moderation";
 
 type SearchParamsLike = { get(name: string): string | null } | null | undefined;

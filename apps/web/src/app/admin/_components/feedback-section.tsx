@@ -19,6 +19,8 @@ import {
   TriangleAlert,
   Undo2,
 } from 'lucide-react';
+import { useCurrentUser } from '@/lib/auth';
+import { isSuperAdmin } from '~/apps/shared/roles';
 import { displayName } from '~/apps/shared/user-name';
 import { canRetryGithubSync, githubSyncStaleAt } from '~/apps/shared/feedback-sync';
 import type { Doc, Id } from '~/apps/convex/src/_generated/dataModel';
@@ -118,7 +120,8 @@ const VIEWS = [
   { value: 'archive', label: 'Archive', icon: Archive, status: 'DISMISSED' },
 ] as const;
 
-export function FeedbackTab({ canUpdateFeedback = true }: { canUpdateFeedback?: boolean }) {
+export function FeedbackSection() {
+  const canUpdateFeedback = isSuperAdmin(useCurrentUser());
   const {
     isLoading,
     feedbackSearch,

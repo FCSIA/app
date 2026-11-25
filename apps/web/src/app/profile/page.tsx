@@ -1,7 +1,7 @@
 'use client';
 
 import { useMounted } from '@/hooks/use-mounted';
-import { hasAnyRole, isStaff, MODERATION_ALERT_ROLES, SCHEDULE_ROLES } from '~/apps/shared/roles';
+import { hasAnyRole, MODERATION_ALERT_ROLES, SCHEDULE_ROLES } from '~/apps/shared/roles';
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useMutation, useQuery } from '@/lib/convex-react';
@@ -61,10 +61,9 @@ function ProfilePageContent() {
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const showSchedule = hasAnyRole(user, SCHEDULE_ROLES);
-  const navigationOptions = getMobileTabEditorItems({ pathname: '/profile', showAdmin: false, showSchedule, showWrapped: wrappedAvailability().open });
+  const navigationOptions = getMobileTabEditorItems({ pathname: '/profile', showSchedule, showWrapped: wrappedAvailability().open });
   const sidebarOptions = getSidebarEditorItems({
     pathname: '/profile',
-    showAdmin: isStaff(user) || Boolean(user?.canReviewFeedback),
     showSchedule,
     showFriends: hasAnyRole(user, ["STUDENT"]),
     showWrapped: wrappedAvailability().open,

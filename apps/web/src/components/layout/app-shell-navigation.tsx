@@ -45,8 +45,8 @@ import { Button } from "@/components/ui/button";
 import { normalizeMobileTabLayout } from "./mobile-tab-layout";
 import { routePath, type MobileTabId } from "@/lib/routes";
 import {
-  primaryNav, socialNav, accountNav, adminNav,
-  getNavigationItems, getSocialItems, getMobileTabEditorItems, getSidebarEditorItems,
+  primaryNav, socialNav, accountNav,
+  getAdminItems, getNavigationItems, getSocialItems, getMobileTabEditorItems, getSidebarEditorItems,
   type NavItem, type AppPageNavigation, type AppShellNavigationProps,
 } from "./app-navigation-options";
 export type { AppPageNavigation } from "./app-navigation-options";
@@ -82,6 +82,7 @@ function MobileNavLink({
     <Link
       href={href}
       onClick={onNavigate}
+      aria-current={active ? "page" : undefined}
       prefetch={true}
       {...intent}
       className={cn(
@@ -164,10 +165,8 @@ function AppShellDesktopNavigation(props: AppShellNavigationProps & {
   const pageNavigation = getPageNavigation(props);
   const getSubNavigation = (href: string) => pageNavigation.find((group) => group.parentHref === href)?.items;
   const profile = accountNav.find((item) => item.href === routePath("profile"))!;
-  const account = [
-    ...accountNav.filter((item) => item.href !== profile.href),
-    ...(props.showAdmin ? adminNav : []),
-  ];
+  const account = accountNav.filter((item) => item.href !== profile.href);
+  const admin = getAdminItems(props);
   const available = getSidebarEditorItems(props);
   const selected = normalizeSidebarLayout(props.sidebarLayout, available.map((item) => item.href));
   const customized = props.sidebarLayout !== undefined;
@@ -181,7 +180,6 @@ function AppShellDesktopNavigation(props: AppShellNavigationProps & {
       badge={item.href === "/notifications" ? props.unreadBadge : undefined}
       subNavigation={getSubNavigation(item.href)} />
   );
-
   return (
     <Sidebar variant="inset" role="navigation" aria-label="Primary navigation" className="z-40">
       <SidebarHeader>
@@ -248,6 +246,12 @@ function AppShellDesktopNavigation(props: AppShellNavigationProps & {
           </SidebarMenu>
         </SidebarGroup>
         </>}
+        {admin.length ? (
+          <SidebarGroup collapsible>
+            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarMenu>{admin.map(renderItem)}</SidebarMenu>
+          </SidebarGroup>
+        ) : null}
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
@@ -268,6 +272,7 @@ function AppShellMobileNavigation({
 }) {
   const [editorOpen, setEditorOpen] = useState(false);
   const primary = getNavigationItems(props);
+  const admin = getAdminItems(props);
   const directPaths = new Set(
     getMobileTabItems(props)
       .filter((item) => item.href !== "#more")
@@ -339,16 +344,19 @@ function AppShellMobileNavigation({
                   }
                 />
               ))}
-              {props.showAdmin
-                ? adminNav.map((item) => (
+              {admin.length ? (
+                <section aria-label="Admin">
+                  <p className="px-3 py-2 text-xs font-medium text-muted-foreground">Admin</p>
+                  {admin.map((item) => (
                     <MobileNavLink
                       key={item.href}
                       item={item}
                       onNavigate={() => onOpenChange(false)}
                       active={isActive(props.pathname, item.href, props.activeHref)}
                     />
-                  ))
-                : null}
+                  ))}
+                </section>
+              ) : null}
               <Button
                 variant="ghost"
                 className="justify-start"

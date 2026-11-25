@@ -102,13 +102,10 @@ icon rail, custom menu engine, spacing ladder, or resize/collapse behavior.
 supported `collapsible="none"` mode fills an externally bounded workspace;
 header/footer slots and feature children remain supported. Club's existing
 resizable layout and swipe-driven phone navigation remain their behavior
-owners. Admin's desktop sidebar is `WorkspaceSidebarPanel collapsible="offcanvas"`
-inside an admin-local provider (no cookie, no shortcut, 1024px breakpoint):
-the official rail owns drag-resize and collapse; the admin shell only saves
-width/open through `useSidebar()` and shows a SidebarTrigger in the content
-gutter while collapsed (owner request, 2026-11-04). Admin's phone header
-trigger uses the existing Radix Sheet focus and dismissal lifecycle. Page links use SidebarMenuButton's native Link slot and
-`isActive`, so the primitive owns `aria-current`, hover, and keyboard selection.
+owners. Admin pages compose the main sidebar's collapsible SidebarGroup with
+native SidebarMenuButton links using the Link slot and isActive. Mobile web
+uses the same destinations in the main More drawer. The primitive owns
+desktop aria-current, hover, and keyboard selection.
 Club channel trees remain feature children with their own existing persistence,
 unread state, and actions. Main navigation's app-owned `pageNavigation` config
 composes native MenuSub links under the matching real destination. The same

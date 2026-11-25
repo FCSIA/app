@@ -1,4 +1,5 @@
 import { hasAnyRole, isStudent } from '~/apps/shared/roles';
+import { adminSectionHref } from '@/lib/admin-sections';
 import { displayName, nameSearchValues } from '~/apps/shared/user-name';
 import { useMemo } from 'react';
 import { addDays, format, startOfDay } from 'date-fns';
@@ -278,7 +279,7 @@ export function useGlobalCommandActions({
       detail: 'IA community member',
       href: hasAnyRole(user, ['STUDENT'])
         ? `/schedule?tab=friends&search=${encodeURIComponent(displayName(person))}`
-        : `/admin?search=${encodeURIComponent(displayName(person))}`,
+        : adminSectionHref('users', new URLSearchParams({ search: displayName(person) })),
       Icon: UserRound,
       keywords: ['person', 'people', ...nameSearchValues(person)],
     }));

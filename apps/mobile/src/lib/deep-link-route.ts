@@ -1,4 +1,5 @@
 import {
+  ADMIN_MODERATION_HREF,
   clubChannelHref,
   clubHref,
   matchClubChannelPath,
@@ -43,8 +44,13 @@ export function resolveAppHref(href?: string | null) {
   if (path.startsWith("/notifications")) return "/notifications";
   if (path.startsWith("/profile")) return "/profile";
   if (path.startsWith("/settings/theme")) return "/settings/theme";
-  if (path.startsWith("/admin?tab=moderation")) return "/admin/moderation";
-  if (path.startsWith("/admin")) return "/admin";
+  const [pathname, search] = path.split("?", 2);
+  if (pathname === ADMIN_MODERATION_HREF) return ADMIN_MODERATION_HREF;
+  if (pathname === "/admin") {
+    const tab = new URLSearchParams(search).get("tab");
+    return tab === "moderation" || tab === "reports" ? ADMIN_MODERATION_HREF : "/admin";
+  }
+  if (pathname.startsWith("/admin/")) return "/admin";
 
   return "/dashboard";
 }

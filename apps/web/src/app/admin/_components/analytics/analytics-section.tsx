@@ -55,7 +55,7 @@ function rangeFor(days: number, today: string): Range {
   return { fromDay: shiftDay(toDay, -(days - 1)), toDay };
 }
 
-export function AnalyticsTab() {
+export function AnalyticsSection() {
   const [section, setSection] = useState<SectionId>('engagement');
   const [days, setDays] = useState<(typeof rangeOptions)[number]>(30);
   const today = useMemo(() => schoolDateKey(), []);

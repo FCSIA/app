@@ -6,7 +6,6 @@ import {
   MessageSquareText,
   Megaphone,
   Settings,
-  Shield,
   Presentation,
   MapPinned,
   Star,
@@ -21,6 +20,7 @@ import {
   type MobileTabId,
   type NavSection,
 } from "@/lib/routes";
+import { adminSectionHref, visibleAdminSections, type AdminAccess } from "@/lib/admin-sections";
 import { SCHEDULE_FRIENDS_HREF } from "~/apps/shared/routes";
 
 
@@ -55,7 +55,6 @@ const ROUTE_ICONS: Record<NavRouteId, LucideIcon> = {
   notifications: Bell,
   report: MessageSquareText,
   profile: Settings,
-  admin: Shield,
 };
 
 function navItems(section: NavSection): NavItem[] {
@@ -73,12 +72,12 @@ export const socialNav: NavItem[] = [
   { href: SCHEDULE_FRIENDS_HREF, label: "Friends", icon: UsersRound },
 ];
 export const accountNav = navItems("account");
-export const adminNav = navItems("admin");
 
 export type AppShellNavigationProps = {
   pathname: string;
   unreadBadge?: string;
-  showAdmin: boolean;
+  adminAccess?: AdminAccess;
+  pendingReports?: number;
   showSchedule: boolean;
   showFriends?: boolean;
   showDayPlans?: boolean;
@@ -110,8 +109,17 @@ export function getSidebarEditorItems(props: AppShellNavigationProps) {
   return [
     ...getNavigationItems(props).filter((item) => item.href !== "/"),
     ...accountNav.filter((item) => item.href !== "/profile"),
-    ...(props.showAdmin ? adminNav : []),
   ];
+}
+
+/** The permission-filtered sidebar group; each entry is one administration page. */
+export function getAdminItems({ adminAccess, pendingReports }: Pick<AppShellNavigationProps, "adminAccess" | "pendingReports">): NavItem[] {
+  if (!adminAccess) return [];
+  return visibleAdminSections(adminAccess).map((section) => ({
+    href: adminSectionHref(section.id),
+    label: section.id === "moderation" && pendingReports ? `${section.label} (${pendingReports})` : section.label,
+    icon: section.icon,
+  }));
 }
 
 export function getMobileTabEditorItems(props: AppShellNavigationProps) {

@@ -12,7 +12,8 @@ account and sync through the self-profile query.
   role-appropriate default. Existing saved mobile layouts remain compatible.
 - Drag handles support mouse, touch, and keyboard (Space, arrows, Space).
   Cancel discards edits; changes and Reset take effect only after Save.
-- Role and seasonal availability are applied when rendering, independently of
+- Admin pages stay in a fixed Admin group in the desktop sidebar and in More
+  on mobile web. Role and seasonal availability are applied when rendering, independently of
   saved preferences. Desktop edits retain temporarily unavailable destinations.
   Preferences do not grant access to routes or data.
 

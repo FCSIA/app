@@ -73,7 +73,7 @@ function RoleSummary({ roles }: { roles: string[] }) {
       title={fullLabel}
     >
       {visibleRoles.map((role) => (
-        <Badge key={role} variant="solid" size="sm">
+        <Badge key={role} variant="solid" size="sm" className="shrink-0">
           {formatRoleLabel(role)}
         </Badge>
       ))}
@@ -410,6 +410,7 @@ function UserTableSection({ roster }: { roster: ReturnType<typeof useAdminUsers>
     {
       ...rosterColumn('roles', 'Roles', (user) => (user.roles ?? []).join(', ')),
       cell: ({ row }) => <RoleSummary roles={row.original.roles ?? []} />,
+      meta: { label: 'Roles', shrink: false },
     },
     {
       ...rosterColumn('status', 'Status', (user) => (user.isActive ? 'Active' : 'Inactive')),
@@ -418,6 +419,7 @@ function UserTableSection({ roster }: { roster: ReturnType<typeof useAdminUsers>
           {row.original.isActive ? 'Active' : 'Inactive'}
         </Badge>
       ),
+      meta: { label: 'Status', shrink: false },
     },
     rosterColumn('school-id', 'School ID', (user) => user.uniqueId, { minWidth: 'min-w-28' }),
     rosterColumn('email', 'Email', (user) => user.email, { minWidth: 'min-w-52' }),
@@ -457,7 +459,7 @@ function UserTableSection({ roster }: { roster: ReturnType<typeof useAdminUsers>
     enableSorting: false,
     enableColumnFilters: false,
     initialState: { columnVisibility: {
-      'flex-excused': false, 'flex-tardies': false, 'flex-last': false,
+      'flex-absences': false, 'flex-excused': false, 'flex-tardies': false, 'flex-last': false,
       'roster-name': false, 'preferred-name': false, password: false, developer: false,
       'feedback-reviewer': false, created: false, updated: false,
     } },

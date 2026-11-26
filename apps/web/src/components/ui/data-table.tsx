@@ -154,6 +154,10 @@ declare module "@tanstack/react-table" {
      *  column room with `className: "w-full"`; omitted, the text stays on
      *  one line (cut short when the table resizes). */
     lines?: 1 | 2 | "wrap";
+    /** `false` keeps the column at its content's width (up to 240px) when the
+     *  table is short of room, for cells that can't be cut short the way text
+     *  can, like a row of badges. The table scrolls sideways instead. */
+    shrink?: false;
     /** An icon before the header's title. DataTable draws it for a string
      *  `header`; DataTableColumnHeader draws it inside its sort button. */
     icon?: IconComponent;
@@ -1824,7 +1828,11 @@ function DataTable<TData>({
       // A date editor's trigger can't cut its text short the way a plain
       // cell does: short of room, its column keeps the date whole instead
       // of running it into the cell's edge.
-      if (tableNode.querySelector(`tbody td[data-column-id="${id}"] [data-slot=date-picker]`))
+      // Badges and the like (`meta.shrink: false`) can't be cut short either.
+      if (
+        column?.columnDef.meta?.shrink === false ||
+        tableNode.querySelector(`tbody td[data-column-id="${id}"] [data-slot=date-picker]`)
+      )
         floor = Math.max(floor, Math.ceil(Math.min(content, NATURAL_CAP)));
       const size = ownSize(table.options.columns, id);
       const own = size !== undefined || !column?.getCanResize();
